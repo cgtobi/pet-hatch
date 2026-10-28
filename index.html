@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <meta name="theme-color" content="#a9daf5" />
+    <meta name="description" content="Hatch and raise a tiny creature on a floating island." />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Pet Hatch" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+    <title>Pet Hatch</title>
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="scene"></canvas>
+
+      <section id="status" class="card">
+        <div class="status-head">
+          <div class="status-text">
+            <h1 id="title"></h1>
+            <p id="subtitle" class="muted"></p>
+          </div>
+          <button id="btn-more" class="round" type="button"></button>
+        </div>
+        <div id="stages" class="stages"></div>
+        <div id="needs" class="needs"></div>
+        <div id="leaning" class="leaning">
+          <span id="lean-title" class="muted"></span>
+          <div class="lean-bar">
+            <div id="lean-ember" class="lean-ember"></div>
+            <div id="lean-tide" class="lean-tide"></div>
+            <div id="lean-bloom" class="lean-bloom"></div>
+          </div>
+          <span id="lean-label"></span>
+        </div>
+      </section>
+
+      <p id="hint" class="hint"></p>
+      <div id="toast" class="toast" role="status" aria-live="polite"></div>
+      <nav id="dock" class="dock card"></nav>
+
+      <div id="overlay" class="overlay" hidden>
+        <div class="sheet card" role="dialog" aria-modal="true" aria-labelledby="overlay-title">
+          <h2 id="overlay-title"></h2>
+          <p id="overlay-body"></p>
+          <button id="overlay-button" class="primary" type="button"></button>
+        </div>
+      </div>
+
+      <dialog id="settings" class="card" aria-labelledby="settings-title"></dialog>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
