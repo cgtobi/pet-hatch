@@ -1,4 +1,4 @@
-export type PickResult = 'egg' | 'baby' | null;
+export type PickResult = 'egg' | 'pet' | null;
 
 export interface GestureHandlers {
   pick(x: number, y: number): PickResult;
@@ -28,7 +28,7 @@ const STROKE_REVERSALS = 2;
  */
 export function attachGestures(el: HTMLElement, h: GestureHandlers): void {
   let id: number | null = null;
-  let mode: 'egg' | 'baby' | 'orbit' = 'orbit';
+  let mode: 'egg' | 'pet' | 'orbit' = 'orbit';
   let startX = 0;
   let startY = 0;
   let startT = 0;
@@ -55,8 +55,8 @@ export function attachGestures(el: HTMLElement, h: GestureHandlers): void {
       if (quick && -dy > SWIPE_MIN && Math.abs(dy) > Math.abs(dx)) h.onMist();
       else if (quick && Math.abs(dx) > SWIPE_MIN && Math.abs(dx) > Math.abs(dy)) h.onTurn(dx > 0 ? 1 : -1);
       else if (moved() < TAP_SLOP) h.onTap('egg');
-    } else if (!cancelled && mode === 'baby' && moved() < TAP_SLOP) {
-      h.onTap('baby');
+    } else if (!cancelled && mode === 'pet' && moved() < TAP_SLOP) {
+      h.onTap('pet');
     }
     if (mode === 'orbit') h.onOrbitEnd(cancelled ? 0 : vx);
     id = null;

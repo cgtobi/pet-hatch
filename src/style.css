@@ -3,7 +3,7 @@
   --ink-2: #3a3446;
   --muted: #6b6478;
   --card: rgba(255, 255, 255, 0.92);
-  --track: #f1ecf4;
+  --track: #ebe4f1;
   --line: #eee8f2;
   --ember: #f28a4a;
   --ember-ink: #b9480f;
@@ -108,6 +108,110 @@ button:focus:not(:focus-visible) {
 
 .status-text {
   min-width: 0;
+}
+
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.chips {
+  display: flex;
+  gap: 6px;
+}
+
+.chip {
+  padding: 3px 9px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.chip.ember {
+  background: var(--ember-bg);
+  color: #9a3a0c;
+}
+.chip.tide {
+  background: var(--tide-bg);
+  color: #155a87;
+}
+.chip.bloom {
+  background: var(--bloom-bg);
+  color: #1e6b41;
+}
+.chip.astral {
+  background: var(--violet-bg);
+  color: var(--violet-ink);
+}
+.chip.neutral {
+  background: #f3eef7;
+  color: #4a4258;
+}
+
+.status-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.vitals {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.health {
+  white-space: nowrap;
+}
+
+.health.bad {
+  color: #b5321e;
+  font-weight: 800;
+}
+
+.discipline {
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.discipline .track {
+  flex-grow: 1;
+}
+
+#discipline-fill {
+  background: #8c76d6;
+}
+
+.overlay-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--muted);
+}
+
+.overlay-field input {
+  font: inherit;
+  font-family: var(--display);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--ink);
+  border: 1.5px solid #e1d9ea;
+  border-radius: 14px;
+  padding: 10px 12px;
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 #title {
@@ -382,6 +486,7 @@ button:focus:not(:focus-visible) {
   transform: scale(0.92);
 }
 
+.round.on,
 .dock button.on .bubble {
   box-shadow: 0 0 0 3px currentColor inset;
 }

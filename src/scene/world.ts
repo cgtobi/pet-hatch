@@ -1,10 +1,11 @@
 import * as THREE from 'three';
-import type { ElementType } from '../sim/types';
-import { Baby } from './baby';
+import type { Dropping, ElementType } from '../sim/types';
 import { Effects } from './effects';
 import { Egg3D } from './egg3d';
-import { Island } from './island';
+import { GROUND_Y, Island } from './island';
+import { Pet3D } from './pet3d';
 import { Sky, skyAt } from './sky';
+import { toon } from './toon';
 
 const PITCH = 0.3;
 const TARGET = new THREE.Vector3(0, -0.1, 0);
@@ -25,7 +26,9 @@ export class World {
   readonly camera = new THREE.PerspectiveCamera(VERTICAL_FOV, 1, 0.1, 200);
   readonly egg: Egg3D;
   readonly effects = new Effects();
-  baby: Baby | null = null;
+  pet: Pet3D | null = null;
+  private droppings = new Map<number, THREE.Group>();
+  private droppingMats = [toon('#9a6b4c'), toon('#a87756'), toon('#b5845f')];
 
   private sky = new Sky();
   private island: Island;
@@ -82,27 +85,65 @@ export class World {
   }
 
   /** Returns what is under a screen point. */
-  pick(clientX: number, clientY: number): 'egg' | 'baby' | null {
+  pick(clientX: number, clientY: number): 'egg' | 'pet' | null {
     const rect = this.canvas.getBoundingClientRect();
     const ndc = new THREE.Vector2(((clientX - rect.left) / rect.width) * 2 - 1, -((clientY - rect.top) / rect.height) * 2 + 1);
     this.raycaster.setFromCamera(ndc, this.camera);
-    if (this.baby && this.raycaster.intersectObject(this.baby.group, true).length) return 'baby';
+    if (this.pet && this.raycaster.intersectObject(this.pet.group, true).length) return 'pet';
     if (this.egg.group.visible && this.raycaster.intersectObjects(this.egg.hitTargets, true).length) return 'egg';
     return null;
   }
 
-  showBaby(type: ElementType, animate: boolean): void {
-    if (this.baby) this.scene.remove(this.baby.group);
-    this.baby = new Baby(type);
-    if (animate) this.baby.pop();
-    this.scene.add(this.baby.group);
+  showPet(type: ElementType, seed: number, stage: number, animate: boolean): Pet3D {
+    if (this.pet) this.scene.remove(this.pet.group);
+    this.pet = new Pet3D(type, seed);
+    this.pet.setStage(stage, false);
+    if (animate) this.pet.pop();
+    this.scene.add(this.pet.group);
     this.egg.setHatched(true);
+    return this.pet;
   }
 
-  removeBaby(): void {
-    if (this.baby) this.scene.remove(this.baby.group);
-    this.baby = null;
+  removePet(): void {
+    if (this.pet) this.scene.remove(this.pet.group);
+    this.pet = null;
     this.egg.setHatched(false);
+    this.setDroppings([]);
+  }
+
+  /** Keep the droppings on the island in sync with the simulation; returns positions of removed ones. */
+  setDroppings(list: Dropping[]): THREE.Vector3[] {
+    const removed: THREE.Vector3[] = [];
+    const keep = new Set(list.map((d) => d.at));
+    for (const [at, mesh] of this.droppings) {
+      if (keep.has(at)) continue;
+      removed.push(mesh.position.clone());
+      this.scene.remove(mesh);
+      this.droppings.delete(at);
+    }
+    for (const d of list) {
+      if (this.droppings.has(d.at)) continue;
+      const g = new THREE.Group();
+      const sizes: [number, number, number][] = [
+        [0.17, 0.09, 0.07],
+        [0.12, 0.08, 0.17],
+        [0.07, 0.07, 0.26],
+      ];
+      sizes.forEach(([r, h, y], i) => {
+        const blob = new THREE.Mesh(new THREE.SphereGeometry(r, 12, 8), this.droppingMats[i]);
+        blob.scale.y = h / r;
+        blob.position.y = y;
+        g.add(blob);
+      });
+      g.position.set(Math.cos(d.angle) * d.dist, GROUND_Y, Math.sin(d.angle) * d.dist);
+      this.scene.add(g);
+      this.droppings.set(d.at, g);
+    }
+    return removed;
+  }
+
+  droppingPositions(): THREE.Vector3[] {
+    return [...this.droppings.values()].map((g) => g.position.clone().setY(GROUND_Y + 0.35));
   }
 
   render(dt: number, time: number, hour: number, lightsOff: boolean): void {
@@ -133,7 +174,7 @@ export class World {
 
     this.island.update(time, dt);
     this.effects.update(dt);
-    this.baby?.update(dt, time);
+    this.pet?.update(dt, time);
     this.renderer.render(this.scene, this.camera);
   }
 }

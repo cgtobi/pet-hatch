@@ -1,4 +1,5 @@
 import { DEFAULT_SETTINGS } from './game';
+import { migratePet } from './pet';
 import type { GameState } from './types';
 
 const KEY = 'pethatch.save';
@@ -56,5 +57,6 @@ function parseSave(json: string): GameState | null {
   if (!ok) return null;
   // Fill in settings added after the save was written.
   s.settings = { ...DEFAULT_SETTINGS, ...s.settings };
+  if (s.pet) s.pet = migratePet(s.pet);
   return s;
 }

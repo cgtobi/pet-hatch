@@ -21,10 +21,16 @@
       <section id="status" class="card">
         <div class="status-head">
           <div class="status-text">
-            <h1 id="title"></h1>
+            <div class="title-row">
+              <h1 id="title"></h1>
+              <span id="chips" class="chips"></span>
+            </div>
             <p id="subtitle" class="muted"></p>
           </div>
-          <button id="btn-more" class="round" type="button"></button>
+          <div class="status-buttons">
+            <button id="btn-lights" class="round violet-btn" type="button" hidden></button>
+            <button id="btn-more" class="round" type="button"></button>
+          </div>
         </div>
         <div id="stages" class="stages"></div>
         <div id="needs" class="needs"></div>
@@ -37,6 +43,13 @@
           </div>
           <span id="lean-label"></span>
         </div>
+        <div id="vitals" class="vitals" hidden>
+          <span id="health" class="health"></span>
+          <div class="discipline">
+            <span id="discipline-label"></span>
+            <div class="track"><div id="discipline-fill" class="fill"></div></div>
+          </div>
+        </div>
       </section>
 
       <p id="hint" class="hint"></p>
@@ -47,6 +60,10 @@
         <div class="sheet card" role="dialog" aria-modal="true" aria-labelledby="overlay-title">
           <h2 id="overlay-title"></h2>
           <p id="overlay-body"></p>
+          <label id="overlay-field" class="overlay-field" hidden>
+            <span id="overlay-label"></span>
+            <input id="overlay-input" type="text" maxlength="14" autocomplete="off" enterkeyhint="done" />
+          </label>
           <button id="overlay-button" class="primary" type="button"></button>
         </div>
       </div>

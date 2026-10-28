@@ -107,7 +107,12 @@ export class Egg3D {
     this.glow = this.buildGlow();
     this.group.add(this.glow, nest, this.pivot, this.shellBottom);
     this.group.position.y = GROUND_Y;
-    this.hitTargets.push(this.mesh, nest);
+    // An invisible, generous tap target so a hopping egg is still easy to hit.
+    const hit = new THREE.Mesh(new THREE.SphereGeometry(0.85, 12, 8), new THREE.MeshBasicMaterial({ visible: false }));
+    hit.scale.y = 1.15;
+    hit.position.y = 0.6;
+    this.pivot.add(hit);
+    this.hitTargets.push(hit, nest);
     this.draw({ crack: 0, leaning: { ember: 0, tide: 0, bloom: 0, total: 0, label: 'Unknown' }, failed: false });
   }
 

@@ -20,6 +20,7 @@ export function unlockAudio(): void {
 }
 
 export function buzz(ms: number | number[]): void {
+  if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return;
   navigator.vibrate?.(ms);
 }
 
@@ -68,6 +69,11 @@ export const sfx = {
     noise(0, 0.08, 0.5, 1800);
     tone(900, 0, 0.05, 'square', 0.04, 500);
   },
+  eat: () => [0, 0.18, 0.36].forEach((at) => tone(300, at, 0.08, 'square', 0.05, 220)),
+  play: () => [523, 784, 659, 1047].forEach((f, i) => tone(f, i * 0.1, 0.12, 'triangle', 0.1)),
+  cure: () => [659, 880, 1175].forEach((f, i) => tone(f, i * 0.08, 0.2, 'sine', 0.1)),
+  scold: () => tone(180, 0, 0.25, 'sawtooth', 0.06, 120),
+  grow: () => [392, 523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, i * 0.11, 0.35, 'triangle', 0.1)),
   hatch: () => {
     noise(0, 0.25, 0.6, 1400);
     [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, 0.15 + i * 0.09, 0.3, 'triangle', 0.12));

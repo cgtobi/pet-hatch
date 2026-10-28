@@ -1,5 +1,6 @@
 import { HOUR, MINUTE } from './clock';
 import { createEgg, eggType, HATCH_WAIT_H, tickEgg } from './egg';
+import { createPet, tickPet } from './pet';
 import { randomSeed } from './rng';
 import type { GameState, PetState, Settings } from './types';
 
@@ -39,7 +40,9 @@ export function advance(state: GameState, to: number): void {
   while (state.simTime < to) {
     const dt = Math.min(STEP, to - state.simTime);
     state.simTime += dt;
-    if (state.phase === 'egg') {
+    if (state.phase === 'hatched' && state.pet) {
+      tickPet(state.pet, state.simTime, dt / HOUR, state.settings, state.egg.lightsOn);
+    } else if (state.phase === 'egg') {
       tickEgg(state.egg, state.simTime, dt / HOUR, state.settings);
       const { readyAt } = state.egg;
       if (readyAt !== null && state.simTime - readyAt >= HATCH_WAIT_H * HOUR) {
@@ -55,17 +58,16 @@ export function isReadyToHatch(state: GameState): boolean {
 }
 
 export function hatch(state: GameState, at: number, alone: boolean): PetState {
-  const { egg } = state;
-  const pet: PetState = {
-    type: eggType(egg),
-    seed: egg.seed,
-    hatchedAt: at,
-    hatchedAlone: alone,
-    revealSeen: false,
-    health: egg.health,
-    careMistakes: egg.careMistakes,
-  };
+  const pet = createPet(state.egg, eggType(state.egg), at, alone);
   state.phase = 'hatched';
   state.pet = pet;
   return pet;
+}
+
+/** Replace the finished pet (or failed egg) with a fresh egg, keeping settings and debug clock. */
+export function layNewEgg(state: GameState, now: number, seed = randomSeed()): void {
+  const fresh = newGame(now, state.settings, seed);
+  fresh.clockOffset = state.clockOffset;
+  fresh.egg.lightsOn = state.egg.lightsOn;
+  Object.assign(state, fresh);
 }

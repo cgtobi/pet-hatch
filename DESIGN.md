@@ -55,11 +55,50 @@ The exact hatch time is **hidden** and **random**:
 | Gentle (default) | Health loss, floored at 10%. It always hatches, just more slowly. |
 | Classic | 1.5× health loss. At 0 the egg is lost and you start a new one. |
 
-## After hatching (🔜 milestones 2–4)
+## Life after hatching
 
-- Life stages: Egg 1 d → Baby 1 d → Child 3 d → Teen 5 d → Adult ~3 wk → Elder ~1 wk. The Elder then retires
-  and leaves an egg that inherits one trait or move.
-- Needs: Hunger, Mood, Energy, Hygiene (droppings), Health (sickness, medicine) and Discipline.
+### Life stages ✅
+
+Egg 1 d → **Baby** 1 d → **Child** 3 d → **Teen** 5 d → **Adult** 3 wk → **Elder** 1 wk. The pet grows bigger at
+each stage, with a spin, flash and sparkle when it does. After the Elder stage it retires: it sets off on an
+adventure and leaves a new egg. (🔜 The new egg inherits one trait or move from its parent.)
+
+You name the baby when it hatches (a name is suggested).
+
+### Needs and care ✅
+
+| Need | Drops by (per awake hour, Baby → Adult) | Care action |
+|---|---|---|
+| Food | 25 → 12 | **Feed** (+35; refused when nearly full or asleep) |
+| Mood | 18 → 10 (×1.5 while sick) | **Play** (+20 mood, −12 energy) or tap the pet (+2) |
+| Energy | −5 awake; +25 asleep in the dark, +10 with lights on | Sleep, **Lights** off at night |
+| Clean | One dropping 1.5–3 h after each meal (max 5) | **Clean** |
+
+- **Naps:** a pet that runs out of energy during the day naps on its own until it has 70% again.
+  Energy never triggers a call, because the player can't fix it directly.
+- **Sickness:** droppings piling up, starving and misery make sickness likely (per-hour chance); **Medicine** cures it in
+  two doses. Medicine when not sick upsets it. Cozy mode has no sickness.
+- **Health** recovers while fed and happy, and drops while sick.
+- **Attention calls (the "!" bubble):** the pet calls when food or mood drops below 20% or it gets sick
+  (a *need* call, cleared by caring for it). Every 3–6 awake hours it also throws a *tantrum*, a call with nothing
+  wrong. **Scold** fixes a tantrum (+20 discipline). Scolding a pet with a real need, or for nothing, upsets it.
+  The hint line helps tell the two apart: "…but nothing seems wrong".
+- **Care mistakes** (stored per life stage, for evolution in milestone 3): an ignored call (30 min), a dropping
+  left 1 awake hour, lights left on 30 min into bedtime (once per night). A diligent owner makes almost none (tested).
+- **Night:** calls pause, droppings don't age, and needs drain at 10% (lights off) or 30% (lights on).
+
+### Endings ✅
+
+| Mode | Neglect leads to |
+|---|---|
+| Cozy | Nothing bad: no sickness, health never below 50%. |
+| Gentle (default) | Health floor 10%; after 24 awake hours of total neglect (starving *and* miserable) the pet **runs away**. |
+| Classic | 1.5× health loss; at 0 the pet **dies**. |
+
+After any ending, a new egg starts.
+
+### Still to come (🔜 milestones 3–4)
+
 - Evolution: Child form by care quality, Teen form by physical vs. technical training, Adult form by highest
   stat. About 9 forms per type, all built in code from primitives.
 - Training: Power / Speed / Guard / Wits minigames of 15–30 s; each costs ~20% energy; each stage caps stats.
@@ -75,7 +114,7 @@ UI: Fredoka (display) + Nunito (body), self-hosted Latin subsets.
 ## Milestones
 
 1. ✅ Simulation core, island scene, egg phase, hatch and reveal, settings, i18n, installable app.
-2. 🔜 Baby care loop and aging stages.
+2. ✅ Pet care loop, attention calls and discipline, sickness, naps, aging stages, endings, naming.
 3. 🔜 Training minigames, stats and evolution.
 4. 🔜 Moves and battles, wild creatures and share codes.
 5. 🔜 Polish: sound design, haptics tuning, more languages.
@@ -84,10 +123,10 @@ UI: Fredoka (display) + Nunito (body), self-hosted Latin subsets.
 
 | Path | What |
 |---|---|
-| `src/sim/` | Pure game rules, no DOM or three.js: `egg.ts` rules, `game.ts` catch-up and hatching, `save.ts` persistence. Unit tested in `sim.test.ts`. |
-| `src/scene/` | three.js: `world.ts` (renderer, camera framing, lights), `island.ts`, `egg3d.ts`, `baby.ts`, `sky.ts`, `effects.ts`. |
+| `src/sim/` | Pure game rules, no DOM or three.js: `egg.ts` and `pet.ts` rules, `game.ts` catch-up and hatching, `save.ts` persistence and save upgrades. Unit tested in `sim.test.ts` and `pet.test.ts`. |
+| `src/scene/` | three.js: `world.ts` (renderer, camera framing, lights), `island.ts`, `egg3d.ts`, `pet3d.ts` (the living pet), `sky.ts`, `effects.ts`. |
 | `src/input/gestures.ts` | Pointer events → hold / swipe / stroke / tap / orbit. |
 | `src/ui/` | DOM HUD, settings sheet and icons. |
 | `src/i18n.ts` | All player-facing text, English and German. |
-| `src/main.ts` | Wires it together: game loop, actions, hints, hatch moment. |
+| `src/main.ts` | Wires it together: game loop, care actions, hints, hatch moment, growing up and endings. |
 | `vite.config.ts` | Relative base and the service-worker generator. |
