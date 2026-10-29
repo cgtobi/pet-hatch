@@ -1,18 +1,14 @@
 import * as THREE from 'three';
 import { mulberry32 } from '../sim/rng';
 import type { ElementType, FormId } from '../sim/types';
-import { GROUND_Y } from './island';
+import { GROUND_Y, type Obstacle } from './island';
 import { facet, toon, TYPE_COLORS } from './toon';
 
 /** Overall size per life stage (baby … elder). */
 const STAGE_SCALE = [1.3, 1.55, 1.8, 2.0, 1.95];
 const WANDER_RADIUS = 1.9;
-/** Spots the pet steers around: tree, big rock, tipped-over shell. */
-const OBSTACLES: [number, number, number][] = [
-  [-1.75, -1.0, 1.05],
-  [1.9, -0.9, 1.0],
-  [0.95, 0.35, 1.0],
-];
+/** The tipped-over eggshell beside the nest, which every island has. */
+const SHELL: Obstacle = [0.95, 0.35, 1.0];
 const SICK_TINT = new THREE.Color('#a8b88a');
 const ELDER_TINT = new THREE.Color('#d9d2c8');
 
@@ -110,6 +106,8 @@ export class Pet3D {
   private walkPhase = 0;
   private blinkIn = 2;
   private anim: { kind: Anim; t: number; dur: number } | null = null;
+  /** Spots to steer around while wandering: this island's trees, bushes, rocks and pond, plus the shell. */
+  obstacles: Obstacle[] = [SHELL];
   /** In a battle: hold this spot and facing instead of wandering. */
   private post: { x: number; z: number; heading: number } | null = null;
   private fainted = false;
@@ -503,7 +501,7 @@ export class Pet3D {
       const d = Math.sqrt(this.rand()) * WANDER_RADIUS;
       const x = Math.cos(a) * d;
       const z = Math.sin(a) * d;
-      if (OBSTACLES.every(([ox, oz, r]) => Math.hypot(x - ox, z - oz) > r)) return new THREE.Vector2(x, z);
+      if (this.obstacles.every(([ox, oz, r]) => Math.hypot(x - ox, z - oz) > r)) return new THREE.Vector2(x, z);
     }
     return new THREE.Vector2(0, 0.3);
   }

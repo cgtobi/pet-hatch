@@ -271,7 +271,13 @@ A public waiting room for live battles against strangers of similar strength.
 ## Look
 
 Cute low-poly scene: a floating island with toon shading (three-band gradient map), a sky that follows the local
-time, drifting clouds and bobbing mini-islands. The egg's speckles take on the colors of the care it gets.
+time, drifting clouds and bobbing mini-islands.
+
+- **Every island is different**, laid out from the egg's seed: 1–3 trees (round, pine, blossom or apple),
+  2–5 bushes (some with berries or flowers), 1–4 rocks, flowers and grass, and on about 40% of islands a small
+  pond with a stone rim, a lily pad and sometimes reeds. Trees and the pond stay at the back and sides so they
+  never hide the pet; the nest, the shell spot and both battle spots stay free. The pet walks around this
+  island's trees, bushes, larger rocks and pond, and droppings are nudged out of them. The egg's speckles take on the colors of the care it gets.
 UI: Fredoka (display) + Nunito (body), self-hosted Latin subsets.
 
 ## Milestones

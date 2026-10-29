@@ -110,6 +110,7 @@ export class World {
   showPet(type: ElementType, seed: number, stage: number, form: FormId, animate: boolean): Pet3D {
     if (this.pet) this.scene.remove(this.pet.group);
     this.pet = new Pet3D(type, seed, form);
+    this.pet.obstacles.push(...this.island.obstacles);
     this.pet.setForm(form, stage, false);
     if (animate) this.pet.pop();
     this.scene.add(this.pet.group);
@@ -172,11 +173,25 @@ export class World {
         blob.position.y = y;
         g.add(blob);
       });
-      g.position.set(Math.cos(d.angle) * d.dist, GROUND_Y, Math.sin(d.angle) * d.dist);
+      g.position.copy(this.clearSpot(Math.cos(d.angle) * d.dist, Math.sin(d.angle) * d.dist));
       this.scene.add(g);
       this.droppings.set(d.at, g);
     }
     return removed;
+  }
+
+  /** Nudge a spot out of any pond, tree or bush it landed in (droppings are placed by the simulation). */
+  private clearSpot(x: number, z: number): THREE.Vector3 {
+    for (const [ox, oz, r] of this.island.obstacles) {
+      const dx = x - ox;
+      const dz = z - oz;
+      const d = Math.hypot(dx, dz);
+      if (d >= r) continue;
+      const k = d > 0.001 ? r / d : 1;
+      x = ox + (d > 0.001 ? dx : r) * k;
+      z = oz + (d > 0.001 ? dz : 0) * k;
+    }
+    return new THREE.Vector3(x, GROUND_Y, z);
   }
 
   droppingPositions(): THREE.Vector3[] {
