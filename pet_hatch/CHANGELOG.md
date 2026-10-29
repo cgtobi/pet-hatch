@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.2
+
+- The island turns all the way round; light and the pet follow the view.
+
 ## 0.3.1
 
 - Leaving a live or dojo battle after the first turn now counts as a loss, and a dropped connection no longer
