@@ -176,7 +176,10 @@ export class Hud {
     this.leaning.hidden = mode !== 'egg';
     this.vitals.hidden = mode !== 'pet';
     this.lights.hidden = mode !== 'pet';
-    if (mode !== 'pet') this.chips.replaceChildren();
+    if (mode === 'none') {
+      this.chips.replaceChildren();
+      this.chips.dataset.key = '';
+    }
   }
 
   setHeader(title: string, subtitle: string, chips: Chip[] = []): void {

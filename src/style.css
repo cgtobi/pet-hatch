@@ -704,25 +704,30 @@ textarea {
   resize: vertical;
 }
 
-.segmented {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
+/* ---------- family (in settings) ---------- */
+
+.family-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
 }
 
-.segmented button {
-  min-height: 40px;
-  border-radius: 12px;
-  border: 1.5px solid #e1d9ea;
-  background: #fff;
-  font-weight: 800;
-  font-size: 13px;
+.family-row .chip {
+  margin-top: 1px;
 }
 
-.segmented button[aria-pressed='true'] {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: #fff;
+.family-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.family-text small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 /* ---------- help (in settings) ---------- */
@@ -756,7 +761,7 @@ textarea {
   color: var(--muted);
 }
 
-.help[open] summary::after {
+.help[open] > summary::after {
   content: '–';
 }
 
@@ -770,6 +775,26 @@ textarea {
   font-weight: 600;
   line-height: 1.45;
   color: var(--ink-2);
+}
+
+/* The outer "How to play" entry: bolder, with its topics nested inside. */
+.help-all {
+  background: #f6f2fa;
+}
+
+.help-all > summary {
+  font-size: 15px;
+}
+
+.help-topics {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 10px 10px;
+}
+
+.help-topics .help {
+  background: #fff;
 }
 
 /* ---------- training ---------- */

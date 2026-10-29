@@ -94,10 +94,11 @@ export function createPet(egg: EggState, type: ElementType, at: number, alone: b
     form: 'baby',
     shownStage: 0,
     shownForm: 'baby',
-    stats: { power: 0, speed: 0, guard: 0, wits: 0 },
+    stats: { power: 0, speed: 0, guard: 0, wits: 0, ...(egg.heritage && { [egg.heritage.stat]: egg.heritage.bonus }) },
     trainings: 0,
     path: ['baby'],
     battles: { wins: 0, losses: 0 },
+    generation: egg.heritage?.generation ?? 1,
   };
 }
 

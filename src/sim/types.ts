@@ -1,4 +1,5 @@
 export type ElementType = 'ember' | 'tide' | 'bloom' | 'astral';
+export type Language = 'en' | 'de' | 'fr' | 'es' | 'it' | 'nl';
 export type NeglectMode = 'cozy' | 'gentle' | 'classic';
 export type EggNeed = 'warmth' | 'humidity' | 'bond';
 
@@ -9,8 +10,34 @@ export interface Settings {
   /** Local hour (0–23) the player wakes up. */
   sleepEnd: number;
   sound: boolean;
+  music: boolean;
+  /** Vibration feedback, where the device supports it. */
+  haptics: boolean;
   /** UI language; 'auto' follows the device. */
-  language: 'auto' | 'en' | 'de';
+  language: 'auto' | Language;
+}
+
+/** What a retired pet passes on to the egg it leaves behind. */
+export interface Heritage {
+  parentName: string;
+  parentType: ElementType;
+  /** The parent's best stat; the child starts with a few points in it. */
+  stat: Stat;
+  bonus: number;
+  generation: number;
+}
+
+/** A past pet, kept for the family list. */
+export interface Ancestor {
+  name: string;
+  type: ElementType;
+  form: FormId;
+  generation: number;
+  /** How its story ended; 'released' means a new egg was started while it was still around. */
+  ending: 'retired' | 'ranAway' | 'died' | 'released';
+  wins: number;
+  hatchedAt: number;
+  endedAt: number;
 }
 
 export interface EggState {
@@ -34,6 +61,7 @@ export interface EggState {
   readyAt: number | null;
   lightsOn: boolean;
   failed: boolean;
+  heritage: Heritage | null;
 }
 
 export type LifeStage = 'baby' | 'child' | 'teen' | 'adult' | 'elder';
@@ -115,6 +143,8 @@ export interface PetState {
   /** Every form taken so far, in order (the teen form decides one of the adult's moves). */
   path: FormId[];
   battles: { wins: number; losses: number };
+  /** 1 for a first pet; each retired parent's egg adds one. */
+  generation: number;
 }
 
 export interface GameState {
@@ -127,4 +157,6 @@ export interface GameState {
   egg: EggState;
   pet: PetState | null;
   settings: Settings;
+  /** Earlier pets, oldest first. */
+  family: Ancestor[];
 }

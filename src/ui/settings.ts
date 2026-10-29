@@ -1,7 +1,9 @@
-import { t, type TextKey } from '../i18n';
+import { canVibrate } from '../feedback';
+import { LANGUAGE_NAMES, LANGUAGES, t, type TextKey } from '../i18n';
 import { BATTLE_ENERGY } from '../sim/battle';
 import { STAT_CAPS, TRAIN_ENERGY } from '../sim/training';
-import type { NeglectMode, Settings } from '../sim/types';
+import { speciesName } from '../sim/evolution';
+import type { Ancestor, NeglectMode, Settings } from '../sim/types';
 import { icon } from './icons';
 
 export interface InstallState {
@@ -14,6 +16,8 @@ export interface InstallState {
 }
 
 export interface SettingsHandlers {
+  /** Earlier pets, oldest first. */
+  family: Ancestor[];
   onChange(patch: Partial<Settings>): void;
   /** Returns the save code, already copied to the clipboard if possible. */
   onExport(): Promise<string>;
@@ -49,28 +53,21 @@ export function openSettings(
     close.innerHTML = icon('close', 20);
     close.onclick = () => dialog.close();
 
-    const segmented = <T extends string>(options: T[], value: T, label: (o: T) => string, pick: (o: T) => void) => {
-      const wrap = el('div', { className: 'segmented' });
-      for (const o of options) {
-        const b = el('button', { type: 'button' }, label(o));
-        b.setAttribute('aria-pressed', String(o === value));
-        b.onclick = () => {
-          pick(o);
-          render();
-        };
-        wrap.append(b);
-      }
-      return wrap;
+    const languageSelect = el('select', { ariaLabel: t('settings.language') });
+    for (const code of ['auto', ...LANGUAGES] as Settings['language'][]) {
+      const label = code === 'auto' ? t('lang.auto') : LANGUAGE_NAMES[code];
+      languageSelect.append(el('option', { value: code, selected: settings.language === code }, label));
+    }
+    languageSelect.onchange = () => {
+      settings.language = languageSelect.value as Settings['language'];
+      h.onChange({ language: settings.language });
+      render();
     };
-
     const language = el(
-      'div',
+      'label',
       { className: 'field' },
       el('span', { className: 'field-title' }, t('settings.language')),
-      segmented(['auto', 'en', 'de'] as const satisfies Settings['language'][], settings.language, (o) => t(`lang.${o}`), (o) => {
-        settings.language = o;
-        h.onChange({ language: o });
-      }),
+      languageSelect,
     );
 
     const neglect = el('fieldset', { className: 'field' }, el('legend', {}, t('settings.neglect')));
@@ -103,11 +100,13 @@ export function openSettings(
     );
 
     // Collapsed topics; each body line becomes a bullet.
-    const help = el('div', { className: 'field' }, el('span', { className: 'field-title' }, t('help.title')));
+    // One collapsed "How to play" entry holding the topics, so the settings themselves stay in view.
+    const topics = el('div', { className: 'help-topics' });
+    const help = el('details', { className: 'help help-all' }, el('summary', {}, t('help.title')), topics);
     const params = { energy: TRAIN_ENERGY, battleEnergy: BATTLE_ENERGY, child: STAT_CAPS[1], teen: STAT_CAPS[2], adult: STAT_CAPS[3] };
     for (const topic of HELP_TOPICS) {
       const lines = t(`help.${topic}.body` as TextKey, params).split('\n');
-      help.append(
+      topics.append(
         el(
           'details',
           { className: 'help' },
@@ -117,9 +116,13 @@ export function openSettings(
       );
     }
 
-    const soundInput = el('input', { type: 'checkbox', checked: settings.sound });
-    soundInput.onchange = () => h.onChange({ sound: (settings.sound = soundInput.checked) });
-    const sound = el('label', { className: 'choice' }, soundInput, t('settings.sound'));
+    const toggle = (key: 'sound' | 'music' | 'haptics') => {
+      const input = el('input', { type: 'checkbox', checked: settings[key] });
+      input.onchange = () => h.onChange({ [key]: (settings[key] = input.checked) });
+      return el('label', { className: 'choice' }, input, t(`settings.${key}`));
+    };
+    const sound = el('div', { className: 'field' }, toggle('sound'), toggle('music'));
+    if (canVibrate) sound.append(toggle('haptics'));
 
     const app = el('div', { className: 'field' }, el('span', { className: 'field-title' }, t('settings.app')));
     if (install.standalone) app.append(el('small', {}, t('settings.installed')));
@@ -151,6 +154,26 @@ export function openSettings(
       el('div', { className: 'row' }, exportBtn, importBtn),
     );
 
+    // Newest first: the family story, one line per past pet.
+    const family = el('div', { className: 'field' }, el('span', { className: 'field-title' }, t('family.title')));
+    for (const a of [...h.family].reverse()) {
+      const days = Math.max(1, Math.round((a.endedAt - a.hatchedAt) / 86_400_000));
+      family.append(
+        el(
+          'div',
+          { className: 'family-row' },
+          el('span', { className: `chip ${a.type}` }, t('gen', { n: a.generation })),
+          el(
+            'span',
+            { className: 'family-text' },
+            el('b', {}, a.name),
+            ` · ${speciesName(a.type, a.form)}`,
+            el('small', {}, `${t(`family.${a.ending}`)} · ${t('family.days', { d: days })} · ${t('family.wins', { n: a.wins })}`),
+          ),
+        ),
+      );
+    }
+
     const newEgg = el('button', { type: 'button', className: 'secondary' }, t('settings.newEgg'));
     newEgg.onclick = () => {
       if (confirm(t('settings.newEggConfirm'))) {
@@ -169,6 +192,7 @@ export function openSettings(
       sleep,
       sound,
       app,
+      ...(h.family.length ? [family] : []),
       backup,
       el('div', { className: 'row' }, newEgg),
     );

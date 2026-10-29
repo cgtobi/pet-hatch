@@ -12,7 +12,9 @@ Status of each part: ✅ built, 🔜 planned.
 - ✅ Installable web app: manifest, icons, and a service worker that precaches the build for offline play.
   Install needs HTTPS (or `localhost`).
 - ✅ Saves live in `localStorage`. Settings › Backup copies/loads a save code to move between devices.
-- ✅ English and German (`src/i18n.ts`); defaults to the device language and is switchable in Settings.
+- ✅ Six languages: English, German, French, Spanish, Italian, Dutch (`src/i18n/`, one file each). The game
+  follows the device language and can be switched in Settings. A test checks every translation has every key,
+  the same placeholders and help lines, and dock labels short enough for the six-button bar.
 
 ## Time
 
@@ -61,7 +63,7 @@ The exact hatch time is **hidden** and **random**:
 
 Egg 1 d → **Baby** 1 d → **Child** 3 d → **Teen** 5 d → **Adult** 3 wk → **Elder** 1 wk. The pet grows bigger at
 each stage, with a spin, flash and sparkle when it does. After the Elder stage it retires: it sets off on an
-adventure and leaves a new egg. (🔜 The new egg inherits one trait or move from its parent.)
+adventure and leaves a new egg (see *Family*).
 
 You name the baby when it hatches (a name is suggested).
 
@@ -132,7 +134,7 @@ Evolution happens in the simulation, so it also happens while you're away; the a
 
 ### Help ✅
 
-Settings › How to play explains the mechanics in ten short, collapsible topics (egg, types, care, calls and
+Settings › How to play (one collapsed entry) explains the mechanics in ten short topics (egg, types, care, calls and
 discipline, care mistakes, growing up, training, evolution, battles, neglect modes). It never reveals the hidden hatch time.
 
 ### Battles ✅
@@ -179,9 +181,25 @@ line up, and a bottom sheet shows HP bars, a log line and the move buttons. 1v1,
 - The friend's pet is played by the computer on your device; nothing is sent anywhere, and your own pet is never
   changed by someone else's battle. After a friend battle you can share the result.
 
-### Still to come
+### Family ✅
 
-- The new egg inherits one trait or move from its parent.
+- A pet that **retires** (the happy ending) leaves an egg that inherits a head start: about a tenth of the
+  parent's best stat (3–8 points) in that stat. The egg is called "Pip's egg", and the new pet carries a
+  **generation** chip (Gen 2, Gen 3, …). The reveal tells you what it inherited.
+- A pet that ran away or died, or a manual restart, passes nothing on; the next egg is a fresh first generation.
+- Settings › **Family** lists every past pet, newest first: generation, name, species, how its story ended, how
+  long it lived and its battle wins.
+
+## Sound and touch
+
+- All sound is synthesized with WebAudio (`src/feedback.ts`); there are no audio files. Effects and music run
+  through a compressor and a soft generated reverb.
+- **Music** is generative: a music-box melody wandering over a pentatonic scale with pad chords. Daytime is
+  C major at 84 bpm; evenings and bedtime switch to a slower, lower lullaby; battles get a faster minor tune with
+  a bass pulse; it falls silent when the lights are off for the night. Audio pauses while the app is hidden.
+- **Haptics** use named patterns (tick, tap, press, hit, crit, success, celebrate, hatch…) instead of raw
+  durations. iPhones can't vibrate from the web, so the setting only appears where vibration works.
+- Settings: **Sound effects**, **Music** and **Vibration** are separate switches.
 
 ## Look
 
@@ -195,16 +213,17 @@ UI: Fredoka (display) + Nunito (body), self-hosted Latin subsets.
 2. ✅ Pet care loop, attention calls and discipline, sickness, naps, aging stages, endings, naming.
 3. ✅ Training minigames, stats with stage caps, evolution forms, help section.
 4. ✅ Moves and battles, wild creatures, share codes and challenge links.
-5. 🔜 Polish: sound design, haptics tuning, more languages.
+5. ✅ Polish: synthesized sound and generative music, haptic patterns, four more languages, family and inheritance.
 
 ## Code map
 
 | Path | What |
 |---|---|
-| `src/sim/` | Pure game rules, no DOM or three.js: `egg.ts` and `pet.ts` rules, `training.ts` stats and caps, `evolution.ts` forms and species names, `battle.ts` battle rules, moves and wild creatures, `battlecode.ts` share codes, `game.ts` catch-up and hatching, `save.ts` persistence and save upgrades. Unit tested in `sim.test.ts`, `pet.test.ts`, `training.test.ts` and `battle.test.ts`. |
+| `src/sim/` | Pure game rules, no DOM or three.js: `egg.ts` and `pet.ts` rules, `training.ts` stats and caps, `evolution.ts` forms and species names, `battle.ts` battle rules, moves and wild creatures, `battlecode.ts` share codes, `game.ts` catch-up and hatching, `save.ts` persistence and save upgrades. Unit tested in `sim.test.ts`, `pet.test.ts`, `training.test.ts`, `battle.test.ts` and `family.test.ts`. |
 | `src/scene/` | three.js: `world.ts` (renderer, camera framing, lights), `island.ts`, `egg3d.ts`, `pet3d.ts` (the living pet and its 9 body plans), `sky.ts`, `effects.ts`. |
 | `src/input/gestures.ts` | Pointer events → hold / swipe / stroke / tap / orbit. |
 | `src/ui/` | DOM HUD, settings sheet (with help), the Training/Battle sheet (`sheet.ts`, `training.ts`, `arena.ts`), the four minigames and icons. |
-| `src/i18n.ts` | All player-facing text, English and German. |
+| `src/i18n/` | All player-facing text: `en.ts` is the source, one file per translation, checked by `i18n.test.ts`. |
+| `src/feedback.ts` | Synthesized sound effects, generative music and haptic patterns. |
 | `src/main.ts` | Wires it together: game loop, care actions, hints, hatch moment, growing up and endings. |
 | `vite.config.ts` | Relative base and the service-worker generator. |

@@ -1,8 +1,9 @@
 import { HOUR, MINUTE } from './clock';
 import { createEgg, eggType, HATCH_WAIT_H, tickEgg } from './egg';
+import { topStat } from './evolution';
 import { createPet, tickPet } from './pet';
 import { randomSeed } from './rng';
-import type { GameState, PetState, Settings } from './types';
+import type { GameState, Heritage, PetState, Settings } from './types';
 
 /** Fixed simulation step; catch-up replays missed time in these slices. */
 const STEP = MINUTE;
@@ -14,18 +15,26 @@ export const DEFAULT_SETTINGS: Settings = {
   sleepStart: 22,
   sleepEnd: 7,
   sound: true,
+  music: true,
+  haptics: true,
   language: 'auto',
 };
 
-export function newGame(now: number, settings: Settings = DEFAULT_SETTINGS, seed = randomSeed()): GameState {
+export function newGame(
+  now: number,
+  settings: Settings = DEFAULT_SETTINGS,
+  seed = randomSeed(),
+  heritage: Heritage | null = null,
+): GameState {
   return {
     version: 1,
     phase: 'egg',
     simTime: now,
     clockOffset: 0,
-    egg: createEgg(now, seed),
+    egg: createEgg(now, seed, heritage),
     pet: null,
     settings: { ...settings },
+    family: [],
   };
 }
 
@@ -64,10 +73,40 @@ export function hatch(state: GameState, at: number, alone: boolean): PetState {
   return pet;
 }
 
-/** Replace the finished pet (or failed egg) with a fresh egg, keeping settings and debug clock. */
+/** What a retiring pet passes on: a head start of about a tenth of its best stat (3–8 points). */
+export function heritageOf(pet: PetState): Heritage {
+  const stat = topStat(pet);
+  return {
+    parentName: pet.name,
+    parentType: pet.type,
+    stat,
+    bonus: Math.min(8, Math.max(3, Math.round(pet.stats[stat] * 0.1))),
+    generation: pet.generation + 1,
+  };
+}
+
+/**
+ * Replace the finished pet (or failed egg) with a fresh egg, keeping settings and debug clock.
+ * The pet joins the family list; only a pet that retired passes something on to the new egg.
+ */
 export function layNewEgg(state: GameState, now: number, seed = randomSeed()): void {
-  const fresh = newGame(now, state.settings, seed);
+  const pet = state.pet;
+  const family = [...state.family];
+  if (pet) {
+    family.push({
+      name: pet.name,
+      type: pet.type,
+      form: pet.form,
+      generation: pet.generation,
+      ending: pet.status === 'alive' ? 'released' : pet.status,
+      wins: pet.battles.wins,
+      hatchedAt: pet.hatchedAt,
+      endedAt: now,
+    });
+  }
+  const fresh = newGame(now, state.settings, seed, pet?.status === 'retired' ? heritageOf(pet) : null);
   fresh.clockOffset = state.clockOffset;
   fresh.egg.lightsOn = state.egg.lightsOn;
+  fresh.family = family;
   Object.assign(state, fresh);
 }

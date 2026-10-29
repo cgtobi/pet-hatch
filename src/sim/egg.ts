@@ -1,6 +1,6 @@
 import { HOUR, isAsleep } from './clock';
 import { mulberry32 } from './rng';
-import type { EggNeed, EggState, ElementType, NeglectMode, Settings } from './types';
+import type { EggNeed, EggState, ElementType, Heritage, NeglectMode, Settings } from './types';
 
 export const STAGE_NAMES = ['Quiet', 'Stirring', 'Wobbly', 'Cracking', 'Hatching'] as const;
 
@@ -26,7 +26,7 @@ const HATCH_SPREAD_H = 8;
 const STAGE_THRESHOLDS = [0.18, 0.42, 0.68, 0.9];
 const STAGE_JITTER = 0.08;
 
-export function createEgg(now: number, seed: number): EggState {
+export function createEgg(now: number, seed: number, heritage: Heritage | null = null): EggState {
   const rand = mulberry32(seed);
   return {
     seed,
@@ -45,6 +45,7 @@ export function createEgg(now: number, seed: number): EggState {
     readyAt: null,
     lightsOn: true,
     failed: false,
+    heritage,
   };
 }
 

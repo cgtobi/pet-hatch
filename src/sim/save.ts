@@ -57,6 +57,8 @@ function parseSave(json: string): GameState | null {
   if (!ok) return null;
   // Fill in settings added after the save was written.
   s.settings = { ...DEFAULT_SETTINGS, ...s.settings };
+  s.family ??= [];
+  s.egg.heritage ??= null;
   if (s.pet) s.pet = migratePet(s.pet);
   return s;
 }

@@ -5,7 +5,7 @@ import '@fontsource/nunito/latin-700.css';
 import '@fontsource/nunito/latin-800.css';
 import './style.css';
 
-import { buzz, setSoundEnabled, sfx, unlockAudio } from './feedback';
+import { haptic, setHapticsEnabled, setMusicEnabled, setMusicMode, setSoundEnabled, sfx, suspendAudio, unlockAudio, type MusicMode } from './feedback';
 import { setLang, t, type TextKey } from './i18n';
 import { attachGestures } from './input/gestures';
 import { World } from './scene/world';
@@ -38,7 +38,7 @@ import {
 } from './sim/pet';
 import { BATTLE_ENERGY, fighterFromPet, finishBattle, MOVES, wildFoe, type SideKey } from './sim/battle';
 import { CHALLENGE_PARAM, encodeFighter } from './sim/battlecode';
-import { speciesName } from './sim/evolution';
+import { speciesName, topStat } from './sim/evolution';
 import { randomSeed } from './sim/rng';
 import { exportSave, importSave, loadGame, saveGame } from './sim/save';
 import { canTrain, finishTraining, startTraining } from './sim/training';
@@ -71,6 +71,8 @@ const WOBBLE = [
 const state: GameState = loadGame() ?? newGame(Date.now());
 setLang(state.settings.language);
 setSoundEnabled(state.settings.sound);
+setMusicEnabled(state.settings.music);
+setHapticsEnabled(state.settings.haptics);
 advance(state, gameNow(state));
 
 const canvas = document.getElementById('scene') as HTMLCanvasElement;
@@ -122,7 +124,7 @@ new Training(sheet, {
   hit: () => {
     world.pet?.hop();
     sfx.hit();
-    buzz(8);
+    haptic('tap');
   },
   miss: () => sfx.miss(),
   finish: (stat: Stat, score: number) => {
@@ -133,7 +135,7 @@ new Training(sheet, {
       world.pet?.dance();
       world.effects.emit('spark', at, 14);
       sfx.play();
-      buzz([10, 60, 10]);
+      haptic('success');
     } else {
       world.effects.emit('spark', at, 4);
       sfx.tap();
@@ -169,23 +171,27 @@ const arena = new Arena(sheet, {
   begin: (foe) => {
     world.startBattle(foe.type, foe.seed, foe.form, foe.stage);
     sfx.grow();
-    buzz(20);
+    haptic('press');
   },
   fx: (e, b) => {
     const self = fighter3d(e.side);
     switch (e.kind) {
       case 'use':
-        if (MOVES[e.move].power > 0) self?.lunge();
-        else self?.hop();
-        sfx.tap();
+        if (MOVES[e.move].power > 0) {
+          self?.lunge();
+          sfx.whoosh();
+        } else {
+          self?.hop();
+          sfx.tap();
+        }
         break;
       case 'hit': {
         const target = fighter3d(e.target);
         target?.hurt();
         const at = target?.center() ?? world.egg.center();
         world.effects.emit(ELEMENT_FX[b[e.side].f.type], at, e.crit ? 14 : 8);
-        sfx.hit();
-        if (e.target === 'a') buzz(e.crit ? [30, 40, 30] : 25);
+        sfx.strike(e.crit || e.factor > 1);
+        if (e.target === 'a') haptic(e.crit ? 'crit' : 'hit');
         break;
       }
       case 'miss':
@@ -206,7 +212,7 @@ const arena = new Arena(sheet, {
       case 'faint':
         self?.faint();
         fighter3d(e.side === 'a' ? 'b' : 'a')?.dance();
-        sfx.scold();
+        sfx.faint();
         break;
     }
   },
@@ -214,9 +220,9 @@ const arena = new Arena(sheet, {
     const pet = state.pet!;
     const r = finishBattle(pet, outcome, randomSeed());
     if (outcome === 'won') {
-      sfx.grow();
-      buzz([20, 60, 20, 60, 40]);
-    }
+      sfx.win();
+      haptic('celebrate');
+    } else if (outcome === 'lost') sfx.lose();
     saveGame(state);
     updateHud();
     return r;
@@ -266,7 +272,7 @@ function setWarming(active: boolean) {
   if (!eggActive()) return;
   if (active && !warming) {
     sfx.warm();
-    buzz(10);
+    haptic('tap');
   }
   if (!active && warming && state.egg.warmth >= 99) hud.toast(t('toast.toasty'));
   warming = active;
@@ -278,7 +284,7 @@ function mist() {
   world.effects.emit('drop', world.egg.center(), 12);
   world.egg.nudge(0.8);
   sfx.mist();
-  buzz(8);
+  haptic('tap');
   hud.toast(t(added <= 0 ? 'toast.full' : 'toast.misted'));
 }
 
@@ -301,7 +307,7 @@ function turn(direction: 1 | -1) {
   if (turnEgg(state.egg, gameNow(state))) {
     world.egg.roll(direction);
     sfx.turn();
-    buzz(15);
+    haptic('press');
     hud.toast(t('toast.turned'));
   } else {
     world.egg.nudge(1, direction > 0 ? 0 : Math.PI);
@@ -318,7 +324,7 @@ function stroke(px: number) {
     strokeAcc = 0;
     world.effects.emit('heart', world.egg.center(), 1);
     world.egg.nudge(0.5);
-    buzz(5);
+    haptic('tick');
   }
 }
 
@@ -331,7 +337,7 @@ function tapEgg() {
     world.egg.flashCracks();
     world.effects.emit('spark', world.egg.center(), 4);
     sfx.crack();
-    buzz(20);
+    haptic('press');
     if (rushLeft <= 0) doHatch();
     updateHud();
     return;
@@ -365,7 +371,7 @@ function petAction(action: DockAction) {
       if (r === 'ok') {
         view?.eat();
         sfx.eat();
-        buzz(10);
+        haptic('tap');
         setTimeout(() => world.effects.emit('heart', at(), 2), 1300);
         hud.toast(t('toast.fed'));
       } else {
@@ -383,7 +389,7 @@ function petAction(action: DockAction) {
         }
         world.setDroppings(pet.droppings);
         sfx.mist();
-        buzz(10);
+        haptic('tap');
         hud.toast(t('toast.cleaned'));
       } else hud.toast(t('toast.alreadyClean'));
       break;
@@ -393,7 +399,7 @@ function petAction(action: DockAction) {
       if (r === 'ok') {
         view?.dance();
         sfx.play();
-        buzz([10, 60, 10]);
+        haptic('success');
         for (let i = 0; i < 4; i++) setTimeout(() => world.effects.emit(i % 2 ? 'note' : 'heart', at(), 1), i * 300);
         hud.toast(t('toast.played'));
       } else {
@@ -407,7 +413,7 @@ function petAction(action: DockAction) {
       if (r === 'cured') {
         world.effects.emit('spark', at(), 14);
         sfx.cure();
-        buzz([10, 40, 10]);
+        haptic('success');
       } else if (r === 'dose') {
         world.effects.emit('spark', at(), 5);
         sfx.cure();
@@ -422,7 +428,7 @@ function petAction(action: DockAction) {
       const r = scold(pet);
       view?.cower();
       sfx.scold();
-      buzz(30);
+      haptic('warn');
       hud.toast(t(r === 'disciplined' ? 'toast.disciplined' : r === 'unfair' ? 'toast.unfair' : 'toast.confused', name));
       break;
     }
@@ -443,7 +449,7 @@ function tapPet() {
   world.pet.hop();
   world.effects.emit('heart', world.pet.center(), 2);
   sfx.tap();
-  buzz(8);
+  haptic('tap');
 }
 
 // ---------- hatching and life events ----------
@@ -459,12 +465,16 @@ function burstAndReveal(pet: PetState, alone: boolean) {
   world.effects.emit('spark', world.egg.center(), 18);
   world.showPet(pet.type, pet.seed, pet.shownStage, pet.shownForm, true);
   sfx.hatch();
-  buzz([30, 40, 80]);
+  haptic('hatch');
   saveGame(state);
   updateHud();
   setTimeout(() => {
     const type = t(`type.${pet.type}`);
-    const body = (alone ? `${t('reveal.alone')} ` : '') + t(`reveal.body.${pet.type}`);
+    const h = state.egg.heritage;
+    const body =
+      (alone ? `${t('reveal.alone')} ` : '') +
+      t(`reveal.body.${pet.type}`) +
+      (h ? ` ${t('reveal.heritage', { parent: h.parentName, stat: t(`stat.${h.stat}`), n: h.bonus })}` : '');
     hud.showOverlay(
       t('reveal.title', { type }),
       body,
@@ -490,7 +500,7 @@ function evolve(pet: PetState) {
   world.pet?.setForm(pet.form, stage, true);
   world.effects.emit('spark', world.pet?.center() ?? world.egg.center(), 24);
   sfx.grow();
-  buzz([20, 60, 20, 60, 40]);
+  haptic('celebrate');
   const name = pet.name;
   if (!evolved) {
     hud.toast(t('toast.grew', { name, stage: t(`life.${LIFE_STAGES[stage]}`) }));
@@ -527,7 +537,8 @@ function showEnding(pet: PetState) {
     () =>
       hud.showOverlay(
         t(`end.${key}.title` as TextKey, name),
-        t(`end.${key}.body` as TextKey),
+        t(`end.${key}.body` as TextKey) +
+          (key === 'retired' ? ` ${t('end.retired.heritage', { name: pet.name, stat: t(`stat.${topStat(pet)}`) })}` : ''),
         t(key === 'retired' ? 'end.retired.button' : 'failed.button'),
         startNewEgg,
       ),
@@ -571,6 +582,15 @@ function petHint(pet: PetState, now: number): [string, boolean] {
   return [t(petTapped ? 'hint.pet.fine' : 'hint.pet.tap', name), false];
 }
 
+/** Battle music in a fight, a lullaby in the evening, silence once the lights are off for the night. */
+function musicFor(now: number): MusicMode {
+  if (world.foe) return 'battle';
+  const asleep = isAsleep(now, state.settings);
+  if (asleep && !state.egg.lightsOn) return 'off';
+  const hour = localHour(now);
+  return asleep || hour >= 19 || hour < 7 ? 'night' : 'day';
+}
+
 function formatAge(hours: number): string {
   const d = Math.floor(hours / 24);
   const h = Math.floor(hours % 24);
@@ -595,7 +615,12 @@ function updateHud() {
     const day = Math.floor((now - egg.laidAt) / (24 * HOUR)) + 1;
     const asleep = isAsleep(now, state.settings) && !egg.lightsOn;
     hud.setMode(egg.failed ? 'none' : 'egg');
-    hud.setHeader(t('egg.title'), `${t('egg.day', { n: day })} · ${asleep ? t('egg.sleeping') : t(`egg.mood.${stage}` as TextKey)}`);
+    const h = egg.heritage;
+    hud.setHeader(
+      h ? t('egg.titleFrom', { name: h.parentName }) : t('egg.title'),
+      `${t('egg.day', { n: day })} · ${asleep ? t('egg.sleeping') : t(`egg.mood.${stage}` as TextKey)}`,
+      h ? [{ text: t('gen', { n: h.generation }), tone: 'neutral' }] : [],
+    );
     hud.setStage(stage);
     hud.setNeeds({
       warmth: egg.warmth / 100,
@@ -629,6 +654,7 @@ function updateHud() {
     hud.setHeader(pet.name, `${species} · ${age} · ${t(`pet.feel.${feel}` as TextKey)}`, [
       { text: t(`type.${pet.type}`), tone: pet.type },
       { text: t(`life.${LIFE_STAGES[stage]}`), tone: 'neutral' },
+      ...(pet.generation > 1 ? [{ text: t('gen', { n: pet.generation }), tone: 'neutral' as const }] : []),
     ]);
     hud.setNeeds({
       hunger: pet.hunger / 100,
@@ -678,6 +704,7 @@ function installState(): InstallState {
 
 function showSettings() {
   openSettings(document.getElementById('settings') as HTMLDialogElement, state.settings, installState(), {
+    family: state.family,
     onChange: (patch) => {
       Object.assign(state.settings, patch);
       if (patch.language) {
@@ -685,6 +712,8 @@ function showSettings() {
         hud.applyLanguage();
       }
       if (patch.sound !== undefined) setSoundEnabled(patch.sound);
+      if (patch.music !== undefined) setMusicEnabled(patch.music);
+      if (patch.haptics !== undefined) setHapticsEnabled(patch.haptics);
       saveGame(state);
       updateHud();
     },
@@ -759,6 +788,7 @@ window.addEventListener('resize', () => {
 });
 
 document.addEventListener('visibilitychange', () => {
+  suspendAudio(document.hidden);
   if (document.hidden) {
     warming = false;
     saveGame(state);
@@ -858,6 +888,7 @@ function frame(ms: number) {
   if (hudTimer <= 0) {
     hudTimer = 0.2;
     updateHud();
+    setMusicMode(musicFor(now));
   }
   saveTimer -= dt;
   if (saveTimer <= 0) {
