@@ -74,8 +74,9 @@ const smash: Factory = (area, hooks, text) =>
   game(area, (finish) => {
     const ROUNDS = 3;
     const ROUND_S = 4;
-    const PER_TAP = 7;
-    const DRAIN = [16, 22, 28];
+    // Tuned so steady tapping scores like a good Block or Recall; only fast tapping fills the last round.
+    const PER_TAP = 6;
+    const DRAIN = [18, 24, 30];
     const meter = el('mg-meter', '<div class="mg-meter-fill"></div><div class="mg-meter-goal"></div>');
     const fillEl = meter.firstElementChild as HTMLElement;
     const button = Object.assign(document.createElement('button'), {

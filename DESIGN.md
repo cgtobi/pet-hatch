@@ -121,7 +121,7 @@ Four stats, each trained by its own 15–30 s minigame from the **Train** sheet 
 
 | Stat | Minigame | How it plays |
 |---|---|---|
-| Power | Smash | Mash to fill a meter before time runs out; 3 rounds, faster drain each round. |
+| Power | Smash | Mash to fill a meter before time runs out; 3 rounds, faster drain each round; only fast tapping fills the last one. |
 | Speed | Star catch | Tap stars before they fade; 20 s, they come faster and fade sooner. |
 | Guard | Block | Tap the side an attack comes from just before it lands; 12 attacks. Swinging at nothing leaves that side open briefly, so mashing fails. |
 | Wits | Recall | Repeat a growing sequence of four pads (3 → 8 long); one mistake ends it. |
