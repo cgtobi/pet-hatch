@@ -78,8 +78,14 @@ over HTTPS. The web server's PHP user must be able to create `relay-data/`; its 
 the web (Apache also gets an `.htaccess`). To keep it elsewhere, set the `PETHATCH_DATA_DIR` environment variable.
 
 Every waiting player keeps one PHP request open for up to 8 seconds at a time, so a host with very few PHP
-workers fits only a handful of players at once. `npm run test:php` runs the live battle and dojo tests against
-it in Docker (Apache with PHP).
+workers fits only a handful of players at once.
+
+One visitor (IP address) can hold at most 16 connections, so nobody can take every room. If every player reaches
+PHP from the same address (behind a proxy or CDN that doesn't pass the real one on), set `PETHATCH_MAX_PER_IP` to
+`0` to turn that limit off, or raise it.
+
+`npm run test:php` runs the live battle and dojo tests against it in Docker (Apache with PHP), plus its own tests
+of these limits.
 
 
 ## Docker

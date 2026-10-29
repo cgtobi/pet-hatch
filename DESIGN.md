@@ -259,6 +259,10 @@ A public waiting room for live battles against strangers of similar strength.
   250 ms); a connection that stops polling for 25 s counts as closed. Timers become checks on every request, and
   the shared state is one JSON file behind a lock. `src/net/channel.ts` gives the game one interface for both:
   an http(s) relay URL (or `"transport": "http"` in `relay.json`) means the PHP relay.
+  Because every request reads that file, it guards its size: at most 32 KB of unread messages per connection
+  (a player who stops reading is closed), 16 open connections per visitor (a salted hash of the IP address, so no
+  addresses are kept), 300 rooms and 100 dojo places, and dojo matching at most once a second. Saved JSON escapes
+  `<` and `>`, so no message can put a PHP tag into the state file, and PHP notices never reach a reply.
 - **Lockstep:** the battle is deterministic, so both phones run it themselves and only exchange pet snapshots
   (battle codes), half a random seed each, and one move per turn (`src/net/live.ts`). The host is battle side a,
   the guest side b, on both phones.

@@ -24,7 +24,19 @@ const ROOM_CODE = '/^[A-Z2-9]{4,8}$/';
 /** Battle messages are tiny; anything bigger is not from the game. */
 const MAX_MESSAGE = 4096;
 const MAX_BATCH = 20;
-const MAX_ROOMS = 2000;
+/** Fewer than the Node relay's 2000: every waiting player holds a PHP worker, so shared hosting fits far fewer. */
+const MAX_ROOMS = 300;
+/**
+ * Unread messages per connection. A player who keeps polling never comes near it; one who stops reading is
+ * closed instead of piling up the shared state that every request reads.
+ */
+const MAX_INBOX_BYTES = 32 * 1024;
+/**
+ * Open connections per visitor (IP address), so one visitor can't take every room or dojo place. A phone needs
+ * one or two. Set PETHATCH_MAX_PER_IP to change it; 0 turns it off, e.g. behind a proxy or CDN that makes every
+ * player arrive from the same address.
+ */
+const MAX_PER_IP = 16;
 /** A room nobody writes to for this long is closed (a forgotten invite, a stalled battle). */
 const ROOM_IDLE_MS = 15 * 60_000;
 /** A room the dojo set up for two matched players closes if they haven't both arrived by then. */
@@ -46,10 +58,17 @@ const DOJO_GROW_WINDOW = 0.05;
 const DOJO_MAX_WINDOW = 0.35;
 const DOJO_MIN_POINTS = 8;
 const DOJO_REMATCH_MS = 2 * 60_000;
-const DOJO_MAX_PLAYERS = 500;
+const DOJO_MAX_PLAYERS = 100;
+/** Matching compares every waiting pair, so it runs at most this often rather than on every request. */
+const DOJO_MATCH_EVERY_MS = 1000;
 
 /** The state file is PHP, so a web server that hands out the data folder only ever shows an empty page. */
 const GUARD = "<?php exit; ?>\n";
+/** < and > escaped, so no player's message can ever put a PHP tag into the state file. */
+const STATE_JSON = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG;
+
+// Replies are JSON: a PHP notice in one would break it and show the server's file paths. Errors still get logged.
+ini_set('display_errors', '0');
 
 function now_ms(): int
 {
@@ -68,7 +87,8 @@ function state_file(): string
 {
     $dir = getenv('PETHATCH_DATA_DIR') ?: __DIR__ . '/relay-data';
     if (!is_dir($dir) && !@mkdir($dir, 0700, true) && !is_dir($dir)) {
-        reply(['error' => 'The relay can’t create its data folder: ' . $dir], 500);
+        error_log("Pet Hatch relay: can’t create its data folder $dir");
+        reply(['error' => 'The relay can’t create its data folder; see the server’s error log.'], 500);
     }
     if (!file_exists("$dir/.htaccess")) @file_put_contents("$dir/.htaccess", "Require all denied\n");
     return "$dir/state.php";
@@ -79,14 +99,18 @@ function with_state(callable $fn): mixed
 {
     $file = state_file();
     $handle = @fopen($file, 'c+');
-    if (!$handle || !flock($handle, LOCK_EX)) reply(['error' => 'The relay can’t write ' . $file], 500);
+    if (!$handle || !flock($handle, LOCK_EX)) {
+        error_log("Pet Hatch relay: can’t write $file");
+        reply(['error' => 'The relay can’t write its data; see the server’s error log.'], 500);
+    }
     $json = substr((string) stream_get_contents($handle), strlen(GUARD));
     $state = json_decode($json, true);
     if (!is_array($state)) $state = ['rooms' => [], 'conns' => [], 'recent' => []];
+    $state['salt'] ??= bin2hex(random_bytes(16));
     $now = now_ms();
     cleanup($state, $now);
     $result = $fn($state, $now);
-    $out = json_encode($state, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    $out = json_encode($state, STATE_JSON);
     if ($out !== false && $out !== $json) {
         ftruncate($handle, 0);
         rewind($handle);
@@ -103,13 +127,47 @@ function with_state(callable $fn): mixed
 function new_conn(array &$s, int $now, array $fields): string
 {
     $id = 'c' . bin2hex(random_bytes(12));
-    $s['conns'][$id] = $fields + ['seen' => $now, 'seq' => 0, 'inbox' => [], 'closed' => false, 'rate' => [$now, 0]];
+    $s['conns'][$id] = $fields + [
+        'seen' => $now,
+        'seq' => 0,
+        'inbox' => [],
+        'closed' => false,
+        'rate' => [$now, 0],
+        'visitor' => visitor($s),
+    ];
     return $id;
+}
+
+/** Who is asking, as a salted hash of the IP address: enough to count connections, without keeping addresses. */
+function visitor(array $s): string
+{
+    return substr(hash('sha256', $s['salt'] . ($_SERVER['REMOTE_ADDR'] ?? '')), 0, 16);
+}
+
+/** Whether this visitor may open another connection. */
+function visitor_has_room(array $s): bool
+{
+    $env = getenv('PETHATCH_MAX_PER_IP');
+    $max = $env === false || $env === '' ? MAX_PER_IP : (int) $env;
+    if ($max <= 0) return true;
+    $me = visitor($s);
+    $open = 0;
+    foreach ($s['conns'] as $c) {
+        if (($c['visitor'] ?? '') === $me) $open++;
+    }
+    return $open < $max;
 }
 
 function push(array &$s, string $id, string $text): void
 {
     if (!isset($s['conns'][$id]) || $s['conns'][$id]['closed']) return;
+    $unread = strlen($text);
+    foreach ($s['conns'][$id]['inbox'] as [, $queued]) $unread += strlen($queued);
+    if ($unread > MAX_INBOX_BYTES) {
+        // It stopped reading, as if its socket had gone quiet.
+        end_conn($s, $id, 'idle');
+        return;
+    }
     $s['conns'][$id]['inbox'][] = [++$s['conns'][$id]['seq'], $text];
 }
 
@@ -122,7 +180,8 @@ function message(array $msg): string
 function end_conn(array &$s, string $id, ?string $error = null): void
 {
     if (!isset($s['conns'][$id]) || $s['conns'][$id]['closed']) return;
-    if ($error) push($s, $id, message(['t' => 'error', 'code' => $error]));
+    // The error goes in even when the inbox is full, so the player learns why.
+    if ($error) $s['conns'][$id]['inbox'][] = [++$s['conns'][$id]['seq'], message(['t' => 'error', 'code' => $error])];
     $s['conns'][$id]['closed'] = true;
     detach($s, $id);
 }
@@ -226,7 +285,7 @@ function cleanup(array &$s, int $now): void
     foreach ($s['recent'] as $key => $at) {
         if ($now - $at > DOJO_REMATCH_MS) unset($s['recent'][$key]);
     }
-    match_dojo($s, $now);
+    if ($now - ($s['matchedAt'] ?? 0) >= DOJO_MATCH_EVERY_MS) match_dojo($s, $now);
 }
 
 // ---------- rooms ----------
@@ -246,6 +305,7 @@ function join_room(array &$s, int $now, string $code, string $role): array
         if (!$room) return refused('no-room');
         if (count($room['peers']) >= 2) return refused('full');
     }
+    if (!visitor_has_room($s)) return refused('busy');
     $id = new_conn($s, $now, ['kind' => 'room', 'room' => $code]);
     $room['peers'][] = $id;
     $room['touched'] = $now;
@@ -332,7 +392,7 @@ function announce_dojo(array &$s): void
 
 function join_dojo(array &$s, int $now, int $rating, string $player): array
 {
-    if (count(waiting($s)) >= DOJO_MAX_PLAYERS) return refused('busy');
+    if (count(waiting($s)) >= DOJO_MAX_PLAYERS || !visitor_has_room($s)) return refused('busy');
     $id = new_conn($s, $now, ['kind' => 'dojo', 'waiting' => true, 'player' => $player, 'rating' => $rating, 'joinedAt' => $now]);
     announce_dojo($s);
     return deliver($s, $id, 0);
@@ -343,6 +403,7 @@ function match_dojo(array &$s, int $now): void
 {
     $ids = waiting($s);
     if (count($ids) < 2 || count($s['rooms']) >= MAX_ROOMS) return;
+    $s['matchedAt'] = $now;
     $candidates = [];
     foreach ($ids as $i => $a) {
         foreach (array_slice($ids, $i + 1) as $b) {
@@ -393,19 +454,24 @@ if ($method !== 'POST') reply(['error' => 'Pet Hatch relay: POST only'], 405);
 
 $req = json_decode((string) file_get_contents('php://input', false, null, 0, 256 * 1024), true);
 if (!is_array($req)) reply(refused('bad-request'), 400);
-$id = is_string($req['id'] ?? null) ? $req['id'] : '';
+/** A text field of the request, or '' if it is missing or not text. */
+function field(array $req, string $key): string
+{
+    return is_string($req[$key] ?? null) ? $req[$key] : '';
+}
+$id = field($req, 'id');
 
-switch ($req['a'] ?? '') {
+switch (field($req, 'a')) {
     case 'join':
-        $code = strtoupper((string) ($req['room'] ?? ''));
-        $role = $req['role'] ?? '';
+        $code = strtoupper(field($req, 'room'));
+        $role = field($req, 'role');
         if (!preg_match(ROOM_CODE, $code) || ($role !== 'host' && $role !== 'guest')) reply(refused('bad-request'));
         reply(with_state(fn (array &$s, int $now) => join_room($s, $now, $code, $role)));
 
     case 'dojo':
         $rating = rating_from_code($req['code'] ?? null);
-        $player = substr((string) ($req['id'] ?? ''), 0, 40);
-        if ($rating === null || $player === '') reply(refused('bad-request'));
+        if ($rating === null || $id === '' || strlen($id) > 40) reply(refused('bad-request'));
+        $player = $id;
         reply(with_state(fn (array &$s, int $now) => join_dojo($s, $now, $rating, $player)));
 
     case 'send':
@@ -428,7 +494,7 @@ switch ($req['a'] ?? '') {
         }));
 
     case 'poll':
-        $after = (int) ($req['after'] ?? 0);
+        $after = is_int($req['after'] ?? null) ? $req['after'] : 0;
         $until = now_ms() + POLL_WAIT_MS;
         set_time_limit(intdiv(POLL_WAIT_MS, 1000) + 20);
         $first = true;
