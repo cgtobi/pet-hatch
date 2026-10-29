@@ -139,11 +139,12 @@ export function openSettings(
       code.select();
     };
     const importBtn = el('button', { type: 'button', className: 'secondary' }, t('settings.import'));
-    code.oninput = () => code.setCustomValidity('');
+    // An inline message: validation bubbles don't show reliably on iPhone.
+    const importError = el('small', { className: 'import-error', hidden: true }, t('toast.importFailed'));
+    code.oninput = () => (importError.hidden = true);
     importBtn.onclick = () => {
       if (h.onImport(code.value)) return dialog.close();
-      code.setCustomValidity(t('toast.importFailed'));
-      code.reportValidity();
+      importError.hidden = false;
     };
     const backup = el(
       'div',
@@ -151,6 +152,7 @@ export function openSettings(
       el('span', { className: 'field-title' }, t('settings.backup')),
       el('small', {}, t('settings.backupHint')),
       code,
+      importError,
       el('div', { className: 'row' }, exportBtn, importBtn),
     );
 

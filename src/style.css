@@ -704,6 +704,11 @@ textarea {
   resize: vertical;
 }
 
+.field small.import-error {
+  color: #b5321e;
+  font-weight: 800;
+}
+
 /* ---------- family (in settings) ---------- */
 
 .family-row {

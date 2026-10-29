@@ -728,11 +728,16 @@ function showSettings() {
       return code;
     },
     onImport: (code) => {
+      let loaded: GameState;
       try {
-        saveGame(importSave(code));
+        loaded = importSave(code);
       } catch {
         return false;
       }
+      // Replace the game in memory too: reloading triggers the save-on-leave handler, which would
+      // otherwise write the old game straight back over the imported one.
+      Object.assign(state, loaded);
+      saveGame(state);
       location.reload();
       return true;
     },
