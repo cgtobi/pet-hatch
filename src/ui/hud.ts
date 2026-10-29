@@ -4,7 +4,7 @@ import { icon, type IconName } from './icons';
 
 export type HudMode = 'egg' | 'pet' | 'none';
 export type EggAction = 'mist' | 'sing' | 'turn' | 'lights';
-export type PetAction = 'feed' | 'clean' | 'play' | 'medicine' | 'scold';
+export type PetAction = 'feed' | 'clean' | 'play' | 'train' | 'medicine' | 'scold';
 export type DockAction = EggAction | PetAction;
 export type NeedKey = 'warmth' | 'humidity' | 'bond' | 'turn' | 'hunger' | 'mood' | 'energy' | 'hygiene';
 
@@ -53,6 +53,7 @@ const PET_DOCK: DockDef[] = [
   { id: 'feed', icon: 'apple', tone: 'ember-btn' },
   { id: 'clean', icon: 'sparkle', tone: 'tide-btn' },
   { id: 'play', icon: 'ball', tone: 'bloom-btn' },
+  { id: 'train', icon: 'dumbbell', tone: 'rose-btn' },
   { id: 'medicine', icon: 'pill', tone: 'amber-btn' },
   { id: 'scold', icon: 'scold', tone: 'violet-btn' },
 ];
@@ -169,6 +170,7 @@ export class Hud {
     const dock = mode === 'egg' ? EGG_DOCK : mode === 'pet' ? PET_DOCK : [];
     this.needs.replaceChildren(...needs.map((n) => this.needEls.get(n.key)!.root));
     this.dock.replaceChildren(...dock.map((d) => this.dockButtons.get(d.id)!));
+    this.dock.style.setProperty('--cols', String(dock.length || 5));
     this.needs.hidden = mode === 'none';
     this.stages.hidden = mode !== 'egg';
     this.leaning.hidden = mode !== 'egg';
@@ -286,6 +288,10 @@ export class Hud {
     const status = $('status').getBoundingClientRect();
     const dock = this.dock.getBoundingClientRect();
     const h = window.innerHeight;
-    return { top: status.bottom + 8, bottom: dock.height ? h - dock.top + 56 : 56 };
+    const top = status.height ? status.bottom + 8 : 16;
+    // The training sheet replaces the status card and dock; keep the pet visible above it.
+    const sheet = document.querySelector('#training:not([hidden]) .sheet');
+    if (sheet) return { top, bottom: h - sheet.getBoundingClientRect().top + 8 };
+    return { top, bottom: dock.height ? h - dock.top + 56 : 56 };
   }
 }

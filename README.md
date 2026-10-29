@@ -14,7 +14,7 @@ The dev server listens on your network too (`--host`), so you can open it on you
 
 Handy URL flags:
 
-- `?debug` adds a Debug section to Settings (skip time, make the egg ready).
+- `?debug` adds a Debug section to Settings (skip time, make the egg ready or jump the pet to its next life stage).
 - `?speed=600` runs game time 600× faster.
 
 ```bash

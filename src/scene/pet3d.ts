@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { mulberry32 } from '../sim/rng';
-import type { ElementType } from '../sim/types';
+import type { ElementType, FormId } from '../sim/types';
 import { GROUND_Y } from './island';
-import { toon, TYPE_COLORS } from './toon';
+import { facet, toon, TYPE_COLORS } from './toon';
 
 /** Overall size per life stage (baby … elder). */
 const STAGE_SCALE = [1.3, 1.55, 1.8, 2.0, 1.95];
@@ -26,22 +26,83 @@ export interface PetLook {
   mood: number;
 }
 
-/** The living pet: built from primitives, wanders the island, reacts to care and grows with each life stage. */
+/** Body plan of each form; the type adds its own colors, crest and accents. */
+interface Build {
+  /** Torso scale (x, y, z) of a 0.42 sphere. */
+  body: [number, number, number];
+  ears?: 'round' | 'pointy' | 'long';
+  tail?: 'stub' | 'long';
+  arms?: 'small' | 'big';
+  wings?: boolean;
+  shell?: boolean;
+  /** Glowing orbs circling the head. */
+  orbs?: number;
+  horn?: boolean;
+  tufts?: boolean;
+  /** Body color brightness. */
+  shade: number;
+  /** Size of the type crest on top of the head. */
+  crest: number;
+  eye: number;
+  /** How far the eyes open (scruffy pets look sleepy). */
+  eyeOpen?: number;
+}
+
+const BUILDS: Record<FormId, Build> = {
+  baby: { body: [1, 0.9, 0.95], shade: 1, crest: 0.8, eye: 1 },
+  'child.bright': { body: [1, 0.95, 0.95], ears: 'round', tail: 'stub', shade: 1.06, crest: 1, eye: 1.15 },
+  'child.scruffy': {
+    body: [1.05, 0.88, 1],
+    ears: 'pointy',
+    tail: 'stub',
+    tufts: true,
+    shade: 0.8,
+    crest: 0.85,
+    eye: 0.9,
+    eyeOpen: 0.7,
+  },
+  'teen.physical': { body: [0.95, 1.08, 0.95], ears: 'pointy', tail: 'long', arms: 'small', shade: 1, crest: 1.15, eye: 1 },
+  'teen.technical': { body: [1.05, 0.95, 1], ears: 'long', tail: 'stub', orbs: 1, shade: 1.02, crest: 1.1, eye: 1.05 },
+  'adult.power': {
+    body: [1.2, 1.02, 1.1],
+    ears: 'round',
+    tail: 'long',
+    arms: 'big',
+    horn: true,
+    shade: 0.94,
+    crest: 1.35,
+    eye: 0.9,
+  },
+  'adult.speed': { body: [0.88, 1.12, 0.9], ears: 'pointy', tail: 'long', wings: true, shade: 1.05, crest: 1.25, eye: 1 },
+  'adult.guard': { body: [1.18, 0.95, 1.12], ears: 'round', tail: 'stub', shell: true, shade: 0.92, crest: 1.2, eye: 0.9 },
+  'adult.wits': { body: [1, 1.02, 1], ears: 'long', tail: 'long', orbs: 3, shade: 1.08, crest: 1.3, eye: 1.1 },
+};
+
+/** Accent color per type: tail tips, orbs, wing edges. */
+const ACCENT: Record<ElementType, string> = { ember: '#ffc94d', tide: '#e4f6ff', bloom: '#ffb3d1', astral: '#ffe9a8' };
+
+/** The living pet: built from primitives, wanders the island, reacts to care, grows and evolves. */
 export class Pet3D {
   readonly group = new THREE.Group();
   private body = new THREE.Group();
   private eyes: THREE.Mesh[] = [];
-  private smile: THREE.Mesh;
-  private frown: THREE.Mesh;
-  private flat: THREE.Mesh;
-  private sweat: THREE.Mesh;
+  private eyeOpen = 1;
+  private sweatY = 0.62;
+  private orbY = 1;
+  private smile!: THREE.Mesh;
+  private frown!: THREE.Mesh;
+  private flat!: THREE.Mesh;
+  private sweat!: THREE.Mesh;
+  private wings: THREE.Object3D[] = [];
+  private orb: THREE.Object3D | null = null;
   private bubble: THREE.Sprite;
-  private food: THREE.Group;
+  private food!: THREE.Group;
   private tinted: { mat: THREE.MeshToonMaterial; base: THREE.Color }[] = [];
   private rand: () => number;
 
   private stage = 0;
   private scale = STAGE_SCALE[0];
+  private pendingForm: FormId | null = null;
   private look: PetLook = { sleeping: false, sick: false, calling: false, mood: 80 };
   private target: THREE.Vector2 | null = null;
   private idleFor = 1.5;
@@ -50,9 +111,42 @@ export class Pet3D {
   private blinkIn = 2;
   private anim: { kind: Anim; t: number; dur: number } | null = null;
 
-  constructor(type: ElementType, seed: number) {
+  constructor(
+    private type: ElementType,
+    seed: number,
+    form: FormId,
+  ) {
     this.rand = mulberry32(seed ^ 0x9e7);
-    const base = new THREE.Color(TYPE_COLORS[type]);
+    this.bubble = this.buildBubble();
+    this.build(form);
+    this.group.add(this.body, this.bubble);
+    this.group.position.y = GROUND_Y + 0.07;
+    this.group.scale.setScalar(this.scale);
+  }
+
+  /** (Re)build the body for a form; everything type-specific comes from this.type. */
+  private build(form: FormId): void {
+    this.body.traverse((o) => {
+      if (o instanceof THREE.Mesh) {
+        o.geometry.dispose();
+        (o.material as THREE.Material).dispose();
+      }
+    });
+    this.body.clear();
+    this.tinted = [];
+    this.eyes = [];
+    this.wings = [];
+    this.orb = null;
+
+    const b = BUILDS[form];
+    const [sx, sy, sz] = b.body;
+    const R = 0.42;
+    const cy = R * sy;
+    /** Point on the front of the torso at offset (x, dy) from its center. */
+    const front = (x: number, dy: number, inset = 0) =>
+      R * sz * Math.sqrt(Math.max(0, 1 - (x / (R * sx)) ** 2 - (dy / (R * sy)) ** 2)) - inset;
+
+    const base = new THREE.Color(TYPE_COLORS[this.type]).multiplyScalar(b.shade);
     const mat = (c: THREE.Color) => {
       const m = toon(c.clone());
       this.tinted.push({ mat: m, base: c.clone() });
@@ -61,66 +155,168 @@ export class Pet3D {
     const bodyMat = mat(base);
     const light = mat(base.clone().lerp(new THREE.Color('#ffffff'), 0.6));
     const dark = mat(base.clone().multiplyScalar(0.75));
+    const accent = toon(ACCENT[this.type], this.type === 'astral' ? { emissive: ACCENT.astral, emissiveIntensity: 0.5 } : {});
     const ink = toon('#2e2a3a');
 
-    const torso = new THREE.Mesh(new THREE.SphereGeometry(0.42, 24, 16), bodyMat);
-    torso.scale.set(1, 0.9, 0.95);
-    torso.position.y = 0.38;
-    const belly = new THREE.Mesh(new THREE.SphereGeometry(0.26, 16, 12), light);
-    belly.scale.set(1, 0.85, 0.5);
-    belly.position.set(0, 0.3, 0.3);
+    const torso = new THREE.Mesh(new THREE.SphereGeometry(R, 24, 16), bodyMat);
+    torso.scale.set(sx, sy, sz);
+    torso.position.y = cy;
+    const belly = new THREE.Mesh(new THREE.SphereGeometry(0.26, 16, 12), b.shell ? mat(new THREE.Color('#f3dc9a')) : light);
+    belly.scale.set(sx, 0.85 * sy, 0.5);
+    belly.position.set(0, cy - 0.08 * sy, front(0, -0.08 * sy, 0.13));
     this.body.add(torso, belly);
 
     for (const side of [-1, 1]) {
       const foot = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 8), dark);
-      foot.scale.set(1.1, 0.6, 1.3);
-      foot.position.set(side * 0.2, 0.05, 0.08);
-      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.065, 12, 8), ink);
+      foot.scale.set(1.1 * sx, 0.6, 1.3);
+      foot.position.set(side * 0.2 * sx, 0.05, 0.08);
+      const ex = side * 0.15 * sx;
+      const ey = 0.08 * sy;
+      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.065 * b.eye, 12, 8), ink);
       eye.scale.set(0.85, 1.15, 0.6);
-      eye.position.set(side * 0.15, 0.46, 0.36);
-      const shine = new THREE.Mesh(new THREE.SphereGeometry(0.022, 8, 6), toon('#ffffff'));
+      eye.position.set(ex, cy + ey, front(ex, ey, 0.025));
+      const shine = new THREE.Mesh(new THREE.SphereGeometry(0.022 * b.eye, 8, 6), toon('#ffffff'));
       shine.position.set(0.02, 0.03, 0.05);
       eye.add(shine);
+      const bx = side * 0.27 * sx;
       const blush = new THREE.Mesh(new THREE.SphereGeometry(0.06, 10, 6), toon('#ff9fb2'));
       blush.scale.set(1.2, 0.6, 0.3);
-      blush.position.set(side * 0.27, 0.36, 0.31);
+      blush.position.set(bx, cy - 0.02 * sy, front(bx, -0.02 * sy, 0.04));
       this.eyes.push(eye);
       this.body.add(foot, eye, blush);
+
+      if (b.ears) {
+        const ear =
+          b.ears === 'round'
+            ? new THREE.Mesh(new THREE.SphereGeometry(0.1, 12, 8), bodyMat)
+            : new THREE.Mesh(new THREE.ConeGeometry(b.ears === 'long' ? 0.07 : 0.09, b.ears === 'long' ? 0.38 : 0.24, 8), bodyMat);
+        if (b.ears === 'round') ear.scale.set(1, 1, 0.55);
+        ear.position.set(side * 0.24 * sx, cy + R * sy * 0.78, -0.02);
+        ear.rotation.z = -side * (b.ears === 'long' ? 0.35 : 0.5);
+        if (b.ears !== 'round') ear.position.y += 0.06;
+        this.body.add(ear);
+      }
+      if (b.arms) {
+        const r = b.arms === 'big' ? 0.14 : 0.1;
+        const arm = new THREE.Mesh(new THREE.SphereGeometry(r, 12, 8), bodyMat);
+        arm.scale.set(0.8, 1.25, 0.8);
+        arm.position.set(side * R * sx * 0.98, cy - 0.06, 0.06);
+        arm.rotation.z = side * 0.5;
+        this.body.add(arm);
+      }
+      if (b.wings) {
+        // Swept-up wings rooted on the upper back, so they show beside the head from the front.
+        const pivot = new THREE.Group();
+        pivot.position.set(side * 0.2 * sx, cy + 0.16, -R * sz * 0.55);
+        const wing = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 8), light);
+        wing.scale.set(1.35, 0.6, 0.16);
+        wing.position.set(side * 0.24, 0.14, 0);
+        wing.rotation.z = side * 0.7;
+        const edge = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), accent);
+        edge.position.set(side * 0.44, 0.34, 0);
+        pivot.add(wing, edge);
+        pivot.userData.side = side;
+        this.wings.push(pivot);
+        this.body.add(pivot);
+      }
+      if (b.tufts) {
+        const tuft = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.14, 5), dark);
+        tuft.position.set(side * 0.34 * sx, cy + 0.12 * sy, 0.05);
+        tuft.rotation.z = -side * 1.1;
+        this.body.add(tuft);
+      }
+    }
+
+    if (b.tufts) {
+      const tuft = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.16, 5), dark);
+      tuft.position.set(-0.1, cy + R * sy - 0.02, 0.18);
+      tuft.rotation.set(0.5, 0, 0.6);
+      this.body.add(tuft);
+    }
+    if (b.tail) {
+      const tail = new THREE.Group();
+      tail.position.set(b.tail === 'long' ? 0.12 * sx : 0, cy - 0.16 * sy, -R * sz * 0.9);
+      if (b.tail === 'stub') {
+        tail.add(new THREE.Mesh(new THREE.SphereGeometry(0.1, 10, 8), bodyMat));
+      } else {
+        // Swings out to one side so it peeks out beside the body from the front.
+        const stem = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.55, 8), bodyMat);
+        stem.rotation.x = -1.15;
+        stem.position.set(0, 0.12, -0.24);
+        const tip = new THREE.Mesh(new THREE.SphereGeometry(0.085, 10, 8), accent);
+        tip.position.set(0, 0.25, -0.48);
+        tail.rotation.y = -1.3;
+        tail.add(stem, tip);
+      }
+      this.body.add(tail);
+    }
+    if (b.horn) {
+      const horn = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.24, 8), toon('#fff4dc'));
+      horn.position.set(0, cy + 0.3 * sy, front(0, 0.3 * sy, 0.02));
+      horn.rotation.x = 0.55;
+      this.body.add(horn);
+    }
+    if (b.shell) {
+      const shell = new THREE.Mesh(
+        facet(new THREE.SphereGeometry(R * 1.02, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2)),
+        mat(base.clone().multiplyScalar(0.6)),
+      );
+      // Slightly larger than the torso, so its rim frames the body from the front.
+      shell.scale.set(sx * 1.12, sy * 1.04, sz * 0.85);
+      shell.position.set(0, cy + 0.02, -0.04);
+      shell.rotation.x = -Math.PI / 2;
+      this.body.add(shell);
+    }
+    if (b.orbs) {
+      const orbit = new THREE.Group();
+      orbit.position.y = this.orbY = cy + R * sy + 0.3;
+      const glow = toon(ACCENT[this.type], { emissive: ACCENT[this.type], emissiveIntensity: 0.7 });
+      for (let i = 0; i < b.orbs; i++) {
+        const a = (i / b.orbs) * Math.PI * 2;
+        const orb = new THREE.Mesh(new THREE.SphereGeometry(b.orbs > 1 ? 0.065 : 0.08, 14, 10), glow);
+        orb.position.set(Math.cos(a) * 0.42, 0, Math.sin(a) * 0.42);
+        orbit.add(orb);
+      }
+      this.orb = orbit;
+      this.body.add(orbit);
     }
 
     const mouthGeo = new THREE.TorusGeometry(0.055, 0.014, 6, 12, Math.PI);
+    const mouthZ = front(0, -0.04 * sy, 0.03);
     this.smile = new THREE.Mesh(mouthGeo, ink);
     this.smile.rotation.z = Math.PI;
-    this.smile.position.set(0, 0.36, 0.385);
+    this.smile.position.set(0, cy - 0.02 * sy, mouthZ);
     this.frown = new THREE.Mesh(mouthGeo, ink);
-    this.frown.position.set(0, 0.31, 0.385);
+    this.frown.position.set(0, cy - 0.07 * sy, mouthZ);
     this.flat = new THREE.Mesh(new THREE.CapsuleGeometry(0.013, 0.07, 4, 8), ink);
     this.flat.rotation.z = Math.PI / 2;
-    this.flat.position.set(0, 0.33, 0.39);
+    this.flat.position.set(0, cy - 0.05 * sy, mouthZ + 0.005);
     this.body.add(this.smile, this.frown, this.flat);
 
     this.sweat = new THREE.Mesh(new THREE.SphereGeometry(0.05, 10, 8), toon('#8fd0f5'));
     this.sweat.scale.set(0.8, 1.2, 0.8);
-    this.sweat.position.set(0.3, 0.62, 0.22);
+    this.sweatY = cy + 0.24;
+    this.sweat.position.set(0.3 * sx, this.sweatY, 0.22);
     this.body.add(this.sweat);
 
-    this.body.add(this.feature(type, dark));
+    const crest = this.feature(dark);
+    crest.position.y = cy + R * sy - 0.04;
+    crest.scale.setScalar(b.crest);
+    this.body.add(crest);
     this.food = this.buildFood();
     this.body.add(this.food);
-    this.bubble = this.buildBubble();
     // Invisible, generous tap target around the body.
     const hit = new THREE.Mesh(new THREE.SphereGeometry(0.62, 12, 8), new THREE.MeshBasicMaterial({ visible: false }));
-    hit.position.y = 0.42;
+    hit.scale.set(sx, sy / 0.9, sz);
+    hit.position.y = cy + 0.04;
     this.body.add(hit);
-    this.group.add(this.body, this.bubble);
-    this.group.position.y = GROUND_Y + 0.07;
-    this.group.scale.setScalar(this.scale);
+    this.eyeOpen = b.eyeOpen ?? 1;
+    this.applyTint();
   }
 
-  private feature(type: ElementType, dark: THREE.Material): THREE.Object3D {
+  private feature(dark: THREE.Material): THREE.Object3D {
     const g = new THREE.Group();
-    g.position.y = 0.76;
-    switch (type) {
+    switch (this.type) {
       case 'ember': {
         const outer = new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.32, 8), toon('#ff7a3d'));
         const inner = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.2, 8), toon('#ffc94d'));
@@ -210,11 +406,16 @@ export class Pet3D {
     return s;
   }
 
-  setStage(index: number, animate: boolean): void {
-    if (index === this.stage && !animate) return;
-    this.stage = Math.min(index, STAGE_SCALE.length - 1);
-    if (animate) this.play('evolve', 1.6);
-    else this.scale = STAGE_SCALE[this.stage];
+  /** Grow to a life stage and take on a form; animated, the body swaps at the peak of the flash. */
+  setForm(form: FormId, stage: number, animate: boolean): void {
+    this.stage = Math.min(stage, STAGE_SCALE.length - 1);
+    if (animate) {
+      this.pendingForm = form;
+      this.play('evolve', 1.8);
+    } else {
+      this.scale = STAGE_SCALE[this.stage];
+      this.build(form);
+    }
     this.applyTint();
   }
 
@@ -309,11 +510,19 @@ export class Pet3D {
           spin = p * Math.PI * 4;
           hopY = Math.sin(p * Math.PI) * 0.5;
           flash = Math.sin(p * Math.PI);
+          if (p >= 0.5 && this.pendingForm) {
+            this.build(this.pendingForm);
+            this.pendingForm = null;
+          }
           break;
         }
       }
       if (p >= 1) {
-        if (a.kind === 'evolve') this.scale = STAGE_SCALE[this.stage];
+        if (a.kind === 'evolve') {
+          this.scale = STAGE_SCALE[this.stage];
+          if (this.pendingForm) this.build(this.pendingForm);
+          this.pendingForm = null;
+        }
         this.food.visible = false;
         this.anim = null;
       }
@@ -361,7 +570,7 @@ export class Pet3D {
     // Face.
     this.blinkIn -= dt;
     const closed = sleeping || this.blinkIn < 0.12 || this.anim?.kind === 'cower';
-    for (const e of this.eyes) e.scale.y = closed ? 0.15 : 1.15;
+    for (const e of this.eyes) e.scale.y = closed ? 0.15 : 1.15 * this.eyeOpen;
     if (this.blinkIn < 0) this.blinkIn = 2 + this.rand() * 3;
     const happy = mood >= 60 && !sick;
     const sad = mood < 30 || sick || this.anim?.kind === 'cower';
@@ -370,7 +579,16 @@ export class Pet3D {
     this.flat.visible = !this.smile.visible && !this.frown.visible;
 
     this.sweat.visible = sick;
-    this.sweat.position.y = 0.62 - ((time * 0.4) % 1) * 0.25;
+    this.sweat.position.y = this.sweatY - ((time * 0.4) % 1) * 0.25;
+
+    for (const w of this.wings) {
+      const flap = sleeping ? 0.1 : walking || this.anim ? 0.6 : 0.25;
+      w.rotation.y = w.userData.side * (0.4 + Math.sin(time * (walking ? 14 : 4)) * flap);
+    }
+    if (this.orb) {
+      this.orb.rotation.y = time * 1.6;
+      this.orb.position.y = this.orbY + Math.sin(time * 2.3) * 0.04;
+    }
 
     this.bubble.visible = calling && !sleeping;
     const s = 0.55 / this.scale;

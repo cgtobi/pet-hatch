@@ -1,0 +1,178 @@
+import { t, type TextKey } from '../i18n';
+import { speciesName } from '../sim/evolution';
+import { LIFE_STAGES } from '../sim/pet';
+import { grade, STATS, statCap, TRAIN_ENERGY, type TrainCheck, type TrainResult } from '../sim/training';
+import type { PetState, Stat } from '../sim/types';
+import { icon } from './icons';
+import { GAMES, STAT_ICONS, type GameText, type Minigame } from './minigames';
+
+export interface TrainingHandlers {
+  pet(): PetState;
+  check(): TrainCheck;
+  /** Roll for obedience; false means the pet refused (the sheet closes). */
+  start(stat: Stat): boolean;
+  hit(): void;
+  miss(): void;
+  finish(stat: Stat, score: number): TrainResult;
+  /** The sheet opened, closed or changed size: re-frame the 3D view. */
+  layout(): void;
+}
+
+const TONES: Record<Stat, string> = { power: 'ember', speed: 'amber', guard: 'tide', wits: 'violet' };
+
+const esc = (s: string) => s.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
+
+/** The training sheet: stats overview, then one minigame, then the result. */
+export class Training {
+  private root = document.getElementById('training')!;
+  private sheet = this.root.querySelector<HTMLElement>('.sheet')!;
+  private game: Minigame | null = null;
+
+  constructor(private h: TrainingHandlers) {
+    this.root.addEventListener('click', (e) => {
+      if (e.target === this.root) this.close();
+    });
+  }
+
+  get isOpen(): boolean {
+    return !this.root.hidden;
+  }
+
+  open(): void {
+    this.root.hidden = false;
+    document.body.classList.add('training');
+    this.menu();
+  }
+
+  close(): void {
+    this.stopGame();
+    this.root.hidden = true;
+    document.body.classList.remove('training');
+    this.h.layout();
+  }
+
+  private stopGame(): void {
+    this.game?.stop();
+    this.game = null;
+  }
+
+  private head(title: string, sub: string, closeLabel: string): string {
+    return `<div class="train-head">
+      <div><h2>${esc(title)}</h2><p class="muted train-sub">${esc(sub)}</p></div>
+      <button type="button" class="round train-close" aria-label="${esc(closeLabel)}">${icon('close', 20)}</button>
+    </div>`;
+  }
+
+  private onClose(fn: () => void): void {
+    this.sheet.querySelector('.train-close')!.addEventListener('click', fn);
+  }
+
+  /** Stats with their caps, and one button per minigame. */
+  menu(): void {
+    this.stopGame();
+    const pet = this.h.pet();
+    const check = this.h.check();
+    const cap = statCap(pet);
+    const stage = Math.min(pet.stage, LIFE_STAGES.length - 1);
+    const sub = `${speciesName(pet.type, pet.form)} · ${t(`life.${LIFE_STAGES[stage]}`)}`;
+    const rows = STATS.map((stat) => {
+      const v = pet.stats[stat];
+      const maxed = cap > 0 && v >= cap;
+      const disabled = check !== 'ok' || maxed;
+      return `<button type="button" class="train-row" data-stat="${stat}" ${disabled ? 'disabled' : ''}>
+        <span class="bubble ${TONES[stat]}-btn">${icon(STAT_ICONS[stat], 22)}</span>
+        <span class="train-row-main">
+          <span class="train-row-top">
+            <b>${t(`stat.${stat}`)}</b><span class="muted">${t(`game.${stat}`)}</span>
+            <span class="train-val">${maxed ? t('train.max') : `${v} / ${cap}`}</span>
+          </span>
+          <span class="track"><span class="fill ${TONES[stat]}-fill" style="width:${cap ? (v / cap) * 100 : 0}%"></span></span>
+        </span>
+        <span class="train-go">${icon('play', 18)}</span>
+      </button>`;
+    }).join('');
+    const note = check === 'ok' ? t('train.cost', { n: TRAIN_ENERGY }) : t(`train.no.${check}`, { name: pet.name });
+    this.sheet.innerHTML = `${this.head(t('train.title'), sub, t('train.close'))}
+      <p class="train-goal">${t(`train.goal.${Math.max(1, stage)}` as TextKey)}</p>
+      <div class="train-rows">${rows}</div>
+      <p class="train-note ${check === 'ok' ? '' : 'bad'}">${esc(note)}</p>`;
+    this.onClose(() => this.close());
+    this.sheet.querySelectorAll<HTMLButtonElement>('.train-row').forEach((b) =>
+      b.addEventListener('click', () => {
+        const stat = b.dataset.stat as Stat;
+        if (this.h.start(stat)) this.intro(stat);
+        else this.close();
+      }),
+    );
+    this.h.layout();
+  }
+
+  /** How to play, and a start button, so the game never begins before the player is ready. */
+  private intro(stat: Stat): void {
+    this.sheet.innerHTML = `${this.head(t(`game.${stat}`), t(`stat.${stat}`), t('train.quit'))}
+      <div class="track mg-progress"><div class="fill ${TONES[stat]}-fill"></div></div>
+      <div class="mg-area mg-${stat}">
+        <div class="mg-intro">
+          <span class="bubble ${TONES[stat]}-btn">${icon(STAT_ICONS[stat], 34)}</span>
+          <p>${t(`game.${stat}.how`)}</p>
+          <button type="button" class="primary mg-start">${t('train.start')}</button>
+        </div>
+      </div>`;
+    this.onClose(() => this.menu());
+    this.sheet.querySelector('.mg-start')!.addEventListener('click', () => this.play(stat));
+    this.h.layout();
+  }
+
+  private play(stat: Stat): void {
+    const area = this.sheet.querySelector<HTMLElement>('.mg-area')!;
+    const bar = this.sheet.querySelector<HTMLElement>('.mg-progress .fill')!;
+    const sub = this.sheet.querySelector<HTMLElement>('.train-sub')!;
+    const text: GameText = {
+      round: (n, of) => t('game.round', { n, of }),
+      ready: t('game.ready'),
+      tap: t('game.tap'),
+      watch: t('game.watch'),
+      yourTurn: t('game.yourTurn'),
+    };
+    area.replaceChildren();
+    this.game = GAMES[stat](
+      area,
+      {
+        hit: () => this.h.hit(),
+        miss: () => this.h.miss(),
+        progress: (f) => (bar.style.width = `${Math.round(f * 100)}%`),
+        status: (s) => (sub.textContent = s),
+      },
+      text,
+    );
+    const game = this.game;
+    void game.done.then((score) => {
+      if (this.game !== game) return;
+      this.game = null;
+      this.result(stat, score, this.h.finish(stat, score));
+    });
+  }
+
+  private result(stat: Stat, score: number, r: TrainResult): void {
+    const name = t(`stat.${stat}`);
+    const again = this.h.check() === 'ok' && !r.capped;
+    const gain = r.gain > 0 ? `<p class="train-gain ${TONES[stat]}">${t('train.gain', { stat: name, n: r.gain })}</p>` : '';
+    const capped = r.capped ? `<p class="train-goal">${t('train.capped', { stat: name })}</p>` : '';
+    this.sheet.innerHTML = `<div class="train-result">
+        <span class="bubble ${TONES[stat]}-btn">${icon(STAT_ICONS[stat], 34)}</span>
+        <h2>${t(`train.grade.${grade(score)}`)}</h2>
+        <p class="muted">${t('train.score', { n: Math.round(score * 100) })}</p>
+        ${gain}${capped}
+        <div class="train-actions">
+          <button type="button" class="secondary train-again" ${again ? '' : 'disabled'}>${t('train.again')}</button>
+          <button type="button" class="primary train-done">${t('train.done')}</button>
+        </div>
+      </div>`;
+    this.sheet.querySelector('.train-done')!.addEventListener('click', () => this.menu());
+    this.sheet.querySelector('.train-again')!.addEventListener('click', () => {
+      if (this.h.start(stat)) this.intro(stat);
+      else this.close();
+    });
+    this.h.layout();
+  }
+}

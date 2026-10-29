@@ -64,6 +64,8 @@ export const sfx = {
   turn: () => tone(330, 0, 0.25, 'triangle', 0.1, 520),
   sing: () => [523, 659, 784, 659, 880].forEach((f, i) => tone(f, i * 0.14, 0.18, 'sine', 0.1)),
   nope: () => tone(260, 0, 0.15, 'square', 0.04, 200),
+  hit: () => tone(784, 0, 0.07, 'triangle', 0.08, 1047),
+  miss: () => tone(220, 0, 0.12, 'triangle', 0.05, 160),
   toggle: () => tone(440, 0, 0.06, 'square', 0.04),
   crack: () => {
     noise(0, 0.08, 0.5, 1800);

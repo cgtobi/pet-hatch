@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { Dropping, ElementType } from '../sim/types';
+import type { Dropping, ElementType, FormId } from '../sim/types';
 import { Effects } from './effects';
 import { Egg3D } from './egg3d';
 import { GROUND_Y, Island } from './island';
@@ -94,10 +94,10 @@ export class World {
     return null;
   }
 
-  showPet(type: ElementType, seed: number, stage: number, animate: boolean): Pet3D {
+  showPet(type: ElementType, seed: number, stage: number, form: FormId, animate: boolean): Pet3D {
     if (this.pet) this.scene.remove(this.pet.group);
-    this.pet = new Pet3D(type, seed);
-    this.pet.setStage(stage, false);
+    this.pet = new Pet3D(type, seed, form);
+    this.pet.setForm(form, stage, false);
     if (animate) this.pet.pop();
     this.scene.add(this.pet.group);
     this.egg.setHatched(true);

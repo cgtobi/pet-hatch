@@ -1,4 +1,5 @@
-import { t } from '../i18n';
+import { t, type TextKey } from '../i18n';
+import { STAT_CAPS, TRAIN_ENERGY } from '../sim/training';
 import type { NeglectMode, Settings } from '../sim/types';
 import { icon } from './icons';
 
@@ -20,6 +21,8 @@ export interface SettingsHandlers {
   onInstall(): void;
   debug: null | { skip(hours: number): void; readyNow(): void };
 }
+
+const HELP_TOPICS = ['egg', 'types', 'care', 'calls', 'mistakes', 'life', 'train', 'evolve', 'modes'] as const;
 
 const hourLabel = (h: number) => `${String(h).padStart(2, '0')}:00`;
 
@@ -98,6 +101,21 @@ export function openSettings(
       el('small', {}, t('settings.sleepHint')),
     );
 
+    // Collapsed topics; each body line becomes a bullet.
+    const help = el('div', { className: 'field' }, el('span', { className: 'field-title' }, t('help.title')));
+    const params = { energy: TRAIN_ENERGY, child: STAT_CAPS[1], teen: STAT_CAPS[2], adult: STAT_CAPS[3] };
+    for (const topic of HELP_TOPICS) {
+      const lines = t(`help.${topic}.body` as TextKey, params).split('\n');
+      help.append(
+        el(
+          'details',
+          { className: 'help' },
+          el('summary', {}, t(`help.${topic}.title` as TextKey)),
+          el('ul', {}, ...lines.map((line) => el('li', {}, line))),
+        ),
+      );
+    }
+
     const soundInput = el('input', { type: 'checkbox', checked: settings.sound });
     soundInput.onchange = () => h.onChange({ sound: (settings.sound = soundInput.checked) });
     const sound = el('label', { className: 'choice' }, soundInput, t('settings.sound'));
@@ -144,6 +162,7 @@ export function openSettings(
       'div',
       { className: 'settings-body' },
       el('div', { className: 'settings-head' }, el('h2', { id: 'settings-title' }, t('settings.title')), close),
+      help,
       language,
       neglect,
       sleep,

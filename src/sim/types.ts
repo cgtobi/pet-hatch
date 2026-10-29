@@ -57,6 +57,18 @@ export interface PetCall {
   at: number;
 }
 
+export type Stat = 'power' | 'speed' | 'guard' | 'wits';
+export type FormId =
+  | 'baby'
+  | 'child.bright'
+  | 'child.scruffy'
+  | 'teen.physical'
+  | 'teen.technical'
+  | 'adult.power'
+  | 'adult.speed'
+  | 'adult.guard'
+  | 'adult.wits';
+
 export interface PetState {
   type: ElementType;
   seed: number;
@@ -91,6 +103,15 @@ export interface PetState {
   lightsMistakeNight: string | null;
   /** Total care mistakes, egg included. */
   careMistakes: number;
+  /** Life stage index the simulation has processed (evolution happens when it moves on). */
+  stage: number;
+  form: FormId;
+  /** The stage and form the player has seen, so evolutions that happened while away still play. */
+  shownStage: number;
+  shownForm: FormId;
+  stats: Record<Stat, number>;
+  /** Finished training sessions. */
+  trainings: number;
 }
 
 export interface GameState {

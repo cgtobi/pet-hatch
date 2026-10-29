@@ -36,10 +36,13 @@ import {
   scold,
   STAGE_HOURS,
 } from './sim/pet';
+import { speciesName } from './sim/evolution';
 import { exportSave, importSave, loadGame, saveGame } from './sim/save';
-import type { GameState, PetState } from './sim/types';
+import { canTrain, finishTraining, startTraining } from './sim/training';
+import type { GameState, PetState, Stat } from './sim/types';
 import { Hud, type DockAction } from './ui/hud';
 import { openSettings, type InstallState } from './ui/settings';
+import { Training } from './ui/training';
 
 const params = new URLSearchParams(location.search);
 /** Debug: run game time faster than real time, e.g. ?speed=600. */
@@ -75,7 +78,6 @@ let singCooldown = 0;
 let wobbleTimer = 2;
 let rushLeft: number | null = null;
 let lastStage = hatchStage(state.egg);
-let lastLifeStage = state.pet ? lifeStageIndex(state.pet, gameNow(state)) : 0;
 let endShown = false;
 let petTapped = false;
 let insetKey = '';
@@ -88,6 +90,52 @@ const hud = new Hud({
     else petAction(action);
   },
   onMore: () => showSettings(),
+});
+
+const training = new Training({
+  pet: () => state.pet!,
+  check: () => {
+    const pet = livePet();
+    return pet ? canTrain(pet, gameNow(state), state.settings) : 'asleep';
+  },
+  start: () => {
+    const pet = livePet();
+    if (!pet) return false;
+    if (startTraining(pet, gameNow(state)) === 'ok') return true;
+    world.pet?.cower();
+    sfx.scold();
+    hud.toast(t('toast.refused', { name: pet.name }));
+    saveGame(state);
+    updateHud();
+    return false;
+  },
+  hit: () => {
+    world.pet?.hop();
+    sfx.hit();
+    buzz(8);
+  },
+  miss: () => sfx.miss(),
+  finish: (stat: Stat, score: number) => {
+    const pet = state.pet!;
+    const r = finishTraining(pet, stat, score);
+    const at = world.pet?.center() ?? world.egg.center();
+    if (score >= 0.6) {
+      world.pet?.dance();
+      world.effects.emit('spark', at, 14);
+      sfx.play();
+      buzz([10, 60, 10]);
+    } else {
+      world.effects.emit('spark', at, 4);
+      sfx.tap();
+    }
+    saveGame(state);
+    updateHud();
+    return r;
+  },
+  layout: () => {
+    insetKey = '';
+    updateHud();
+  },
 });
 
 const eggActive = () => state.phase === 'egg' && !state.egg.failed;
@@ -204,6 +252,10 @@ function petAction(action: DockAction) {
     case 'lights':
       toggleLights();
       return;
+    case 'train':
+      sfx.tap();
+      training.open();
+      return;
     case 'feed': {
       const r = feedPet(pet, now, state.settings);
       if (r === 'ok') {
@@ -301,8 +353,7 @@ function doHatch() {
 function burstAndReveal(pet: PetState, alone: boolean) {
   world.effects.shatter(world.egg.center());
   world.effects.emit('spark', world.egg.center(), 18);
-  world.showPet(pet.type, pet.seed, 0, true);
-  lastLifeStage = 0;
+  world.showPet(pet.type, pet.seed, pet.shownStage, pet.shownForm, true);
   sfx.hatch();
   buzz([30, 40, 80]);
   saveGame(state);
@@ -325,17 +376,36 @@ function burstAndReveal(pet: PetState, alone: boolean) {
   }, 1100);
 }
 
-function growUp(pet: PetState, stage: number) {
-  world.pet?.setStage(stage, true);
+/** Play a stage change the player hasn't seen yet: grow, and if the form changed, explain the evolution. */
+function evolve(pet: PetState) {
+  const evolved = pet.form !== pet.shownForm;
+  const stage = Math.min(pet.stage, LIFE_STAGES.length - 1);
+  pet.shownStage = pet.stage;
+  pet.shownForm = pet.form;
+  saveGame(state);
+  world.pet?.setForm(pet.form, stage, true);
   world.effects.emit('spark', world.pet?.center() ?? world.egg.center(), 24);
   sfx.grow();
   buzz([20, 60, 20, 60, 40]);
-  hud.toast(t('toast.grew', { name: pet.name, stage: t(`life.${LIFE_STAGES[stage]}`) }));
+  const name = pet.name;
+  if (!evolved) {
+    hud.toast(t('toast.grew', { name, stage: t(`life.${LIFE_STAGES[stage]}`) }));
+    return;
+  }
+  const species = speciesName(pet.type, pet.form);
+  const why = pet.form.startsWith('adult.')
+    ? t('evolve.why.adult', { stat: t(`stat.${pet.form.slice('adult.'.length) as Stat}`) })
+    : t(`evolve.why.${pet.form}` as TextKey);
+  setTimeout(
+    () => hud.showOverlay(t('evolve.title', { name }), `${t('evolve.body', { name, species })} ${why}`, t('evolve.button'), updateHud),
+    1900,
+  );
 }
 
 function showEnding(pet: PetState) {
   endShown = true;
   warming = false;
+  training.close();
   const name = { name: pet.name };
   if (pet.status === 'retired') {
     world.pet?.dance();
@@ -393,6 +463,7 @@ function petHint(pet: PetState, now: number): [string, boolean] {
   if (pet.mood < 30) return [t('hint.pet.bored', name), pet.mood < 20];
   if (pet.call) return [t('hint.pet.callNeed', name), true];
   if (pet.energy < 20) return [t('hint.pet.tired', name), false];
+  if (pet.energy >= 80 && canTrain(pet, now, state.settings) === 'ok') return [t('hint.pet.train', name), false];
   return [t(petTapped ? 'hint.pet.fine' : 'hint.pet.tap', name), false];
 }
 
@@ -435,7 +506,7 @@ function updateHud() {
     world.egg.draw({ crack: crackLevel(), leaning: careLeaning(egg), failed: egg.failed });
   } else if (state.pet && !endShown) {
     const pet = state.pet;
-    const stage = Math.min(lifeStageIndex(pet, now), LIFE_STAGES.length - 1);
+    const stage = Math.min(pet.shownStage, LIFE_STAGES.length - 1);
     const sleeping = isSleeping(pet, now, state.settings);
     const feel = pet.sick
       ? 'sick'
@@ -449,7 +520,9 @@ function updateHud() {
               ? 'ok'
               : 'sad';
     hud.setMode('pet');
-    hud.setHeader(pet.name, `${t('pet.age', { age: formatAge(ageHours(pet, now)) })} · ${t(`pet.feel.${feel}` as TextKey)}`, [
+    const species = speciesName(pet.type, pet.shownForm);
+    const age = t('pet.age', { age: formatAge(ageHours(pet, now)) });
+    hud.setHeader(pet.name, `${species} · ${age} · ${t(`pet.feel.${feel}` as TextKey)}`, [
       { text: t(`type.${pet.type}`), tone: pet.type },
       { text: t(`life.${LIFE_STAGES[stage]}`), tone: 'neutral' },
     ]);
@@ -595,7 +668,7 @@ if (state.phase === 'hatched' && state.pet) {
   const pet = state.pet;
   if (!pet.revealSeen) setTimeout(() => burstAndReveal(pet, pet.hatchedAlone), 700);
   else {
-    world.showPet(pet.type, pet.seed, Math.min(lastLifeStage, LIFE_STAGES.length - 1), false);
+    world.showPet(pet.type, pet.seed, Math.min(pet.shownStage, LIFE_STAGES.length - 1), pet.shownForm, false);
     world.setDroppings(pet.droppings);
   }
 }
@@ -656,9 +729,7 @@ function frame(ms: number) {
     if (pet.status !== 'alive') {
       if (!endShown && pet.revealSeen) showEnding(pet);
     } else {
-      const stage = Math.min(lifeStageIndex(pet, now), LIFE_STAGES.length - 1);
-      if (stage > lastLifeStage && pet.revealSeen) growUp(pet, stage);
-      lastLifeStage = stage;
+      if (pet.stage > pet.shownStage && pet.revealSeen && !hud.overlayOpen && !training.isOpen) evolve(pet);
       const sleeping = isSleeping(pet, now, state.settings);
       world.pet.setLook({ sleeping, sick: pet.sick, calling: pet.call !== null, mood: pet.mood });
       world.setDroppings(pet.droppings);

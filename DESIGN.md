@@ -97,11 +97,46 @@ You name the baby when it hatches (a name is suggested).
 
 After any ending, a new egg starts.
 
-### Still to come (🔜 milestones 3–4)
+### Training and stats ✅
 
-- Evolution: Child form by care quality, Teen form by physical vs. technical training, Adult form by highest
-  stat. About 9 forms per type, all built in code from primitives.
-- Training: Power / Speed / Guard / Wits minigames of 15–30 s; each costs ~20% energy; each stage caps stats.
+Four stats, each trained by its own 15–30 s minigame from the **Train** sheet (opens from the dock):
+
+| Stat | Minigame | How it plays |
+|---|---|---|
+| Power | Smash | Mash to fill a meter before time runs out; 3 rounds, faster drain each round. |
+| Speed | Star catch | Tap stars before they fade; 20 s, they come faster and fade sooner. |
+| Guard | Block | Tap the side an attack comes from just before it lands; 12 attacks. Swinging at nothing leaves that side open briefly, so mashing fails. |
+| Wits | Recall | Repeat a growing sequence of four pads (3 → 8 long); one mistake ends it. |
+
+- A session costs 20% energy and a little food; a score of 0–100% earns 1–6 points. Each type learns one stat
+  25% faster (Ember Power, Tide Speed, Bloom Guard, Astral Wits); scruffy children learn 20% slower, elders 50%.
+- **Caps per life stage:** babies can't train; Child 30, Teen 60, Adult and Elder 100.
+- Training needs the pet awake, healthy, with ≥ 20% energy and not starving.
+- **Disobedience:** below 40 discipline the pet may refuse (up to 30% at 0) and throw a tantrum instead, which
+  scolding fixes. The roll is fixed per minute, so retrying straight away doesn't help.
+
+### Evolution ✅
+
+Nine forms per type, 36 in all, built in code from primitives (body proportions, ears, tail, arms, wings, horn,
+shell, orbs, plus the type's color, crest and accent). Each has its own species name (`src/sim/evolution.ts`).
+
+| Becomes | Form decided by |
+|---|---|
+| Child | Baby care: ≤ 2 care mistakes as a baby → *bright*, more → *scruffy* |
+| Teen | Training so far: Power + Speed ≥ Guard + Wits → *physical*, else *technical* |
+| Adult | Best stat → *power* / *speed* / *guard* / *wits* form (ties go to the type's favorite) |
+| Elder | Keeps its adult form, slightly faded |
+
+Evolution happens in the simulation, so it also happens while you're away; the animation and an explanation
+("…its strongest side, Power, shaped its adult form") play the next time you look.
+
+### Help ✅
+
+Settings › How to play explains the mechanics in nine short, collapsible topics (egg, types, care, calls and
+discipline, care mistakes, growing up, training, evolution, neglect modes). It never reveals the hidden hatch time.
+
+### Still to come (🔜 milestone 4)
+
 - Battles: 1v1 turn-based, 4 moves, type triangle Tide › Ember › Bloom › Tide (Astral has no weakness).
   Low discipline means the pet may ignore orders. Wild AI battles, plus async battles via share codes.
 
@@ -115,7 +150,7 @@ UI: Fredoka (display) + Nunito (body), self-hosted Latin subsets.
 
 1. ✅ Simulation core, island scene, egg phase, hatch and reveal, settings, i18n, installable app.
 2. ✅ Pet care loop, attention calls and discipline, sickness, naps, aging stages, endings, naming.
-3. 🔜 Training minigames, stats and evolution.
+3. ✅ Training minigames, stats with stage caps, evolution forms, help section.
 4. 🔜 Moves and battles, wild creatures and share codes.
 5. 🔜 Polish: sound design, haptics tuning, more languages.
 
@@ -123,10 +158,10 @@ UI: Fredoka (display) + Nunito (body), self-hosted Latin subsets.
 
 | Path | What |
 |---|---|
-| `src/sim/` | Pure game rules, no DOM or three.js: `egg.ts` and `pet.ts` rules, `game.ts` catch-up and hatching, `save.ts` persistence and save upgrades. Unit tested in `sim.test.ts` and `pet.test.ts`. |
-| `src/scene/` | three.js: `world.ts` (renderer, camera framing, lights), `island.ts`, `egg3d.ts`, `pet3d.ts` (the living pet), `sky.ts`, `effects.ts`. |
+| `src/sim/` | Pure game rules, no DOM or three.js: `egg.ts` and `pet.ts` rules, `training.ts` stats and caps, `evolution.ts` forms and species names, `game.ts` catch-up and hatching, `save.ts` persistence and save upgrades. Unit tested in `sim.test.ts`, `pet.test.ts` and `training.test.ts`. |
+| `src/scene/` | three.js: `world.ts` (renderer, camera framing, lights), `island.ts`, `egg3d.ts`, `pet3d.ts` (the living pet and its 9 body plans), `sky.ts`, `effects.ts`. |
 | `src/input/gestures.ts` | Pointer events → hold / swipe / stroke / tap / orbit. |
-| `src/ui/` | DOM HUD, settings sheet and icons. |
+| `src/ui/` | DOM HUD, settings sheet (with help), training sheet, the four minigames and icons. |
 | `src/i18n.ts` | All player-facing text, English and German. |
 | `src/main.ts` | Wires it together: game loop, care actions, hints, hatch moment, growing up and endings. |
 | `vite.config.ts` | Relative base and the service-worker generator. |

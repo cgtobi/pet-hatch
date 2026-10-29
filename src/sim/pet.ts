@@ -1,4 +1,5 @@
 import { HOUR, isAsleep, MINUTE } from './clock';
+import { formFor } from './evolution';
 import { mulberry32 } from './rng';
 import type { EggState, ElementType, LifeStage, NeglectMode, PetNeed, PetState, Settings } from './types';
 
@@ -89,6 +90,12 @@ export function createPet(egg: EggState, type: ElementType, at: number, alone: b
     mistakes: [0, 0, 0, 0, 0],
     lightsMistakeNight: null,
     careMistakes: egg.careMistakes,
+    stage: 0,
+    form: 'baby',
+    shownStage: 0,
+    shownForm: 'baby',
+    stats: { power: 0, speed: 0, guard: 0, wits: 0 },
+    trainings: 0,
   };
 }
 
@@ -150,9 +157,14 @@ function mistake(pet: PetState, now: number): void {
 /** Advance the pet by dtH game hours, ending at game time t. */
 export function tickPet(pet: PetState, t: number, dtH: number, settings: Settings, lightsOn: boolean): void {
   if (pet.status !== 'alive') return;
-  if (lifeStageIndex(pet, t) >= LIFE_STAGES.length) {
+  const stageIndex = lifeStageIndex(pet, t);
+  if (stageIndex >= LIFE_STAGES.length) {
     pet.status = 'retired';
     return;
+  }
+  while (pet.stage < stageIndex) {
+    pet.stage++;
+    pet.form = formFor(pet, pet.stage);
   }
   const stage = lifeStage(pet, t);
   const night = isAsleep(t, settings);
