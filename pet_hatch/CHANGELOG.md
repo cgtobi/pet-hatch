@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.3
+
+- The home screen icon shows up again on web servers that reserve /icons/ (such as Apache).
+- The game can also connect to the new PHP relay for plain web hosting.
+
 ## 0.3.2
 
 - The island turns all the way round; light and the pet follow the view.
