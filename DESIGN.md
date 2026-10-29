@@ -87,6 +87,13 @@ You name the baby when it hatches (a name is suggested).
 
 - **Naps:** a pet that runs out of energy during the day naps on its own until it has 70% again.
   Energy never triggers a call, because the player can't fix it directly.
+- **Power naps:** below 40% energy, turning the **Lights** off during the day puts the pet down for a nap.
+  - It regains 25 energy per hour while food and mood drain at half speed (no shortcut around care); calls pause.
+  - It wakes on its own at 90% ("woke up refreshed", +5 mood), or early when hunger drops below 20% or it gets
+    sick (it then calls). Either way the lights come back on. Bedtime turns the nap into night sleep.
+  - Lights back on within 20 minutes wakes it grumpy (−5 mood). At 40% or more it isn't sleepy: −3 mood and it
+    stays awake; a hungry or sick pet can't settle down. Training, battles, feeding and play wait while it sleeps.
+  - During the egg phase, daytime lights still have no effect.
 - **Sickness:** droppings piling up, starving and misery make sickness likely (per-hour chance); **Medicine** cures it in
   two doses. Medicine when not sick upsets it. Cozy mode has no sickness.
 - **Health** recovers while fed and happy, and drops while sick.

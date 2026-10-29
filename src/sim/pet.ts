@@ -23,6 +23,12 @@ const ENERGY_REST_DARK = 25;
 const ENERGY_REST_LIT = 10;
 const SLEEP_DECAY_DARK = 0.1;
 const SLEEP_DECAY_LIT = 0.3;
+/** Power naps: only for a tired pet, until this rested, with needs draining at this rate. */
+export const POWER_NAP_BELOW = 40;
+const POWER_NAP_UNTIL = 90;
+const POWER_NAP_DECAY = 0.5;
+/** Woken within this long, the pet is grumpy. */
+const POWER_NAP_GRUMPY_MIN = 20;
 
 const MAX_DROPPINGS = 5;
 const POOP_DELAY_H: [number, number] = [1.5, 3];
@@ -80,6 +86,8 @@ export function createPet(egg: EggState, type: ElementType, at: number, alone: b
     discipline: 0,
     sick: false,
     napping: false,
+    powerNap: null,
+    wake: null,
     sickDoses: 0,
     droppings: [],
     poopsDue: [],
@@ -161,13 +169,16 @@ function mistake(pet: PetState, now: number): void {
   pet.mistakes[Math.min(lifeStageIndex(pet, now), LIFE_STAGES.length - 1)]++;
 }
 
+/** How a power nap ended during a tick: the game turns the lights back on unless bedtime took over. */
+export type NapEnd = 'rested' | 'need' | 'bedtime';
+
 /** Advance the pet by dtH game hours, ending at game time t. */
-export function tickPet(pet: PetState, t: number, dtH: number, settings: Settings, lightsOn: boolean): void {
-  if (pet.status !== 'alive') return;
+export function tickPet(pet: PetState, t: number, dtH: number, settings: Settings, lightsOn: boolean): NapEnd | null {
+  if (pet.status !== 'alive') return null;
   const stageIndex = lifeStageIndex(pet, t);
   if (stageIndex >= LIFE_STAGES.length) {
     pet.status = 'retired';
-    return;
+    return null;
   }
   while (pet.stage < stageIndex) {
     pet.stage++;
@@ -178,14 +189,21 @@ export function tickPet(pet: PetState, t: number, dtH: number, settings: Setting
   const night = isAsleep(t, settings);
   const mult = NEGLECT_MULT[settings.neglect];
 
+  let napEnd: NapEnd | null = null;
+  if (night && pet.powerNap) {
+    // Bedtime arrived during a power nap: it simply becomes night sleep.
+    pet.powerNap = null;
+    napEnd = 'bedtime';
+  }
   if (night) pet.napping = false;
+  else if (pet.powerNap) pet.napping = true;
   else if (pet.energy <= NAP_START) pet.napping = true;
   else if (pet.energy >= NAP_UNTIL) pet.napping = false;
   const asleep = night || pet.napping;
 
-  // Needs.
+  // Needs. A power nap rests the pet but only halves the drain, so it is no shortcut around daytime care.
   const dark = !lightsOn || pet.napping;
-  const decayMul = asleep ? (dark ? SLEEP_DECAY_DARK : SLEEP_DECAY_LIT) : 1;
+  const decayMul = asleep ? (pet.powerNap ? POWER_NAP_DECAY : dark ? SLEEP_DECAY_DARK : SLEEP_DECAY_LIT) : 1;
   pet.hunger = clamp(pet.hunger - DECAY[stage].hunger * dtH * decayMul);
   pet.mood = clamp(pet.mood - DECAY[stage].mood * dtH * decayMul * (pet.sick ? 1.5 : 1));
   pet.energy = clamp(pet.energy + (asleep ? (dark ? ENERGY_REST_DARK : ENERGY_REST_LIT) : -ENERGY_DRAIN) * dtH);
@@ -221,6 +239,20 @@ export function tickPet(pet: PetState, t: number, dtH: number, settings: Setting
     }
   }
 
+  // A power nap ends once rested, or early when hunger or sickness needs the player.
+  if (pet.powerNap) {
+    const end = pet.energy >= POWER_NAP_UNTIL ? 'rested' : pet.hunger < CALL_THRESHOLD || pet.sick ? 'need' : null;
+    if (end) {
+      pet.powerNap = null;
+      pet.napping = false;
+      pet.wake = end;
+      if (end === 'rested') pet.mood = clamp(pet.mood + 5);
+      // A tantrum from before the nap starts its timer over instead of timing out at once.
+      if (pet.call) pet.call.at = t;
+      napEnd = end;
+    }
+  }
+
   // Health.
   if (pet.sick) pet.health -= SICK_HEALTH_LOSS * dtH * mult * (asleep ? 0.3 : 1);
   else if (pet.hunger > 30 && pet.mood > 30) pet.health += HEALTH_RECOVERY * dtH;
@@ -228,7 +260,7 @@ export function tickPet(pet: PetState, t: number, dtH: number, settings: Setting
   if (settings.neglect === 'cozy') pet.health = Math.max(pet.health, 50);
   if (settings.neglect === 'classic' && pet.health <= 0) {
     pet.status = 'died';
-    return;
+    return null;
   }
 
   // Running away after a long stretch of total neglect (Gentle).
@@ -236,7 +268,7 @@ export function tickPet(pet: PetState, t: number, dtH: number, settings: Setting
   else if (pet.hunger > 30 && pet.mood > 30) pet.neglectHours = Math.max(0, pet.neglectHours - dtH);
   if (settings.neglect === 'gentle' && pet.neglectHours >= GENTLE_RUNAWAY_H) {
     pet.status = 'ranAway';
-    return;
+    return null;
   }
 
   // Attention calls (paused while asleep).
@@ -251,7 +283,7 @@ export function tickPet(pet: PetState, t: number, dtH: number, settings: Setting
         mistake(pet, t);
       }
     }
-    return;
+    return napEnd;
   }
   if (pet.call?.kind === 'need' && lowestNeed(pet) === null && !pet.sick) pet.call = null;
   if (pet.call && t - pet.call.at >= CALL_TIMEOUT_H * HOUR) {
@@ -265,6 +297,7 @@ export function tickPet(pet: PetState, t: number, dtH: number, settings: Setting
     pet.call = { kind: 'fake', at: t };
     pet.nextFakeCallAt = t + between(() => roll(pet.seed, t, 4), FAKE_CALL_EVERY_H) * HOUR;
   }
+  return napEnd;
 }
 
 // ---------- actions ----------
@@ -273,6 +306,8 @@ export type FeedResult = 'ok' | 'full' | 'asleep';
 export type PlayResult = 'ok' | 'tired' | 'asleep';
 export type MedicineResult = 'cured' | 'dose' | 'notSick';
 export type ScoldResult = 'disciplined' | 'unfair' | 'confused';
+export type NapResult = 'ok' | 'notSleepy' | 'needsCare' | 'night' | 'napping';
+export type WakeResult = 'grumpy' | 'woke' | 'none';
 
 export function isSleeping(pet: PetState, now: number, settings: Settings): boolean {
   return pet.napping || isAsleep(now, settings);
@@ -326,6 +361,34 @@ export function scold(pet: PetState): ScoldResult {
   }
   pet.mood = clamp(pet.mood - (pet.call ? 15 : 8));
   return pet.call ? 'unfair' : 'confused';
+}
+
+/**
+ * Lights off during the day: a tired pet (below POWER_NAP_BELOW energy) takes a power nap. A pet that
+ * isn't sleepy refuses, a little put out; a hungry or sick one can't settle down.
+ */
+export function startPowerNap(pet: PetState, now: number, settings: Settings): NapResult {
+  if (isAsleep(now, settings)) return 'night';
+  if (pet.napping) return 'napping';
+  if (pet.hunger < CALL_THRESHOLD || pet.sick) return 'needsCare';
+  if (pet.energy >= POWER_NAP_BELOW) {
+    pet.mood = clamp(pet.mood - 3);
+    return 'notSleepy';
+  }
+  pet.powerNap = { since: now };
+  pet.napping = true;
+  return 'ok';
+}
+
+/** Lights back on during a power nap wakes the pet; too soon and it is grumpy. */
+export function endPowerNap(pet: PetState, now: number): WakeResult {
+  if (!pet.powerNap) return 'none';
+  const grumpy = now - pet.powerNap.since < POWER_NAP_GRUMPY_MIN * MINUTE;
+  pet.powerNap = null;
+  pet.napping = false;
+  if (grumpy) pet.mood = clamp(pet.mood - 5);
+  if (pet.call) pet.call.at = now;
+  return grumpy ? 'grumpy' : 'woke';
 }
 
 export function pat(pet: PetState): void {

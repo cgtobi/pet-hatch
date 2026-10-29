@@ -120,8 +120,12 @@ export interface PetState {
   health: number;
   discipline: number;
   sick: boolean;
-  /** Dozing off during the day after running out of energy. */
+  /** Asleep during the day: an exhaustion nap, or a power nap the player started. */
   napping: boolean;
+  /** A power nap the player started by turning the lights off (null otherwise). */
+  powerNap: { since: number } | null;
+  /** How the last power nap ended on its own, for the game to announce once. */
+  wake: 'rested' | 'need' | null;
   /** Medicine doses still needed to cure the current sickness. */
   sickDoses: number;
   droppings: Dropping[];

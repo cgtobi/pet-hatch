@@ -70,6 +70,14 @@ export const fr: Dict = {
   'toast.importFailed': 'Ce code de sauvegarde n’est pas valide',
   'toast.lightsOff': 'Lumière éteinte. Bonne nuit !',
   'toast.lightsOn': 'Lumière allumée',
+  'toast.napStart': '{name} se roule en boule pour une sieste',
+  'toast.notSleepy': '{name} n’a pas encore sommeil',
+  'toast.napNeeds': '{name} a trop faim ou est trop malade pour dormir',
+  'toast.wokeRested': '{name} s’est réveillé en pleine forme',
+  'toast.wokeNeed': '{name} s’est réveillé et a besoin de toi',
+  'toast.wokeGrumpy': '{name} se réveille de mauvaise humeur',
+  'toast.wokeEarly': '{name} est réveillé',
+  'hint.pet.powerNap': '{name} fait une sieste éclair. Allumer la lumière le réveille',
 
   'failed.title': 'L’œuf a refroidi',
   'failed.body': 'Ça n’a pas marché cette fois. Le mode Classique ne pardonne pas.',
@@ -317,7 +325,7 @@ export const fr: Dict = {
     'Les soins ordinaires gardent l’œuf neutre. Les attentions en plus, quand il est déjà bien installé, décident de l’élément : la chaleur donne Braise, la brume donne Marée, le réconfort donne Pousse.\nChouchoute-le autant des trois façons et garde-le en bonne santé pour avoir une chance d’obtenir le rare type Astral. Un œuf jamais chouchouté choisit son élément au hasard.\nMarée bat Braise, Braise bat Pousse et Pousse bat Marée. Astral n’a aucune faiblesse. Cela comptera lors des combats.',
   'help.care.title': 'Soins quotidiens',
   'help.care.body':
-    'Garde Repas et Humeur au beau fixe avec Nourrir et Jouer. Les bébés demandent le plus d’attention.\nDes crottes apparaissent un moment après les repas. Nettoie-les, sinon ton compagnon risque de tomber malade.\nUn compagnon malade a besoin de deux doses de Remède.\nÉteins la lumière à l’heure du coucher. La nuit, les besoins baissent beaucoup plus lentement.\nUn compagnon à court d’énergie fait la sieste tout seul.',
+    'Garde Repas et Humeur au beau fixe avec Nourrir et Jouer. Les bébés demandent le plus d’attention.\nDes crottes apparaissent un moment après les repas. Nettoie-les, sinon ton compagnon risque de tomber malade.\nUn compagnon malade a besoin de deux doses de Remède.\nÉteins la lumière à l’heure du coucher. La nuit, les besoins baissent beaucoup plus lentement.\nUn compagnon à court d’énergie fait la sieste tout seul. Sous 40 % d’énergie, éteindre la lumière en journée lui offre une sieste éclair ; il se réveille reposé.',
   'help.calls.title': 'Appels et discipline',
   'help.calls.body':
     'Une bulle « ! » signifie que ton compagnon te réclame. Souvent, il manque quelque chose : règle ça et l’appel s’arrête.\nParfois, ce n’est qu’un caprice et tout va bien. Gronde-le alors ; cela renforce la discipline.\nGronder un compagnon qui a vraiment besoin de quelque chose ne fait que le vexer.\nUn compagnon peu discipliné peut refuser de s’entraîner.',

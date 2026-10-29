@@ -50,7 +50,9 @@ export function advance(state: GameState, to: number): void {
     const dt = Math.min(STEP, to - state.simTime);
     state.simTime += dt;
     if (state.phase === 'hatched' && state.pet) {
-      tickPet(state.pet, state.simTime, dt / HOUR, state.settings, state.egg.lightsOn);
+      const napEnd = tickPet(state.pet, state.simTime, dt / HOUR, state.settings, state.egg.lightsOn);
+      // A power nap that ends on its own switches the lights back on (bedtime keeps them off).
+      if (napEnd === 'rested' || napEnd === 'need') state.egg.lightsOn = true;
     } else if (state.phase === 'egg') {
       tickEgg(state.egg, state.simTime, dt / HOUR, state.settings);
       const { readyAt } = state.egg;

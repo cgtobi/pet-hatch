@@ -70,6 +70,14 @@ export const nl: Dict = {
   'toast.importFailed': 'Die opslagcode is niet geldig',
   'toast.lightsOff': 'Licht uit. Slaap lekker!',
   'toast.lightsOn': 'Licht aan',
+  'toast.napStart': '{name} rolt zich op voor een powernap',
+  'toast.notSleepy': '{name} is nog niet moe',
+  'toast.napNeeds': '{name} heeft te veel honger of is te ziek om te slapen',
+  'toast.wokeRested': '{name} is uitgerust wakker geworden',
+  'toast.wokeNeed': '{name} is wakker geworden en heeft je nodig',
+  'toast.wokeGrumpy': '{name} wordt chagrijnig wakker',
+  'toast.wokeEarly': '{name} is wakker',
+  'hint.pet.powerNap': '{name} doet een powernap. Licht aan maakt het wakker',
 
   'failed.title': 'Het ei is koud geworden',
   'failed.body': 'Het is deze keer niet gelukt. De klassieke modus is onvergeeflijk.',
@@ -317,7 +325,7 @@ export const nl: Dict = {
     'Gewone zorg houdt het ei neutraal. Extra verwennerij als het al helemaal tevreden is bepaalt het element: warmte maakt Gloed, sproeien maakt Vloed, troost maakt Bloei.\nVerwen het evenveel op alle drie de manieren en houd het gezond, dan maak je kans op het zeldzame type Astraal. Een ei dat niemand verwent kiest zijn element bij toeval.\nVloed wint van Gloed, Gloed wint van Bloei en Bloei wint van Vloed. Astraal heeft geen zwakte. Dat telt straks mee in gevechten.',
   'help.care.title': 'Dagelijkse zorg',
   'help.care.body':
-    'Houd Eten en Stemming op peil met Voer en Speel. Baby’s hebben de meeste aandacht nodig.\nEen tijdje na het eten komen er keuteltjes. Ruim ze op, anders kan je dier ziek worden.\nEen ziek dier heeft twee doses medicijn nodig.\nDoe het licht uit als het bedtijd is. ’s Nachts dalen de behoeften veel langzamer.\nEen dier dat zonder energie zit, doet vanzelf een dutje.',
+    'Houd Eten en Stemming op peil met Voer en Speel. Baby’s hebben de meeste aandacht nodig.\nEen tijdje na het eten komen er keuteltjes. Ruim ze op, anders kan je dier ziek worden.\nEen ziek dier heeft twee doses medicijn nodig.\nDoe het licht uit als het bedtijd is. ’s Nachts dalen de behoeften veel langzamer.\nEen dier dat zonder energie zit, doet vanzelf een dutje. Onder 40% energie geeft licht uit overdag het een powernap; het wordt uitgerust wakker.',
   'help.calls.title': 'Roepjes en discipline',
   'help.calls.body':
     'Een “!”-bel betekent dat je dier je nodig heeft. Meestal ontbreekt er iets: regel het en het roepen stopt.\nSoms is het alleen een driftbui en is er niets aan de hand. Berisp het dan; dat bouwt discipline op.\nEen dier berispen dat echt iets nodig heeft, maakt het alleen maar van streek.\nEen dier met weinig discipline kan weigeren te trainen.',

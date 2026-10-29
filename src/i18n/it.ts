@@ -70,6 +70,14 @@ export const it: Dict = {
   'toast.importFailed': 'Questo codice di salvataggio non è valido',
   'toast.lightsOff': 'Luci spente. Buonanotte!',
   'toast.lightsOn': 'Luci accese',
+  'toast.napStart': '{name} si raggomitola per un pisolino',
+  'toast.notSleepy': '{name} non ha ancora sonno',
+  'toast.napNeeds': '{name} ha troppa fame o non sta bene per dormire',
+  'toast.wokeRested': '{name} si è svegliato riposato',
+  'toast.wokeNeed': '{name} si è svegliato e ha bisogno di te',
+  'toast.wokeGrumpy': '{name} si sveglia di cattivo umore',
+  'toast.wokeEarly': '{name} è sveglio',
+  'hint.pet.powerNap': '{name} sta facendo un pisolino. Accendere la luce lo sveglia',
 
   'failed.title': 'L’uovo si è raffreddato',
   'failed.body': 'Stavolta non ce l’ha fatta. La modalità Classica non perdona.',
@@ -317,7 +325,7 @@ export const it: Dict = {
     'Le cure normali lasciano l’uovo neutrale. Le attenzioni in più quando sta già bene decidono l’elemento: il calore crea Brace, gli spruzzi creano Onda, le coccole creano Fiore.\nVizialo allo stesso modo in tutti e tre i modi e tienilo in salute per avere una chance del raro tipo Astrale. Un uovo che nessuno vizia sceglie l’elemento a caso.\nOnda batte Brace, Brace batte Fiore e Fiore batte Onda. Astrale non ha punti deboli. Conterà nelle lotte.',
   'help.care.title': 'Cure quotidiane',
   'help.care.body':
-    'Tieni alti Cibo e Umore con Pappa e Gioca. I cuccioli sono quelli che richiedono più attenzioni.\nDopo i pasti, prima o poi compaiono i ricordini. Puliscili, o il tuo cucciolo può ammalarsi.\nUn cucciolo malato ha bisogno di due dosi di medicina.\nSpegni le luci all’ora di dormire. Di notte i bisogni calano molto più lentamente.\nSe finisce l’energia, il cucciolo fa un pisolino da solo.',
+    'Tieni alti Cibo e Umore con Pappa e Gioca. I cuccioli sono quelli che richiedono più attenzioni.\nDopo i pasti, prima o poi compaiono i ricordini. Puliscili, o il tuo cucciolo può ammalarsi.\nUn cucciolo malato ha bisogno di due dosi di medicina.\nSpegni le luci all’ora di dormire. Di notte i bisogni calano molto più lentamente.\nSe finisce l’energia, il cucciolo fa un pisolino da solo. Sotto il 40% di energia, spegnere la luce di giorno gli fa fare un pisolino rigenerante; si sveglia riposato.',
   'help.calls.title': 'Richiami e disciplina',
   'help.calls.body':
     'Un fumetto con “!” significa che il tuo cucciolo vuole te. Di solito manca qualcosa: sistemalo e il richiamo smette.\nA volte è solo un capriccio e non c’è niente che non va. Allora sgridalo: costruisce disciplina.\nSgridare un cucciolo che ha davvero bisogno di qualcosa lo rattrista soltanto.\nUn cucciolo poco disciplinato può rifiutarsi di allenarsi.',

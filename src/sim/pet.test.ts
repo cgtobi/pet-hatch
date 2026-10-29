@@ -3,13 +3,16 @@ import { HOUR } from './clock';
 import { advance, DEFAULT_SETTINGS, hatch, newGame } from './game';
 import {
   cleanUp,
+  endPowerNap,
   feedPet,
   giveMedicine,
+  isSleeping,
   lifeStage,
   lowestNeed,
   migratePet,
   playWith,
   scold,
+  startPowerNap,
 } from './pet';
 import type { GameState, NeglectMode, PetState } from './types';
 
@@ -203,5 +206,119 @@ describe('catch-up and saves', () => {
     expect(pet.hunger).toBeGreaterThan(0);
     expect(pet.careMistakes).toBe(2);
     expect(pet.name).toBeTruthy();
+  });
+});
+
+describe('power naps', () => {
+  /** A tired, fed pet at 10:00 with the lights off, as when the player just switched them off. */
+  function tired(energy = 30) {
+    const s = hatched('gentle');
+    advance(s, at(1, 10));
+    Object.assign(s.pet, { energy, hunger: 100, mood: 80, call: null, droppings: [], poopsDue: [] });
+    s.egg.lightsOn = false;
+    return s;
+  }
+
+  it('only lets a tired pet nap; a wide-awake one refuses and is a little put out', () => {
+    const awake = tired(40);
+    expect(startPowerNap(awake.pet, at(1, 10), awake.settings)).toBe('notSleepy');
+    expect(awake.pet.mood).toBe(77);
+    expect(awake.pet.napping).toBe(false);
+    const sleepy = tired(39);
+    expect(startPowerNap(sleepy.pet, at(1, 10), sleepy.settings)).toBe('ok');
+    expect(sleepy.pet.napping).toBe(true);
+    expect(isSleeping(sleepy.pet, at(1, 10), sleepy.settings)).toBe(true);
+  });
+
+  it('won’t start when the pet is hungry or sick, or at bedtime', () => {
+    const hungry = tired();
+    hungry.pet.hunger = 10;
+    expect(startPowerNap(hungry.pet, at(1, 10), hungry.settings)).toBe('needsCare');
+    const sick = tired();
+    sick.pet.sick = true;
+    expect(startPowerNap(sick.pet, at(1, 10), sick.settings)).toBe('needsCare');
+    const late = tired();
+    expect(startPowerNap(late.pet, at(1, 23), late.settings)).toBe('night');
+  });
+
+  it('rests the pet with needs at half speed, then wakes it rested with the lights back on', () => {
+    const s = tired(30);
+    startPowerNap(s.pet, at(1, 10), s.settings);
+    advance(s, at(1, 11));
+    expect(s.pet.energy).toBeCloseTo(55, 0);
+    // Babies lose 25 food per awake hour; napping halves that.
+    expect(s.pet.hunger).toBeCloseTo(87.5, 0);
+    expect(s.egg.lightsOn).toBe(false);
+    advance(s, at(1, 13));
+    expect(s.pet.powerNap).toBeNull();
+    expect(s.pet.napping).toBe(false);
+    expect(s.pet.wake).toBe('rested');
+    // Woke at 90% around 12:24 and has been awake since (−5 per hour).
+    expect(s.pet.energy).toBeGreaterThan(85);
+    expect(s.egg.lightsOn).toBe(true);
+  });
+
+  it('wakes early when hunger gets low, and then calls for food', () => {
+    const s = tired(10);
+    s.pet.hunger = 30;
+    startPowerNap(s.pet, at(1, 10), s.settings);
+    advance(s, at(1, 12));
+    expect(s.pet.wake).toBe('need');
+    expect(s.egg.lightsOn).toBe(true);
+    expect(s.pet.call).toMatchObject({ kind: 'need' });
+  });
+
+  it('is grumpy when woken too soon, fine later', () => {
+    const early = tired();
+    startPowerNap(early.pet, at(1, 10), early.settings);
+    expect(endPowerNap(early.pet, at(1, 10, 10))).toBe('grumpy');
+    expect(early.pet.mood).toBe(75);
+    const later = tired();
+    startPowerNap(later.pet, at(1, 10), later.settings);
+    expect(endPowerNap(later.pet, at(1, 10, 45))).toBe('woke');
+    expect(later.pet.mood).toBe(80);
+    expect(endPowerNap(later.pet, at(1, 11))).toBe('none');
+  });
+
+  it('turns into night sleep when bedtime arrives, keeping the lights off', () => {
+    const s = tired(5);
+    s.pet.hunger = 100;
+    advance(s, at(1, 21, 30));
+    Object.assign(s.pet, { energy: 10, hunger: 100, napping: false });
+    startPowerNap(s.pet, at(1, 21, 30), s.settings);
+    advance(s, at(1, 22, 30));
+    expect(s.pet.powerNap).toBeNull();
+    expect(s.pet.wake).toBeNull();
+    expect(s.egg.lightsOn).toBe(false);
+  });
+
+  it('leaves exhaustion naps as they were', () => {
+    const s = tired(4);
+    s.egg.lightsOn = true;
+    advance(s, at(1, 10, 5));
+    expect(s.pet.napping).toBe(true);
+    expect(s.pet.powerNap).toBeNull();
+  });
+
+  it('gives older pets no nap state', () => {
+    const s = hatched();
+    const old = { ...s.pet } as Partial<PetState> & Pick<PetState, 'type' | 'seed' | 'hatchedAt'>;
+    delete old.powerNap;
+    delete old.wake;
+    const pet = migratePet(old);
+    expect(pet.powerNap).toBeNull();
+    expect(pet.wake).toBeNull();
+  });
+});
+
+describe('daytime lights and the egg', () => {
+  it('has no effect on the egg', () => {
+    const lit = newGame(at(1, 9), DEFAULT_SETTINGS, 3);
+    const dark = newGame(at(1, 9), DEFAULT_SETTINGS, 3);
+    dark.egg.lightsOn = false;
+    advance(lit, at(1, 12));
+    advance(dark, at(1, 12));
+    expect(dark.egg.warmth).toBe(lit.egg.warmth);
+    expect(dark.egg.devHours).toBe(lit.egg.devHours);
   });
 });

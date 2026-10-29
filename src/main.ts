@@ -32,9 +32,11 @@ import {
   isSleeping,
   LIFE_STAGES,
   lifeStageIndex,
+  endPowerNap,
   pat,
   playWith,
   scold,
+  startPowerNap,
   STAGE_HOURS,
 } from './sim/pet';
 import { BATTLE_ENERGY, fighterFromPet, finishBattle, MOVES, wildFoe, type SideKey } from './sim/battle';
@@ -267,7 +269,30 @@ const livePet = (): PetState | null => (state.phase === 'hatched' && state.pet?.
 function toggleLights() {
   state.egg.lightsOn = !state.egg.lightsOn;
   sfx.toggle();
-  hud.toast(t(state.egg.lightsOn ? 'toast.lightsOn' : 'toast.lightsOff'));
+  const pet = livePet();
+  const now = gameNow(state);
+  let key: TextKey = state.egg.lightsOn ? 'toast.lightsOn' : 'toast.lightsOff';
+  // During the day, the lights put a tired pet down for a power nap, and wake it again.
+  if (pet && !isAsleep(now, state.settings)) {
+    if (!state.egg.lightsOn) {
+      const r = startPowerNap(pet, now, state.settings);
+      if (r === 'ok') {
+        key = 'toast.napStart';
+        world.effects.emit('zzz', world.pet?.center() ?? world.egg.center(), 2);
+      } else if (r === 'notSleepy') {
+        key = 'toast.notSleepy';
+        world.pet?.hop();
+      } else if (r === 'needsCare') key = 'toast.napNeeds';
+    } else {
+      const r = endPowerNap(pet, now);
+      if (r === 'grumpy') {
+        key = 'toast.wokeGrumpy';
+        world.pet?.cower();
+      } else if (r === 'woke') key = 'toast.wokeEarly';
+    }
+  }
+  hud.toast(t(key, { name: pet?.name ?? '' }));
+  saveGame(state);
   updateHud();
 }
 
@@ -599,6 +624,7 @@ function eggHint(now: number): [string, boolean] {
 function petHint(pet: PetState, now: number): [string, boolean] {
   const name = { name: pet.name };
   if (isAsleep(now, state.settings)) return [t(state.egg.lightsOn ? 'hint.lightsNight' : 'hint.sleep'), false];
+  if (pet.powerNap) return [t('hint.pet.powerNap', name), false];
   if (pet.napping) return [t('hint.pet.napping', name), false];
   if (pet.sick) return [t('hint.pet.sick', name), true];
   if (pet.call?.kind === 'fake') return [t('hint.pet.callFake', name), true];
@@ -617,7 +643,7 @@ function musicFor(now: number): MusicMode {
   const asleep = isAsleep(now, state.settings);
   if (asleep && !state.egg.lightsOn) return 'off';
   const hour = localHour(now);
-  return asleep || hour >= 19 || hour < 7 ? 'night' : 'day';
+  return asleep || livePet()?.napping || hour >= 19 || hour < 7 ? 'night' : 'day';
 }
 
 function formatAge(hours: number): string {
@@ -914,6 +940,14 @@ function frame(ms: number) {
       if (pet.stage > pet.shownStage && pet.revealSeen && !hud.overlayOpen && !sheet.isOpen) evolve(pet);
       const sleeping = isSleeping(pet, now, state.settings);
       world.pet.setLook({ sleeping, sick: pet.sick, calling: pet.call !== null && !sheet.isOpen, mood: pet.mood });
+      if (pet.wake) {
+        // A power nap ended on its own (the simulation already switched the lights back on).
+        hud.toast(t(pet.wake === 'rested' ? 'toast.wokeRested' : 'toast.wokeNeed', { name: pet.name }));
+        if (pet.wake === 'rested') world.pet.hop();
+        sfx.toggle();
+        pet.wake = null;
+        saveGame(state);
+      }
       world.setDroppings(pet.droppings);
       if (sleeping && Math.random() < dt / 2) world.effects.emit('zzz', world.pet.center(), 1);
     }

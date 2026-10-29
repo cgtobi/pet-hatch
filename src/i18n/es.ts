@@ -70,6 +70,14 @@ export const es: Dict = {
   'toast.importFailed': 'Ese código de guardado no es válido',
   'toast.lightsOff': 'Luz apagada. ¡Buenas noches!',
   'toast.lightsOn': 'Luz encendida',
+  'toast.napStart': '{name} se acurruca para una siesta',
+  'toast.notSleepy': '{name} aún no tiene sueño',
+  'toast.napNeeds': '{name} tiene demasiada hambre o está enfermo para dormir',
+  'toast.wokeRested': '{name} se despertó descansado',
+  'toast.wokeNeed': '{name} se despertó y te necesita',
+  'toast.wokeGrumpy': '{name} se despierta de mal humor',
+  'toast.wokeEarly': '{name} está despierto',
+  'hint.pet.powerNap': '{name} está echando una siesta. Encender la luz lo despierta',
 
   'failed.title': 'El huevo se enfrió',
   'failed.body': 'Esta vez no lo consiguió. El modo clásico no perdona.',
@@ -317,7 +325,7 @@ export const es: Dict = {
     'Los cuidados normales mantienen el huevo neutral. Lo que le das de más cuando ya está a gusto decide el elemento: el calor da Ascua, el rocío da Marea, los mimos dan Brote.\nConsiéntelo por igual de las tres formas y mantenlo sano para tener una opción al raro tipo Astral. Un huevo al que nadie consiente elige su elemento al azar.\nMarea vence a Ascua, Ascua vence a Brote y Brote vence a Marea. Astral no tiene debilidad. Esto importará en los combates.',
   'help.care.title': 'Cuidado diario',
   'help.care.body':
-    'Mantén la Comida y el Ánimo altos con Comida y Jugar. Los bebés necesitan más atención.\nUn rato después de comer aparecen cacas. Límpialas o tu mascota puede enfermar.\nUna mascota enferma necesita dos dosis de Medicina.\nApaga la Luz a la hora de dormir. De noche, las necesidades bajan mucho más despacio.\nSi se queda sin energía, se echa una siesta por su cuenta.',
+    'Mantén la Comida y el Ánimo altos con Comida y Jugar. Los bebés necesitan más atención.\nUn rato después de comer aparecen cacas. Límpialas o tu mascota puede enfermar.\nUna mascota enferma necesita dos dosis de Medicina.\nApaga la Luz a la hora de dormir. De noche, las necesidades bajan mucho más despacio.\nSi se queda sin energía, se echa una siesta por su cuenta. Con menos del 40 % de energía, apagar la luz de día le da una siesta reparadora; se despierta descansado.',
   'help.calls.title': 'Llamadas y disciplina',
   'help.calls.body':
     'Un globo con “!” significa que tu mascota te necesita. Normalmente le falta algo: arréglalo y la llamada se detiene.\nA veces es solo un berrinche y no pasa nada. Entonces Reñir; así se gana disciplina.\nReñir a una mascota que de verdad necesita algo solo la disgusta.\nUna mascota con poca disciplina puede negarse a entrenar.',

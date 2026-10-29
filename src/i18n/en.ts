@@ -69,6 +69,14 @@ export const en = {
   'toast.importFailed': 'That save code is not valid',
   'toast.lightsOff': 'Lights off. Good night!',
   'toast.lightsOn': 'Lights on',
+  'toast.napStart': '{name} curls up for a power nap',
+  'toast.notSleepy': '{name} isn’t sleepy yet',
+  'toast.napNeeds': '{name} is too hungry or unwell to sleep',
+  'toast.wokeRested': '{name} woke up refreshed',
+  'toast.wokeNeed': '{name} woke up and needs you',
+  'toast.wokeGrumpy': '{name} wakes up grumpy',
+  'toast.wokeEarly': '{name} is awake',
+  'hint.pet.powerNap': '{name} is taking a power nap. Lights on wakes it',
 
   'failed.title': 'The egg went cold',
   'failed.body': "It didn't make it this time. Classic mode is unforgiving.",
@@ -316,7 +324,7 @@ export const en = {
     'Ordinary care keeps the egg neutral. Extra care when it is already comfy decides the element: warmth makes Ember, mist makes Tide, comfort makes Bloom.\nPamper it evenly in all three ways and keep it healthy for a chance at the rare Astral type. An egg nobody pampers picks its element by chance.\nTide beats Ember, Ember beats Bloom and Bloom beats Tide. Astral has no weakness. This will matter in battles.',
   'help.care.title': 'Daily care',
   'help.care.body':
-    'Keep Food and Mood up with Feed and Play. Babies need the most attention.\nDroppings appear a while after meals. Clean them up, or your pet may get sick.\nA sick pet needs two doses of medicine.\nTurn the lights off at bedtime. Overnight, needs drop much more slowly.\nA pet that runs out of energy takes a nap on its own.',
+    'Keep Food and Mood up with Feed and Play. Babies need the most attention.\nDroppings appear a while after meals. Clean them up, or your pet may get sick.\nA sick pet needs two doses of medicine.\nTurn the lights off at bedtime. Overnight, needs drop much more slowly.\nA pet that runs out of energy takes a nap on its own. Below 40% energy, turning the lights off during the day gives it a power nap; it wakes up rested.',
   'help.calls.title': 'Calls and discipline',
   'help.calls.body':
     'A “!” bubble means your pet wants you. Usually something is missing: fix it and the call stops.\nSometimes it is only a tantrum and nothing is wrong. Scold it then; that builds discipline.\nScolding a pet that really needs something only upsets it.\nA poorly disciplined pet may refuse to train.',

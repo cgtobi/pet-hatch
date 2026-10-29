@@ -70,6 +70,14 @@ export const de: Dict = {
   'toast.importFailed': 'Dieser Speichercode ist ungültig',
   'toast.lightsOff': 'Licht aus. Gute Nacht!',
   'toast.lightsOn': 'Licht an',
+  'toast.napStart': '{name} rollt sich zum Powernap ein',
+  'toast.notSleepy': '{name} ist noch nicht müde',
+  'toast.napNeeds': '{name} hat zu viel Hunger oder ist krank zum Schlafen',
+  'toast.wokeRested': '{name} ist ausgeruht aufgewacht',
+  'toast.wokeNeed': '{name} ist aufgewacht und braucht dich',
+  'toast.wokeGrumpy': '{name} wacht schlecht gelaunt auf',
+  'toast.wokeEarly': '{name} ist wach',
+  'hint.pet.powerNap': '{name} macht einen Powernap. Licht an weckt es',
 
   'failed.title': 'Das Ei ist erkaltet',
   'failed.body': 'Diesmal hat es nicht geklappt. Der klassische Modus verzeiht nichts.',
@@ -317,7 +325,7 @@ export const de: Dict = {
     'Normale Pflege hält das Ei neutral. Extra Zuwendung, wenn es schon rundum versorgt ist, bestimmt das Element: Wärme ergibt Glut, Sprühen ergibt Flut, Zuwendung ergibt Blüte.\nVerwöhne es gleichmäßig auf alle drei Arten und halte es gesund, dann kann der seltene Typ Astral schlüpfen. Ein Ei, das niemand verwöhnt, wählt sein Element zufällig.\nFlut schlägt Glut, Glut schlägt Blüte und Blüte schlägt Flut. Astral hat keine Schwäche. Das zählt später in Kämpfen.',
   'help.care.title': 'Tägliche Pflege',
   'help.care.body':
-    'Halte Futter und Laune mit Füttern und Spielen hoch. Babys brauchen am meisten Aufmerksamkeit.\nEine Weile nach dem Essen gibt es Häufchen. Mach sie weg, sonst kann dein Tier krank werden.\nEin krankes Tier braucht zwei Dosen Medizin.\nMach zur Schlafenszeit das Licht aus. Nachts sinken die Bedürfnisse viel langsamer.\nHat es keine Energie mehr, macht es von selbst ein Nickerchen.',
+    'Halte Futter und Laune mit Füttern und Spielen hoch. Babys brauchen am meisten Aufmerksamkeit.\nEine Weile nach dem Essen gibt es Häufchen. Mach sie weg, sonst kann dein Tier krank werden.\nEin krankes Tier braucht zwei Dosen Medizin.\nMach zur Schlafenszeit das Licht aus. Nachts sinken die Bedürfnisse viel langsamer.\nHat es keine Energie mehr, macht es von selbst ein Nickerchen. Unter 40 % Energie schickt Licht aus am Tag es zum Powernap; es wacht ausgeruht auf.',
   'help.calls.title': 'Rufe und Disziplin',
   'help.calls.body':
     'Eine „!“-Blase heißt, dass dein Tier dich braucht. Meist fehlt etwas: Kümmere dich darum, dann hört der Ruf auf.\nManchmal ist es nur Trotz und es fehlt nichts. Dann tadle es; das stärkt die Disziplin.\nWer ein Tier tadelt, das wirklich etwas braucht, macht es nur traurig.\nEin wenig diszipliniertes Tier verweigert manchmal das Training.',
