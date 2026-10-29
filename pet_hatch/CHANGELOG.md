@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.1
+
+- Leaving a live or dojo battle after the first turn now counts as a loss, and a dropped connection no longer
+  gives both players a win.
+
 ## 0.3.0
 
 - Every island is different now: varied trees (round, pine, blossom, apple), bushes, rocks and sometimes a
