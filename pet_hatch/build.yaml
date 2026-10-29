@@ -1,8 +1,0 @@
-# Home Assistant builds the app on the device from this folder. The game is fetched from its Git repository:
-# point PET_HATCH_REPO at your copy and PET_HATCH_REF at a branch or tag.
-build_from:
-  aarch64: node:22-alpine
-  amd64: node:22-alpine
-args:
-  PET_HATCH_REPO: https://github.com/OWNER/pet-hatch.git
-  PET_HATCH_REF: main

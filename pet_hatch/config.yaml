@@ -3,7 +3,7 @@ name: Pet Hatch
 version: "0.1.0"
 slug: pet_hatch
 description: Hatch and raise a tiny creature on a floating island, with live battles between friends.
-url: https://github.com/OWNER/pet-hatch
+url: https://github.com/cgtobi/pet-hatch
 arch:
   - aarch64
   - amd64

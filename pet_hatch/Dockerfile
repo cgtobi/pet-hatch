@@ -1,9 +1,10 @@
 # Home Assistant app image. Home Assistant only sees this folder when building, so the game itself is
-# fetched from its Git repository (set in build.yaml) and built here; the result matches the main Dockerfile.
-ARG BUILD_FROM=node:22-alpine
+# fetched from its Git repository and built here; the result matches the main Dockerfile.
+# Home Assistant passes its own base image as BUILD_FROM, which has no Node.js, so both stages use Node's
+# image directly instead. To build a fork, change PET_HATCH_REPO (and PET_HATCH_REF for a branch or tag).
 
 FROM node:22-alpine AS build
-ARG PET_HATCH_REPO=https://github.com/OWNER/pet-hatch.git
+ARG PET_HATCH_REPO=https://github.com/cgtobi/pet-hatch.git
 ARG PET_HATCH_REF=main
 RUN apk add --no-cache git
 WORKDIR /app
@@ -11,7 +12,7 @@ RUN git clone --depth 1 --branch "$PET_HATCH_REF" "$PET_HATCH_REPO" . \
  && npm ci \
  && npm run build
 
-FROM $BUILD_FROM
+FROM node:22-alpine
 ARG BUILD_ARCH
 ARG BUILD_VERSION
 LABEL io.hass.type="addon" io.hass.arch="${BUILD_ARCH}" io.hass.version="${BUILD_VERSION}"

@@ -1,5 +1,5 @@
 # Home Assistant app repository: add this repository's Git URL in
 # Settings › Apps › App store › ⋮ › Repositories, then install "Pet Hatch".
 name: Pet Hatch
-url: https://github.com/OWNER/pet-hatch
+url: https://github.com/cgtobi/pet-hatch
 maintainer: Tobias Sauerwein

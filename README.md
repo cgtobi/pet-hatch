@@ -78,13 +78,11 @@ This repository is also a Home Assistant app repository (`repository.yaml` and t
 shows the game in the Home Assistant sidebar (ingress, for logged-in users) and on port 8787 for direct access,
 e.g. for friends' phones. See `pet_hatch/DOCS.md` for how players use it.
 
-To publish it:
+To install it: in Home Assistant, go to Settings › Apps › App store › ⋮ › Repositories, add
+`https://github.com/cgtobi/pet-hatch`, then install **Pet Hatch**.
 
-1. Push this repository to a public Git host (e.g. GitHub).
-2. Replace `OWNER/pet-hatch` with the real repository in `repository.yaml`, `pet_hatch/config.yaml` and
-   `pet_hatch/build.yaml` (`PET_HATCH_REPO`, plus `PET_HATCH_REF` for the branch or tag to build).
-3. In Home Assistant: Settings › Apps › App store › ⋮ › Repositories, add the repository URL, then install
-   **Pet Hatch**.
+For a fork, change the repository URL in `repository.yaml`, `pet_hatch/config.yaml` and `PET_HATCH_REPO` in
+`pet_hatch/Dockerfile` (plus `PET_HATCH_REF` for the branch or tag to build).
 
 Home Assistant builds the app on the device: it clones the repository and builds the game there (a few minutes
 on a Raspberry Pi). When releasing, bump `version` in `pet_hatch/config.yaml` together with `package.json` and
