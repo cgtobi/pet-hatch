@@ -1,0 +1,22 @@
+# Home Assistant app definition. Keep `version` in step with package.json when releasing.
+name: Pet Hatch
+version: "0.1.0"
+slug: pet_hatch
+description: Hatch and raise a tiny creature on a floating island, with live battles between friends.
+url: https://github.com/OWNER/pet-hatch
+arch:
+  - aarch64
+  - amd64
+startup: application
+boot: auto
+init: false
+# Open it from the Home Assistant sidebar (for logged-in users)…
+ingress: true
+ingress_port: 8787
+panel_icon: mdi:egg-outline
+panel_title: Pet Hatch
+# …and/or directly on this port, e.g. for friends' phones (put it behind HTTPS to install it as an app).
+ports:
+  8787/tcp: 8787
+ports_description:
+  8787/tcp: Game and live battles (direct access, e.g. for friends)

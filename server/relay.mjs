@@ -14,6 +14,10 @@ import { extname, join, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { WebSocketServer } from 'ws';
 
+/**
+ * The relay's WebSocket path. Matched by suffix, so it also works under a path prefix (e.g. Home Assistant
+ * ingress at /api/hassio_ingress/<token>/relay, whether or not the proxy strips the prefix).
+ */
 const PATH = '/relay';
 const ROOM_CODE = /^[A-Z2-9]{4,8}$/;
 /** Battle messages are tiny; anything bigger is not from the game. */
@@ -49,7 +53,8 @@ export function createRelay({ staticDir = null, log = () => {} } = {}) {
     const url = new URL(req.url ?? '/', 'http://localhost');
     if (url.pathname.endsWith('/relay.json')) {
       res.writeHead(200, { 'content-type': TYPES['.json'], 'cache-control': 'no-store' });
-      res.end(JSON.stringify({ url: PATH }));
+      // Relative to the page, so the game connects through the same prefix it was loaded from.
+      res.end(JSON.stringify({ url: 'relay' }));
       return;
     }
     if (url.pathname === '/health') {
@@ -89,7 +94,7 @@ export function createRelay({ staticDir = null, log = () => {} } = {}) {
 
   server.on('upgrade', (req, socket, head) => {
     const url = new URL(req.url ?? '/', 'http://localhost');
-    if (url.pathname !== PATH) {
+    if (!url.pathname.endsWith(PATH)) {
       socket.destroy();
       return;
     }

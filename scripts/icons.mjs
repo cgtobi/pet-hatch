@@ -19,4 +19,13 @@ await sharp({ create: { width: 512, height: 512, channels: 4, background: '#a9da
   .png()
   .toFile(fileURLToPath(new URL('icon-maskable-512.png', dir)));
 
+// Home Assistant app store: a square icon and a wide logo.
+const app = (file) => fileURLToPath(new URL(`../pet_hatch/${file}`, import.meta.url));
+await sharp(svg, { density: 300 }).resize(128, 128).png().toFile(app('icon.png'));
+const mark = await sharp(svg, { density: 300 }).resize(100, 100).png().toBuffer();
+await sharp({ create: { width: 250, height: 100, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
+  .composite([{ input: mark, left: 75, top: 0 }])
+  .png()
+  .toFile(app('logo.png'));
+
 console.log('icons written');

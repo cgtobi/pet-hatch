@@ -45,6 +45,19 @@ describe('room codes', () => {
   });
 });
 
+describe('relay under a path prefix', () => {
+  it('accepts WebSockets on any path ending in /relay', async () => {
+    const code = newRoomCode();
+    const prefixed = url.replace('/relay', '/api/hassio_ingress/abc/relay');
+    const host = new LiveSession(prefixed, code, 'host', fighter({}));
+    const guest = new LiveSession(url, code, 'guest', fighter({}));
+    const [a, b] = await Promise.all([host.ready, guest.ready]);
+    expect(a.seed).toBe(b.seed);
+    host.close();
+    guest.close();
+  });
+});
+
 describe('live battle over the relay', () => {
   it('plays a whole battle in lockstep: both phones see the same result', async () => {
     const code = newRoomCode();
@@ -152,7 +165,9 @@ describe('relay web server', () => {
     const port = await web.listen(0, '127.0.0.1');
     const get = (path: string) => fetch(`http://127.0.0.1:${port}${path}`);
     try {
-      expect(await (await get('/relay.json')).json()).toEqual({ url: '/relay' });
+      expect(await (await get('/relay.json')).json()).toEqual({ url: 'relay' });
+      // Behind a proxy that keeps a path prefix (Home Assistant ingress), both still work.
+      expect(await (await get('/api/hassio_ingress/abc/relay.json')).json()).toEqual({ url: 'relay' });
       expect(await (await get('/')).text()).toContain('Pet Hatch');
       const js = await get('/app.js');
       expect(js.headers.get('content-type')).toContain('javascript');

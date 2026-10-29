@@ -47,7 +47,7 @@ PORT=8787 npm run relay
 ```
 
 Put it behind your HTTPS reverse proxy (WebSockets need to be passed through for `/relay`). The game finds the
-relay through `/relay.json`, which the relay serves automatically.
+relay through `relay.json`, which the relay serves automatically. It also works under a path prefix.
 
 If the game is hosted elsewhere (any static web server), run the relay on its own and either build with
 `VITE_RELAY_URL=wss://your-relay.example/relay npm run build`, or put a `relay.json` next to `index.html`:
@@ -58,3 +58,34 @@ If the game is hosted elsewhere (any static web server), run the relay on its ow
 
 In development, run `npm run relay` next to `npm run dev`; the dev server forwards `/relay` to it.
 
+
+## Docker
+
+The `Dockerfile` builds the game and runs it together with the relay (Node 22 on Alpine, non-root, port 8787,
+with a health check on `/health`). It builds for `amd64` and `arm64`.
+
+```bash
+docker build -t pet-hatch .
+docker run -d -p 8787:8787 --restart unless-stopped pet-hatch
+```
+
+Or with Compose: `docker compose up -d` (see `docker-compose.yml`). Put it behind an HTTPS reverse proxy that
+passes WebSockets through; with Caddy that is a single line: `pets.example.com { reverse_proxy localhost:8787 }`.
+
+## Home Assistant app
+
+This repository is also a Home Assistant app repository (`repository.yaml` and the `pet_hatch/` folder). The app
+shows the game in the Home Assistant sidebar (ingress, for logged-in users) and on port 8787 for direct access,
+e.g. for friends' phones. See `pet_hatch/DOCS.md` for how players use it.
+
+To publish it:
+
+1. Push this repository to a public Git host (e.g. GitHub).
+2. Replace `OWNER/pet-hatch` with the real repository in `repository.yaml`, `pet_hatch/config.yaml` and
+   `pet_hatch/build.yaml` (`PET_HATCH_REPO`, plus `PET_HATCH_REF` for the branch or tag to build).
+3. In Home Assistant: Settings › Apps › App store › ⋮ › Repositories, add the repository URL, then install
+   **Pet Hatch**.
+
+Home Assistant builds the app on the device: it clones the repository and builds the game there (a few minutes
+on a Raspberry Pi). When releasing, bump `version` in `pet_hatch/config.yaml` together with `package.json` and
+add a line to `pet_hatch/CHANGELOG.md`. The app store icon and logo are rendered by `npm run icons`.

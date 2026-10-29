@@ -1,0 +1,28 @@
+# Home Assistant app image. Home Assistant only sees this folder when building, so the game itself is
+# fetched from its Git repository (set in build.yaml) and built here; the result matches the main Dockerfile.
+ARG BUILD_FROM=node:22-alpine
+
+FROM node:22-alpine AS build
+ARG PET_HATCH_REPO=https://github.com/OWNER/pet-hatch.git
+ARG PET_HATCH_REF=main
+RUN apk add --no-cache git
+WORKDIR /app
+RUN git clone --depth 1 --branch "$PET_HATCH_REF" "$PET_HATCH_REPO" . \
+ && npm ci \
+ && npm run build
+
+FROM $BUILD_FROM
+ARG BUILD_ARCH
+ARG BUILD_VERSION
+LABEL io.hass.type="addon" io.hass.arch="${BUILD_ARCH}" io.hass.version="${BUILD_VERSION}"
+ENV NODE_ENV=production \
+    PORT=8787 \
+    STATIC_DIR=/app/dist
+WORKDIR /app
+COPY --from=build /app/node_modules/ws ./node_modules/ws
+COPY --from=build /app/server ./server
+COPY --from=build /app/dist ./dist
+USER node
+EXPOSE 8787
+HEALTHCHECK --interval=30s --timeout=5s CMD wget -qO- "http://127.0.0.1:${PORT}/health" || exit 1
+CMD ["node", "server/relay.mjs"]

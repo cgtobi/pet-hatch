@@ -273,6 +273,8 @@ UI: Fredoka (display) + Nunito (body), self-hosted Latin subsets.
 | `src/i18n/` | All player-facing text: `en.ts` is the source, one file per translation, checked by `i18n.test.ts`. |
 | `src/net/` | Live battles: `live.ts` (lockstep protocol over the relay), `relayConfig.ts` (finding the relay). Tested end to end against a real relay in `live.test.ts`. |
 | `server/relay.mjs` | The optional live battle relay, which can also serve the built game. |
+| `Dockerfile`, `docker-compose.yml` | One image with the game and the relay (amd64 and arm64). |
+| `repository.yaml`, `pet_hatch/` | Home Assistant app: sidebar via ingress plus a direct port; builds from this repository's Git URL. |
 | `src/feedback.ts` | Synthesized sound effects, generative music and haptic patterns. |
 | `src/main.ts` | Wires it together: game loop, care actions, hints, hatch moment, growing up and endings. |
 | `vite.config.ts` | Relative base and the service-worker generator. |
