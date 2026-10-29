@@ -611,9 +611,14 @@ button:focus:not(:focus-visible) {
   padding: 0;
   color: var(--ink);
   background: #fff;
-  overflow: auto;
+  overflow: hidden;
   -webkit-user-select: text;
   user-select: text;
+}
+
+/* The dialog is the rounded frame; only the body scrolls, so the scrollbar stays clear of the corners. */
+#settings[open] {
+  display: flex;
 }
 
 #settings::backdrop {
@@ -621,7 +626,13 @@ button:focus:not(:focus-visible) {
 }
 
 .settings-body {
-  padding: 20px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin: 16px 4px 16px 0;
+  padding: 4px 16px 4px 20px;
+  scrollbar-width: thin;
+  scrollbar-color: #ddd4e8 transparent;
   display: flex;
   flex-direction: column;
   gap: 18px;
