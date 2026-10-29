@@ -8,6 +8,8 @@ import { Sky, skyAt } from './sky';
 import { toon } from './toon';
 
 const PITCH = 0.3;
+/** Radians of island turn per pixel dragged. */
+const ORBIT_SPEED = 0.006;
 /** Where the two sides of a battle stand (x, z, facing): your pet on the left, the opponent on the right. */
 const BATTLE_SPOTS = {
   pet: [-1.35, 0.55, Math.PI / 2],
@@ -85,13 +87,14 @@ export class World {
     this.camera.updateProjectionMatrix();
   }
 
+  /** Dragging turns the island with the finger: moving right spins its front to the right. */
   orbit(dxPixels: number): void {
     this.yawVel = 0;
-    this.yaw += dxPixels * 0.006;
+    this.yaw -= dxPixels * ORBIT_SPEED;
   }
 
   release(vxPixelsPerSec: number): void {
-    this.yawVel = vxPixelsPerSec * 0.006;
+    this.yawVel = -vxPixelsPerSec * ORBIT_SPEED;
   }
 
   /** Returns what is under a screen point. */
