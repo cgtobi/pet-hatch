@@ -174,6 +174,7 @@ export class Arena {
         <div class="bt-room-code">${esc(room)}</div>
         ${role === 'host' ? `<button type="button" class="primary bt-invite">${t('live.invite')}</button>` : ''}
         <p class="bt-lobby-status">${t(role === 'host' ? 'live.waitingFriend' : 'live.joining')}</p>
+        <p class="bt-lobby-detail" hidden></p>
       </div>`;
     this.s.bindHead(() => this.menu());
     this.sheet.querySelector('.bt-invite')?.addEventListener('click', () =>
@@ -187,6 +188,12 @@ export class Arena {
       if (run !== this.run) return;
       status.textContent = this.liveMessage(e, '');
       status.classList.add('bad');
+      if (e.code === 'unreachable') {
+        // Show where it tried, so a wrong or stale address (an old dev server, localhost on a phone) is obvious.
+        const detail = this.sheet.querySelector<HTMLElement>('.bt-lobby-detail')!;
+        detail.textContent = this.relay ?? '';
+        detail.hidden = false;
+      }
       this.s.busy = false;
     };
     live.ready.then(
