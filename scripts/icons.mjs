@@ -1,9 +1,9 @@
-// Renders the PNG app icons from public/icons/icon.svg. Run: npm run icons
+// Renders the PNG app icons from public/app-icons/icon.svg. Run: npm run icons
 import sharp from 'sharp';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 
-const dir = new URL('../public/icons/', import.meta.url);
+const dir = new URL('../public/app-icons/', import.meta.url);
 const svg = await readFile(new URL('icon.svg', dir));
 
 const png = (size, file) => sharp(svg, { density: 300 }).resize(size, size).png().toFile(fileURLToPath(new URL(file, dir)));

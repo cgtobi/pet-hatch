@@ -34,7 +34,7 @@ installed as an app and played offline.
 `README.txt`: `static/` (the game alone), `php/` (with the PHP relay) and `node/` (with the Node relay, started
 with `npm start`). See the live battle sections below.
 
-To change the app icon, edit `public/icons/icon.svg`, then run `npm run icons`.
+To change the app icon, edit `public/app-icons/icon.svg`, then run `npm run icons`.
 
 ## Live battles (optional)
 
