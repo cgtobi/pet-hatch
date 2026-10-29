@@ -58,6 +58,25 @@ If the game is hosted elsewhere (any static web server), run the relay on its ow
 
 In development, run `npm run relay` next to `npm run dev`; the dev server forwards `/relay` to it.
 
+### PHP hosting
+
+For ordinary web hosting with PHP but no way to run Node, there is a PHP relay (`server/php/relay.php`)
+with the same rooms and dojo. It works over plain HTTP (the game long-polls) instead of WebSockets, needs PHP 8.1
+or newer and no database, and keeps its little state in a `relay-data/` folder it creates next to itself.
+
+```bash
+npm install
+npm run build:php
+```
+
+Then upload the contents of `dist-php/` (the game, `relay.php` and a `relay.json` pointing at it) to your host,
+over HTTPS. The web server's PHP user must be able to create `relay-data/`; its state file is unreadable over
+the web (Apache also gets an `.htaccess`). To keep it elsewhere, set the `PETHATCH_DATA_DIR` environment variable.
+
+Every waiting player keeps one PHP request open for up to 8 seconds at a time, so a host with very few PHP
+workers fits only a handful of players at once. `npm run test:php` runs the live battle and dojo tests against
+it in Docker (Apache with PHP).
+
 
 ## Docker
 

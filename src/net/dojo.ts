@@ -1,3 +1,4 @@
+import { openChannel, type Channel } from './channel';
 import type { LiveErrorCode } from './live';
 
 /**
@@ -9,21 +10,17 @@ export class DojoSession {
   onPlayers: (others: number) => void = () => {};
   onMatch: (room: string, role: 'host' | 'guest') => void = () => {};
   onFail: (code: LiveErrorCode) => void = () => {};
-  private ws: WebSocket;
+  private channel: Channel;
   private done = false;
 
   constructor(relayUrl: string, battleCode: string) {
-    // The dojo lives next to the relay: …/relay → …/dojo, keeping any path prefix.
-    const url = new URL('dojo', relayUrl);
-    url.searchParams.set('code', battleCode);
-    url.searchParams.set('id', dojoId());
-    this.ws = new WebSocket(url);
+    this.channel = openChannel(relayUrl, 'dojo', { code: battleCode, id: dojoId() });
     let opened = false;
-    this.ws.onopen = () => (opened = true);
-    this.ws.onmessage = (e) => {
+    this.channel.onopen = () => (opened = true);
+    this.channel.onmessage = (text) => {
       let m: { t?: string; players?: number; room?: string; role?: string; code?: LiveErrorCode };
       try {
-        m = JSON.parse(String(e.data));
+        m = JSON.parse(text);
       } catch {
         return;
       }
@@ -33,7 +30,7 @@ export class DojoSession {
         this.onMatch(m.room, m.role);
       } else if (m.t === 'error') this.finish(m.code ?? 'invalid');
     };
-    this.ws.onclose = () => this.finish(opened ? 'left' : 'unreachable');
+    this.channel.onclose = () => this.finish(opened ? 'left' : 'unreachable');
   }
 
   private finish(code: LiveErrorCode): void {
@@ -45,7 +42,7 @@ export class DojoSession {
   /** Leave the dojo. */
   close(): void {
     this.done = true;
-    this.ws.close();
+    this.channel.close();
   }
 }
 

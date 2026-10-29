@@ -254,6 +254,11 @@ A public waiting room for live battles against strangers of similar strength.
   forwards messages. It knows nothing about battles and stores nothing. Limits: 2 players per room, 4 KB per
   message, 60 messages per 10 s, rooms close after 15 minutes of silence, dead connections are pinged out. It also
   serves `dist/` and `/relay.json`, so one process can host the whole game.
+- **PHP relay** (`server/php/relay.php`): the same rooms, limits and dojo for plain PHP web hosting, over HTTP
+  instead of WebSockets. Clients post messages and long-poll for theirs (up to 8 s per request, checked every
+  250 ms); a connection that stops polling for 25 s counts as closed. Timers become checks on every request, and
+  the shared state is one JSON file behind a lock. `src/net/channel.ts` gives the game one interface for both:
+  an http(s) relay URL (or `"transport": "http"` in `relay.json`) means the PHP relay.
 - **Lockstep:** the battle is deterministic, so both phones run it themselves and only exchange pet snapshots
   (battle codes), half a random seed each, and one move per turn (`src/net/live.ts`). The host is battle side a,
   the guest side b, on both phones.
@@ -303,9 +308,10 @@ UI: Fredoka (display) + Nunito (body), self-hosted Latin subsets.
 | `src/input/gestures.ts` | Pointer events → hold / swipe / stroke / tap / orbit. |
 | `src/ui/` | DOM HUD, settings sheet (with help), the Training/Battle sheet (`sheet.ts`, `training.ts`, `arena.ts`), the four minigames and icons. |
 | `src/i18n/` | All player-facing text: `en.ts` is the source, one file per translation, checked by `i18n.test.ts`. |
-| `src/net/` | Live battles: `live.ts` (lockstep protocol over the relay), `dojo.ts` (waiting in the dojo), `relayConfig.ts` (finding the relay). Tested end to end against a real relay in `live.test.ts` and `dojo.test.ts`. |
+| `src/net/` | Live battles: `live.ts` (lockstep protocol over the relay), `dojo.ts` (waiting in the dojo), `channel.ts` (WebSocket or HTTP polling), `relayConfig.ts` (finding the relay). Tested end to end against a real relay in `live.test.ts` and `dojo.test.ts`, and against the PHP relay with `npm run test:php`. |
 | `server/relay.mjs` | The optional live battle relay (rooms and the dojo), which can also serve the built game. |
 | `server/dojo.mjs` | Dojo matchmaking: ratings from battle codes, the widening match window, pairing. |
+| `server/php/` | The relay for PHP web hosting (`relay.php`, `relay.json`); `npm run build:php` bundles it with the game. |
 | `Dockerfile`, `docker-compose.yml` | One image with the game and the relay (amd64 and arm64). |
 | `repository.yaml`, `pet_hatch/` | Home Assistant app: sidebar via ingress plus a direct port; builds from this repository's Git URL. |
 | `src/feedback.ts` | Synthesized sound effects, generative music and haptic patterns. |

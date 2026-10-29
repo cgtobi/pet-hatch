@@ -1,5 +1,6 @@
 import { movesFor, type Fighter, type MoveId, type SideKey } from '../sim/battle';
 import { decodeFighter, encodeFighter } from '../sim/battlecode';
+import { openChannel, type Channel } from './channel';
 
 /**
  * Live battles over the relay. Both phones run the same deterministic battle (lockstep), so they only
@@ -101,7 +102,7 @@ export class LiveSession {
   /** Called whenever the number of players in the room changes. */
   onPeers: (n: number) => void = () => {};
 
-  private ws: WebSocket;
+  private channel: Channel;
   private me: Fighter;
   private inbox: Msg[] = [];
   private waiters: Waiter[] = [];
@@ -123,20 +124,17 @@ export class LiveSession {
     this.side = role === 'host' ? 'a' : 'b';
     // Use exactly what the other phone will decode, so both run the battle on identical numbers.
     this.me = decodeFighter(encodeFighter(me))!;
-    const url = new URL(relayUrl);
-    url.searchParams.set('room', code);
-    url.searchParams.set('role', role);
-    this.ws = new WebSocket(url);
-    this.ws.onopen = () => (this.opened = true);
-    this.ws.onmessage = (e) => {
+    this.channel = openChannel(relayUrl, 'relay', { room: code, role });
+    this.channel.onopen = () => (this.opened = true);
+    this.channel.onmessage = (text) => {
       try {
-        this.receive(JSON.parse(String(e.data)) as Msg);
+        this.receive(JSON.parse(text) as Msg);
       } catch {
         this.fail('invalid');
       }
     };
     // The other player leaving arrives as a room update; our own socket closing means we lost the connection.
-    this.ws.onclose = () => this.fail(this.opened ? 'disconnected' : 'unreachable');
+    this.channel.onclose = () => this.fail(this.opened ? 'disconnected' : 'unreachable');
     this.ready = this.handshake();
     // Avoid unhandled-rejection noise when nobody awaits `ready` before a failure.
     this.ready.catch(() => {});
@@ -147,7 +145,7 @@ export class LiveSession {
   }
 
   private send(msg: Msg): void {
-    if (this.ws.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify(msg));
+    this.channel.send(JSON.stringify(msg));
   }
 
   private receive(m: Msg): void {
@@ -207,7 +205,7 @@ export class LiveSession {
     }
     this.waiters = [];
     this.onFail(this.failure);
-    this.ws.close();
+    this.channel.close();
   }
 
   private async handshake(): Promise<LiveMatch> {
@@ -265,6 +263,6 @@ export class LiveSession {
     this.failure ??= new LiveError('left');
     for (const w of this.waiters) clearTimeout(w.timer);
     this.waiters = [];
-    this.ws.close();
+    this.channel.close();
   }
 }

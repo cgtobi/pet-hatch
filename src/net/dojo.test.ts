@@ -62,14 +62,23 @@ describe('dojo matching', () => {
   });
 });
 
-describe('dojo over the relay', () => {
-  let relay: Relay;
+let relay: Relay;
+let nodeUrl: string;
+beforeAll(async () => {
+  relay = createRelay();
+  nodeUrl = `ws://127.0.0.1:${await relay.listen(0, '127.0.0.1')}/relay`;
+});
+afterAll(() => relay.close());
+
+// The PHP relay too, when one is running (npm run test:php).
+const relays: [string, () => string][] = [['Node', () => nodeUrl]];
+if (process.env.PHP_RELAY_URL) relays.push(['PHP', () => process.env.PHP_RELAY_URL!]);
+
+describe.each(relays)('dojo over the %s relay', (_, relayUrl) => {
   let url: string;
-  beforeAll(async () => {
-    relay = createRelay();
-    url = `ws://127.0.0.1:${await relay.listen(0, '127.0.0.1')}/relay`;
+  beforeAll(() => {
+    url = relayUrl();
   });
-  afterAll(() => relay.close());
 
   const enter = (f: Fighter) => {
     const dojo = new DojoSession(url, encodeFighter(f));
@@ -105,7 +114,7 @@ describe('dojo over the relay', () => {
     await new Promise((r) => setTimeout(r, 1500));
     expect(strong.players.at(-1)).toBe(1);
     weak.dojo.close();
-    await new Promise((r) => setTimeout(r, 200));
+    await new Promise((r) => setTimeout(r, 500));
     expect(strong.players.at(-1)).toBe(0);
     strong.dojo.close();
   });

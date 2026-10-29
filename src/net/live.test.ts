@@ -2,15 +2,16 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createRelay, type Relay } from '../../server/relay.mjs';
 import { battleState, createBattle, MAX_TURNS, MOVES, movesFor, playTurn, type Fighter, type MoveId } from '../sim/battle';
+import type { Channel } from './channel';
 import { hash, LiveError, LiveSession, newRoomCode, parseRoomCode } from './live';
 
 let relay: Relay;
-let url: string;
+let nodeUrl: string;
 
 beforeAll(async () => {
   relay = createRelay();
   const port = await relay.listen(0, '127.0.0.1');
-  url = `ws://127.0.0.1:${port}/relay`;
+  nodeUrl = `ws://127.0.0.1:${port}/relay`;
 });
 
 afterAll(() => relay.close());
@@ -30,6 +31,9 @@ function fighter(over: Partial<Fighter>): Fighter {
   };
 }
 
+/** Wait until a host is in its room, as a friend only joins with the code the host shared. */
+const inRoom = (s: LiveSession) => new Promise<void>((done) => (s.onPeers = () => done()));
+
 const failureOf = (s: LiveSession) =>
   new Promise<string>((done) => {
     if (s.failed) done(s.failed.code);
@@ -48,9 +52,10 @@ describe('room codes', () => {
 describe('relay under a path prefix', () => {
   it('accepts WebSockets on any path ending in /relay', async () => {
     const code = newRoomCode();
-    const prefixed = url.replace('/relay', '/api/hassio_ingress/abc/relay');
+    const prefixed = nodeUrl.replace('/relay', '/api/hassio_ingress/abc/relay');
     const host = new LiveSession(prefixed, code, 'host', fighter({}));
-    const guest = new LiveSession(url, code, 'guest', fighter({}));
+    await inRoom(host);
+    const guest = new LiveSession(nodeUrl, code, 'guest', fighter({}));
     const [a, b] = await Promise.all([host.ready, guest.ready]);
     expect(a.seed).toBe(b.seed);
     host.close();
@@ -58,10 +63,20 @@ describe('relay under a path prefix', () => {
   });
 });
 
-describe('live battle over the relay', () => {
+// The PHP relay too, when one is running (npm run test:php).
+const relays: [string, () => string][] = [['Node', () => nodeUrl]];
+if (process.env.PHP_RELAY_URL) relays.push(['PHP', () => process.env.PHP_RELAY_URL!]);
+
+describe.each(relays)('live battle over the %s relay', (_, relayUrl) => {
+  let url: string;
+  beforeAll(() => {
+    url = relayUrl();
+  });
+
   it('plays a whole battle in lockstep: both phones see the same result', async () => {
     const code = newRoomCode();
     const host = new LiveSession(url, code, 'host', fighter({ name: 'Pip', type: 'tide' }));
+    await inRoom(host);
     const guest = new LiveSession(url, code, 'guest', fighter({ name: 'Mochi', type: 'bloom', form: 'adult.guard' }));
     const [mh, mg] = await Promise.all([host.ready, guest.ready]);
     expect(mh).toEqual(mg);
@@ -99,6 +114,7 @@ describe('live battle over the relay', () => {
 
     const code = newRoomCode();
     const host = new LiveSession(url, code, 'host', fighter({}));
+    await inRoom(host);
     const guest = new LiveSession(url, code, 'guest', fighter({}));
     await Promise.all([host.ready, guest.ready]);
     const third = new LiveSession(url, code, 'guest', fighter({}));
@@ -110,6 +126,7 @@ describe('live battle over the relay', () => {
   it('tells the other player when someone gives up or leaves', async () => {
     const code = newRoomCode();
     const host = new LiveSession(url, code, 'host', fighter({}));
+    await inRoom(host);
     const guest = new LiveSession(url, code, 'guest', fighter({}));
     await Promise.all([host.ready, guest.ready]);
     const hostSees = failureOf(host);
@@ -118,6 +135,7 @@ describe('live battle over the relay', () => {
 
     const code2 = newRoomCode();
     const h2 = new LiveSession(url, code2, 'host', fighter({}));
+    await inRoom(h2);
     const g2 = new LiveSession(url, code2, 'guest', fighter({}));
     await Promise.all([h2.ready, g2.ready]);
     const seen = failureOf(h2);
@@ -128,12 +146,13 @@ describe('live battle over the relay', () => {
   it('tells losing your own connection apart from the other player leaving', async () => {
     const code = newRoomCode();
     const host = new LiveSession(url, code, 'host', fighter({}));
+    await inRoom(host);
     const guest = new LiveSession(url, code, 'guest', fighter({}));
     await Promise.all([host.ready, guest.ready]);
     const hostSees = failureOf(host);
     const guestSees = failureOf(guest);
     // The host's network drops: its socket closes without a goodbye.
-    (host as unknown as { ws: WebSocket }).ws.close();
+    (host as unknown as { channel: Channel }).channel.close();
     expect(await hostSees).toBe('disconnected');
     expect(await guestSees).toBe('left');
   });
@@ -141,6 +160,7 @@ describe('live battle over the relay', () => {
   it('catches a desync between the two phones', async () => {
     const code = newRoomCode();
     const host = new LiveSession(url, code, 'host', fighter({}));
+    await inRoom(host);
     const guest = new LiveSession(url, code, 'guest', fighter({}));
     await Promise.all([host.ready, guest.ready]);
     const seen = failureOf(host);
@@ -153,10 +173,11 @@ describe('live battle over the relay', () => {
   it('rejects a move that was changed after committing to it', async () => {
     const code = newRoomCode();
     const host = new LiveSession(url, code, 'host', fighter({}));
+    await inRoom(host);
     const guest = new LiveSession(url, code, 'guest', fighter({}));
     await Promise.all([host.ready, guest.ready]);
     // A tampered guest: commits to one move, then reveals another.
-    const ws = (guest as unknown as { ws: WebSocket }).ws;
+    const ws = (guest as unknown as { channel: Channel }).channel;
     const exchange = host.exchange(0, 'tackle');
     ws.send(JSON.stringify({ t: 'commit', turn: 0, h: hash('0:tackle:salt') }));
     ws.send(JSON.stringify({ t: 'reveal', turn: 0, move: 'crush', salt: 'salt' }));

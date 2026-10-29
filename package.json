@@ -9,7 +9,9 @@
     "preview": "vite preview --host",
     "test": "vitest run",
     "icons": "node scripts/icons.mjs",
-    "relay": "node server/relay.mjs"
+    "relay": "node server/relay.mjs",
+    "test:php": "node scripts/test-php.mjs",
+    "build:php": "npm run build && node scripts/bundle-php.mjs"
   },
   "dependencies": {
     "@fontsource/fredoka": "^5.3.0",
