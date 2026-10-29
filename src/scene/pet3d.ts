@@ -106,6 +106,8 @@ export class Pet3D {
   private walkPhase = 0;
   private blinkIn = 2;
   private anim: { kind: Anim; t: number; dur: number } | null = null;
+  /** The camera's turn around the island, so an idle pet can face whoever is looking. */
+  viewYaw = 0;
   /** Spots to steer around while wandering: this island's trees, bushes, rocks and pond, plus the shell. */
   obstacles: Obstacle[] = [SHELL];
   /** In a battle: hold this spot and facing instead of wandering. */
@@ -598,7 +600,7 @@ export class Pet3D {
         }
       } else {
         // Face the opponent in a battle, otherwise the player while standing around.
-        this.heading = turnToward(this.heading, this.post?.heading ?? 0, dt * (this.post ? 6 : 2));
+        this.heading = turnToward(this.heading, this.post?.heading ?? this.viewYaw, dt * (this.post ? 6 : 2));
         if (!this.post) {
           this.idleFor -= dt;
           if (this.idleFor <= 0) this.target = this.pickTarget();

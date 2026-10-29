@@ -10,6 +10,11 @@ import { toon } from './toon';
 const PITCH = 0.3;
 /** Radians of island turn per pixel dragged. */
 const ORBIT_SPEED = 0.006;
+/** How long after a drag a battle starts turning the view back to the front. */
+const BATTLE_RECENTER_MS = 1500;
+/** Where the sun shines from, relative to the camera: it turns with the view so every side is lit alike. */
+const SUN_OFFSET = new THREE.Vector3(4, 7, 5);
+const UP = new THREE.Vector3(0, 1, 0);
 /** Where the two sides of a battle stand (x, z, facing): your pet on the left, the opponent on the right. */
 const BATTLE_SPOTS = {
   pet: [-1.35, 0.55, Math.PI / 2],
@@ -49,6 +54,8 @@ export class World {
   private raycaster = new THREE.Raycaster();
   private yaw = 0;
   private yawVel = 0;
+  /** When the player last dragged the island (ms), so a battle only re-centres the view after they let go. */
+  private lastOrbit = 0;
   private distance = 20;
   private insets: Insets = { top: 0, bottom: 0 };
 
@@ -60,7 +67,7 @@ export class World {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.island = new Island(seed);
     this.egg = new Egg3D(seed);
-    this.sun.position.set(4, 7, 5);
+    this.sun.position.copy(SUN_OFFSET);
     this.scene.add(this.sky.group, this.island.group, this.egg.group, this.effects.group, this.hemi, this.sun);
     this.resize();
   }
@@ -91,10 +98,12 @@ export class World {
   orbit(dxPixels: number): void {
     this.yawVel = 0;
     this.yaw -= dxPixels * ORBIT_SPEED;
+    this.lastOrbit = performance.now();
   }
 
   release(vxPixelsPerSec: number): void {
     this.yawVel = -vxPixelsPerSec * ORBIT_SPEED;
+    this.lastOrbit = performance.now();
   }
 
   /** Returns what is under a screen point. */
@@ -211,7 +220,13 @@ export class World {
       this.yaw += this.yawVel * dt;
       this.yawVel *= Math.pow(0.04, dt);
     }
-    this.yaw = THREE.MathUtils.clamp(this.yaw, -1.1, 1.1);
+    // The island turns freely all the way round; keep the angle within one turn.
+    this.yaw = THREE.MathUtils.euclideanModulo(this.yaw + Math.PI, Math.PI * 2) - Math.PI;
+    // In a battle, drift back to the front view (where the two fighters stand side by side) once the player lets go.
+    if (this.foe && performance.now() - this.lastOrbit > BATTLE_RECENTER_MS) {
+      this.yawVel = 0;
+      this.yaw -= this.yaw * Math.min(1, dt * 2);
+    }
     const d = this.distance;
     const target = this.foe ? BATTLE_TARGET : TARGET;
     this.camera.position.set(
@@ -220,6 +235,8 @@ export class World {
       target.z + Math.cos(this.yaw) * Math.cos(PITCH) * d,
     );
     this.camera.lookAt(target);
+    this.sun.position.copy(SUN_OFFSET).applyAxisAngle(UP, this.yaw);
+    if (this.pet) this.pet.viewYaw = this.yaw;
 
     const look = skyAt(hour);
     const dim = lightsOff ? 0.35 : 1;
