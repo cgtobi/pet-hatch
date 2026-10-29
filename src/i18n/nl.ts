@@ -62,6 +62,7 @@ export const nl: Dict = {
   'toast.toasty': 'Lekker warm',
   'toast.misted': 'Lekker vochtig',
   'toast.full': 'Daar heeft het genoeg van',
+  'toast.pampered': 'Het geniet van de extra zorg',
   'toast.copied': 'Opslagcode gekopieerd',
   'toast.linkCopied': 'Link gekopieerd',
   'toast.copyFailed': 'Kopiëren mislukt. Selecteer de code en kopieer hem zelf',
@@ -308,7 +309,7 @@ export const nl: Dict = {
     'Houd het ei vast om het te verwarmen, veeg omhoog om te sproeien, en aai het of zing om het gezelschap te houden.\nDraai het om de paar uur met een zijwaartse veeg.\nHet komt na ongeveer een dag uit. Goede zorg versnelt dat, verwaarlozing vertraagt het.\nAls het zover is, wacht het op je: tik erop om het eruit te helpen.',
   'help.types.title': 'Elementen',
   'help.types.body':
-    'De zorg die je het vaakst geeft bepaalt het element: warmte maakt Gloed, sproeien maakt Vloed, troost maakt Bloei.\nEvenwichtige zorg voor een gezond ei kan het zeldzame type Astraal opleveren.\nVloed wint van Gloed, Gloed wint van Bloei en Bloei wint van Vloed. Astraal heeft geen zwakte. Dat telt straks mee in gevechten.',
+    'Gewone zorg houdt het ei neutraal. Extra verwennerij als het al helemaal tevreden is bepaalt het element: warmte maakt Gloed, sproeien maakt Vloed, troost maakt Bloei.\nVerwen het evenveel op alle drie de manieren en houd het gezond, dan maak je kans op het zeldzame type Astraal. Een ei dat niemand verwent kiest zijn element bij toeval.\nVloed wint van Gloed, Gloed wint van Bloei en Bloei wint van Vloed. Astraal heeft geen zwakte. Dat telt straks mee in gevechten.',
   'help.care.title': 'Dagelijkse zorg',
   'help.care.body':
     'Houd Eten en Stemming op peil met Voer en Speel. Baby’s hebben de meeste aandacht nodig.\nEen tijdje na het eten komen er keuteltjes. Ruim ze op, anders kan je dier ziek worden.\nEen ziek dier heeft twee doses medicijn nodig.\nDoe het licht uit als het bedtijd is. ’s Nachts dalen de behoeften veel langzamer.\nEen dier dat zonder energie zit, doet vanzelf een dutje.',

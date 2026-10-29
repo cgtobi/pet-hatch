@@ -44,9 +44,18 @@ The exact hatch time is **hidden** and **random**:
 | Turn | swipe sideways | Turn | due every 4 h | health only |
 | Lights | – | Lights | – | lets it rest at night |
 
-- Only care that actually raises a meter counts toward the element (no spamming at 100%).
-- **Element at hatch** = the dominant kind of care. Near-perfect balance (every share ≥ 29%) with good health gives
-  the rare **Astral** type.
+- **Element at hatch** comes from care points per element:
+  - Care that raises a meter counts **weighted by how fast that need drains** (warmth drains 34/h, humidity 25/h,
+    bond 20/h). Plain keep-alive care is therefore neutral: about a third each. (Before this rule, warmth's faster
+    drain made every caring player's egg Ember, about 43/31/26%.)
+  - **Pampering**, care given while that meter is already full (holding Warm, extra mists, songs, strokes), counts
+    1.5× and is how the player shows a preference. Each need can absorb up to 30 pampering points, refilling at
+    30 per hour, so spamming doesn't run away. Pampering shows hearts and "It loves the extra care".
+  - An element with more than 38% of the points wins. Below that the egg is **balanced**: it becomes the rare
+    **Astral** type if all three were pampered (≥ 40 points each), health is ≥ 80% and there were at most 2 care
+    mistakes; otherwise the egg's own seed picks Ember, Tide or Bloom with equal odds.
+  - Simulated: diligent or casual care → balanced (random element); two extra mists per visit → Tide (~59%);
+    two extra songs → Bloom (~60%); pampering all three evenly → Astral. Eggs from older saves are converted.
 - **Health** drops while needs are empty and recovers while all needs are above 40%.
 
 ### Neglect modes (Settings)

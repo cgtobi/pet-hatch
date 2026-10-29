@@ -6,6 +6,18 @@ export const STAGE_NAMES = ['Quiet', 'Stirring', 'Wobbly', 'Cracking', 'Hatching
 
 /** Need loss per awake game hour. */
 const DECAY: Record<EggNeed, number> = { warmth: 34, humidity: 25, bond: 20 };
+const AVERAGE_DECAY = (DECAY.warmth + DECAY.humidity + DECAY.bond) / 3;
+const ELEMENT: Record<EggNeed, 'ember' | 'tide' | 'bloom'> = { warmth: 'ember', humidity: 'tide', bond: 'bloom' };
+/** Pampering (care beyond full) counts this much more than ordinary care… */
+const PAMPER_WEIGHT = 1.5;
+/** …up to this many points per need, refilling at the same rate per hour. */
+const PAMPER_PER_HOUR = 30;
+/** No element above this share of the care: the egg is balanced. */
+const BALANCED_SHARE = 0.38;
+/** Astral: balanced care with every element pampered at least this much, a healthy egg and few mistakes. */
+const ASTRAL_PAMPER = 40;
+const ASTRAL_HEALTH = 80;
+const ASTRAL_MAX_MISTAKES = 2;
 /** Decay multiplier while the player sleeps, lights off vs. left on. */
 const SLEEP_DECAY_DARK = 0.1;
 const SLEEP_DECAY_LIT = 0.3;
@@ -40,6 +52,8 @@ export function createEgg(now: number, seed: number, heritage: Heritage | null =
     lastTurnedAt: now,
     health: 100,
     care: { ember: 0, tide: 0, bloom: 0 },
+    pampered: { ember: 0, tide: 0, bloom: 0 },
+    pamperBudget: { warmth: PAMPER_PER_HOUR, humidity: PAMPER_PER_HOUR, bond: PAMPER_PER_HOUR },
     careMistakes: 0,
     lapsed: { warmth: false, humidity: false, bond: false, turn: false },
     readyAt: null,
@@ -77,6 +91,9 @@ export function tickEgg(egg: EggState, t: number, dtH: number, settings: Setting
   const asleep = isAsleep(t, settings);
   const decayMul = asleep ? (egg.lightsOn ? SLEEP_DECAY_LIT : SLEEP_DECAY_DARK) : 1;
 
+  for (const need of ['warmth', 'humidity', 'bond'] as const) {
+    egg.pamperBudget[need] = Math.min(PAMPER_PER_HOUR, egg.pamperBudget[need] + PAMPER_PER_HOUR * dtH);
+  }
   egg.warmth = clamp(egg.warmth - DECAY.warmth * dtH * decayMul);
   egg.humidity = clamp(egg.humidity - DECAY.humidity * dtH * decayMul);
   egg.bond = clamp(egg.bond - DECAY.bond * dtH * decayMul);
@@ -124,30 +141,53 @@ export function tickEgg(egg: EggState, t: number, dtH: number, settings: Setting
   }
 }
 
-/** Raise a need; returns how much it actually went up. */
-function raise(egg: EggState, need: EggNeed, amount: number): number {
+export interface CareResult {
+  /** How much the meter went up. */
+  added: number;
+  /** Extra care given beyond full that counted as pampering. */
+  pampered: number;
+}
+
+/**
+ * Give care for one need. What raises the meter counts toward the element, weighted by how fast that need
+ * drains: keeping all three going evenly is neutral, whatever their drain speeds. Care beyond full counts
+ * as pampering (more strongly, within a budget): that is how the player shows a preference.
+ */
+function giveCare(egg: EggState, need: EggNeed, amount: number): CareResult {
   const before = egg[need];
   egg[need] = clamp(before + amount);
-  return egg[need] - before;
+  const added = egg[need] - before;
+  const pampered = Math.max(0, Math.min(amount - added, egg.pamperBudget[need]));
+  egg.pamperBudget[need] -= pampered;
+  const element = ELEMENT[need];
+  egg.pampered[element] += pampered;
+  egg.care[element] += added * (AVERAGE_DECAY / DECAY[need]) + pampered * PAMPER_WEIGHT;
+  return { added, pampered };
 }
 
-export function warmEgg(egg: EggState, amount: number): number {
-  const added = raise(egg, 'warmth', amount);
-  egg.care.ember += added;
-  return added;
+export function warmEgg(egg: EggState, amount: number): CareResult {
+  return giveCare(egg, 'warmth', amount);
 }
 
-export function mistEgg(egg: EggState, amount = 30): number {
-  const added = raise(egg, 'humidity', amount);
-  egg.care.tide += added;
-  return added;
+export function mistEgg(egg: EggState, amount = 30): CareResult {
+  return giveCare(egg, 'humidity', amount);
 }
 
 /** Stroking and singing both build the bond. */
-export function comfortEgg(egg: EggState, amount: number): number {
-  const added = raise(egg, 'bond', amount);
-  egg.care.bloom += added;
-  return added;
+export function comfortEgg(egg: EggState, amount: number): CareResult {
+  return giveCare(egg, 'bond', amount);
+}
+
+/** Scale care recorded under the old rules (raw meter raises) to the drain-weighted points used now. */
+export function migrateEggCare(egg: EggState): void {
+  if (egg.pampered) return;
+  egg.care = {
+    ember: egg.care.ember * (AVERAGE_DECAY / DECAY.warmth),
+    tide: egg.care.tide * (AVERAGE_DECAY / DECAY.humidity),
+    bloom: egg.care.bloom * (AVERAGE_DECAY / DECAY.bond),
+  };
+  egg.pampered = { ember: 0, tide: 0, bloom: 0 };
+  egg.pamperBudget = { warmth: PAMPER_PER_HOUR, humidity: PAMPER_PER_HOUR, bond: PAMPER_PER_HOUR };
 }
 
 /** Returns false when the egg was turned too recently to need it. */
@@ -172,14 +212,23 @@ export function careLeaning(egg: EggState): Leaning {
   if (total < 1) return { ember: 1 / 3, tide: 1 / 3, bloom: 1 / 3, total, label: 'Unknown' };
   const shares = { ember: ember / total, tide: tide / total, bloom: bloom / total };
   const top = (Object.keys(shares) as (keyof typeof shares)[]).sort((a, b) => shares[b] - shares[a])[0];
-  const label = shares[top] < 0.4 ? 'Balanced' : top === 'ember' ? 'Ember' : top === 'tide' ? 'Tide' : 'Bloom';
+  const label = shares[top] < BALANCED_SHARE ? 'Balanced' : top === 'ember' ? 'Ember' : top === 'tide' ? 'Tide' : 'Bloom';
   return { ...shares, total, label };
 }
 
-/** The element the egg hatches into, decided by the mix of care it got. */
+/**
+ * The element the egg hatches into. A clear lean wins. Balanced care is Astral only if all three were
+ * pampered and the egg is healthy; otherwise the egg's own seed picks one of the three, evenly.
+ */
 export function eggType(egg: EggState): ElementType {
   const l = careLeaning(egg);
-  if (l.total >= 150 && Math.min(l.ember, l.tide, l.bloom) >= 0.29 && egg.health >= 60) return 'astral';
-  if (l.label === 'Unknown') return (['ember', 'tide', 'bloom'] as const)[egg.seed % 3];
-  return l.ember >= l.tide && l.ember >= l.bloom ? 'ember' : l.tide >= l.bloom ? 'tide' : 'bloom';
+  if (l.label === 'Balanced' || l.label === 'Unknown') {
+    const p = egg.pampered;
+    const astral =
+      Math.min(p.ember, p.tide, p.bloom) >= ASTRAL_PAMPER &&
+      egg.health >= ASTRAL_HEALTH &&
+      egg.careMistakes <= ASTRAL_MAX_MISTAKES;
+    return astral ? 'astral' : (['ember', 'tide', 'bloom'] as const)[egg.seed % 3];
+  }
+  return l.label === 'Ember' ? 'ember' : l.label === 'Tide' ? 'tide' : 'bloom';
 }

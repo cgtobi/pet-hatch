@@ -62,6 +62,7 @@ export const it: Dict = {
   'toast.toasty': 'Bello caldino',
   'toast.misted': 'Bello umido',
   'toast.full': 'Ne ha già a sufficienza',
+  'toast.pampered': 'Adora le coccole in più',
   'toast.copied': 'Codice di salvataggio copiato',
   'toast.linkCopied': 'Link copiato',
   'toast.copyFailed': 'Copia non riuscita. Seleziona il codice e copialo a mano',
@@ -308,7 +309,7 @@ export const it: Dict = {
     'Tieni premuto sull’uovo per scaldarlo, scorri verso l’alto per spruzzarlo, e accarezzalo o canta per fargli compagnia.\nGiralo ogni poche ore scorrendo di lato.\nSi schiude dopo circa un giorno. Le cure giuste lo accelerano, la trascuratezza lo rallenta.\nQuando è pronto, ti aspetta: toccalo per aiutarlo a uscire.',
   'help.types.title': 'Tipi elementali',
   'help.types.body':
-    'La cura che dai di più decide l’elemento: il calore crea Brace, gli spruzzi creano Onda, le coccole creano Fiore.\nCure ben equilibrate per un uovo in salute possono dare il raro tipo Astrale.\nOnda batte Brace, Brace batte Fiore e Fiore batte Onda. Astrale non ha punti deboli. Conterà nelle lotte.',
+    'Le cure normali lasciano l’uovo neutrale. Le attenzioni in più quando sta già bene decidono l’elemento: il calore crea Brace, gli spruzzi creano Onda, le coccole creano Fiore.\nVizialo allo stesso modo in tutti e tre i modi e tienilo in salute per avere una chance del raro tipo Astrale. Un uovo che nessuno vizia sceglie l’elemento a caso.\nOnda batte Brace, Brace batte Fiore e Fiore batte Onda. Astrale non ha punti deboli. Conterà nelle lotte.',
   'help.care.title': 'Cure quotidiane',
   'help.care.body':
     'Tieni alti Cibo e Umore con Pappa e Gioca. I cuccioli sono quelli che richiedono più attenzioni.\nDopo i pasti, prima o poi compaiono i ricordini. Puliscili, o il tuo cucciolo può ammalarsi.\nUn cucciolo malato ha bisogno di due dosi di medicina.\nSpegni le luci all’ora di dormire. Di notte i bisogni calano molto più lentamente.\nSe finisce l’energia, il cucciolo fa un pisolino da solo.',

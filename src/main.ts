@@ -20,6 +20,7 @@ import {
   turnEgg,
   TURN_INTERVAL_H,
   warmEgg,
+  type CareResult,
 } from './sim/egg';
 import { advance, gameNow, hatch, isReadyToHatch, layNewEgg, newGame } from './sim/game';
 import {
@@ -83,6 +84,8 @@ const world = new World(canvas, state.egg.seed);
 
 let warming = false;
 let warmFx = 0;
+/** Pampering given during the current hold of Warm, for the toast when it ends. */
+let warmPampered = 0;
 let strokeAcc = 0;
 let singCooldown = 0;
 let wobbleTimer = 2;
@@ -284,24 +287,40 @@ function setWarming(active: boolean) {
     sfx.warm();
     haptic('tap');
   }
-  if (!active && warming && state.egg.warmth >= 99) hud.toast(t('toast.toasty'));
+  if (!active && warming) {
+    if (warmPampered > 0.5) {
+      world.effects.emit('heart', world.egg.center(), 3);
+      hud.toast(t('toast.pampered'));
+    } else if (state.egg.warmth >= 99) hud.toast(t('toast.toasty'));
+  }
+  if (active) warmPampered = 0;
   warming = active;
+}
+
+/** Care beyond full is pampering: hearts and a toast, so the player learns that it counts. */
+function careFeedback(r: CareResult, raisedKey: TextKey | null) {
+  if (r.added > 0) {
+    if (raisedKey) hud.toast(t(raisedKey));
+  } else if (r.pampered > 0) {
+    world.effects.emit('heart', world.egg.center(), 3);
+    hud.toast(t('toast.pampered'));
+  } else hud.toast(t('toast.full'));
 }
 
 function mist() {
   if (!eggActive()) return;
-  const added = mistEgg(state.egg);
+  const r = mistEgg(state.egg);
   world.effects.emit('drop', world.egg.center(), 12);
   world.egg.nudge(0.8);
   sfx.mist();
   haptic('tap');
-  hud.toast(t(added <= 0 ? 'toast.full' : 'toast.misted'));
+  careFeedback(r, 'toast.misted');
 }
 
 function sing() {
   if (!eggActive() || singCooldown > 0) return;
   singCooldown = SING_COOLDOWN;
-  const added = comfortEgg(state.egg, SING_AMOUNT);
+  const r = comfortEgg(state.egg, SING_AMOUNT);
   sfx.sing();
   for (let i = 0; i < 5; i++) {
     setTimeout(() => {
@@ -309,7 +328,7 @@ function sing() {
       world.egg.nudge(0.7, i % 2 ? 0 : Math.PI);
     }, i * 140);
   }
-  if (added <= 0) hud.toast(t('toast.full'));
+  careFeedback(r, null);
 }
 
 function turn(direction: 1 | -1) {
@@ -855,7 +874,7 @@ function frame(ms: number) {
   singCooldown = Math.max(0, singCooldown - dt);
   if (eggActive()) {
     if (warming) {
-      warmEgg(egg, WARM_PER_SECOND * dt);
+      warmPampered += warmEgg(egg, WARM_PER_SECOND * dt).pampered;
       warmFx -= dt;
       if (warmFx <= 0) {
         warmFx = 0.3;

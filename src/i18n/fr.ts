@@ -62,6 +62,7 @@ export const fr: Dict = {
   'toast.toasty': 'Bien au chaud',
   'toast.misted': 'Bien humide',
   'toast.full': 'Il en a largement assez',
+  'toast.pampered': 'Il adore ces petites attentions',
   'toast.copied': 'Code de sauvegarde copié',
   'toast.linkCopied': 'Lien copié',
   'toast.copyFailed': 'Échec de la copie. Sélectionne le code et copie-le à la main',
@@ -308,7 +309,7 @@ export const fr: Dict = {
     'Appuie longuement sur l’œuf pour le chauffer, balaie vers le haut pour le brumiser, et caresse-le ou chante-lui une chanson pour lui tenir compagnie.\nTourne-le toutes les quelques heures d’un balayage de côté.\nIl éclot au bout d’environ un jour. De bons soins l’accélèrent, la négligence le ralentit.\nQuand il est prêt, il t’attend : touche-le pour l’aider à sortir.',
   'help.types.title': 'Types élémentaires',
   'help.types.body':
-    'Les soins que tu donnes le plus décident de l’élément : la chaleur donne Braise, la brume donne Marée, le réconfort donne Pousse.\nDes soins bien équilibrés pour un œuf en bonne santé peuvent donner le rare type Astral.\nMarée bat Braise, Braise bat Pousse et Pousse bat Marée. Astral n’a aucune faiblesse. Cela comptera lors des combats.',
+    'Les soins ordinaires gardent l’œuf neutre. Les attentions en plus, quand il est déjà bien installé, décident de l’élément : la chaleur donne Braise, la brume donne Marée, le réconfort donne Pousse.\nChouchoute-le autant des trois façons et garde-le en bonne santé pour avoir une chance d’obtenir le rare type Astral. Un œuf jamais chouchouté choisit son élément au hasard.\nMarée bat Braise, Braise bat Pousse et Pousse bat Marée. Astral n’a aucune faiblesse. Cela comptera lors des combats.',
   'help.care.title': 'Soins quotidiens',
   'help.care.body':
     'Garde Repas et Humeur au beau fixe avec Nourrir et Jouer. Les bébés demandent le plus d’attention.\nDes crottes apparaissent un moment après les repas. Nettoie-les, sinon ton compagnon risque de tomber malade.\nUn compagnon malade a besoin de deux doses de Remède.\nÉteins la lumière à l’heure du coucher. La nuit, les besoins baissent beaucoup plus lentement.\nUn compagnon à court d’énergie fait la sieste tout seul.',

@@ -53,8 +53,15 @@ export interface EggState {
   bond: number;
   lastTurnedAt: number;
   health: number;
-  /** Care actually given (only the part that raised a meter), per element. */
+  /**
+   * Care points per element, which decide what hatches: raises weighted by how fast that need drains
+   * (so plain keep-alive care stays neutral), plus pampering beyond full.
+   */
   care: { ember: number; tide: number; bloom: number };
+  /** Extra care given while a need was already full, per element (Astral needs all three). */
+  pampered: { ember: number; tide: number; bloom: number };
+  /** How much more pampering counts right now, per need; refills over time so spamming doesn't run away. */
+  pamperBudget: Record<EggNeed, number>;
   careMistakes: number;
   /** Tracks which needs are currently empty, so each lapse counts as one care mistake. */
   lapsed: { warmth: boolean; humidity: boolean; bond: boolean; turn: boolean };

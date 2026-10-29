@@ -62,6 +62,7 @@ export const es: Dict = {
   'toast.toasty': 'Calentito y cómodo',
   'toast.misted': 'Bien humedecido',
   'toast.full': 'Ya tiene de sobra',
+  'toast.pampered': 'Le encantan los mimos extra',
   'toast.copied': 'Código de guardado copiado',
   'toast.linkCopied': 'Enlace copiado',
   'toast.copyFailed': 'No se pudo copiar. Selecciona el código y cópialo a mano',
@@ -308,7 +309,7 @@ export const es: Dict = {
     'Mantén pulsado el huevo para calentarlo, desliza hacia arriba para rociarlo y acarícialo o cántale para hacerle compañía.\nGíralo cada pocas horas deslizando el dedo de lado.\nEclosiona en más o menos un día. Los buenos cuidados lo aceleran y el descuido lo retrasa.\nCuando esté listo, te esperará: tócalo para ayudarlo a salir.',
   'help.types.title': 'Tipos de elemento',
   'help.types.body':
-    'El cuidado que más des decide el elemento: el calor da Ascua, el rocío da Marea, los mimos dan Brote.\nUn cuidado muy equilibrado en un huevo sano puede dar el raro tipo Astral.\nMarea vence a Ascua, Ascua vence a Brote y Brote vence a Marea. Astral no tiene debilidad. Esto importará en los combates.',
+    'Los cuidados normales mantienen el huevo neutral. Lo que le das de más cuando ya está a gusto decide el elemento: el calor da Ascua, el rocío da Marea, los mimos dan Brote.\nConsiéntelo por igual de las tres formas y mantenlo sano para tener una opción al raro tipo Astral. Un huevo al que nadie consiente elige su elemento al azar.\nMarea vence a Ascua, Ascua vence a Brote y Brote vence a Marea. Astral no tiene debilidad. Esto importará en los combates.',
   'help.care.title': 'Cuidado diario',
   'help.care.body':
     'Mantén la Comida y el Ánimo altos con Comida y Jugar. Los bebés necesitan más atención.\nUn rato después de comer aparecen cacas. Límpialas o tu mascota puede enfermar.\nUna mascota enferma necesita dos dosis de Medicina.\nApaga la Luz a la hora de dormir. De noche, las necesidades bajan mucho más despacio.\nSi se queda sin energía, se echa una siesta por su cuenta.',

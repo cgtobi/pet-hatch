@@ -62,6 +62,7 @@ export const de: Dict = {
   'toast.toasty': 'Schön mollig warm',
   'toast.misted': 'Schön feucht',
   'toast.full': 'Davon hat es genug',
+  'toast.pampered': 'Es genießt die extra Zuwendung',
   'toast.copied': 'Speichercode kopiert',
   'toast.linkCopied': 'Link kopiert',
   'toast.copyFailed': 'Kopieren fehlgeschlagen. Markiere den Code und kopiere ihn selbst',
@@ -308,7 +309,7 @@ export const de: Dict = {
     'Halte das Ei gedrückt, um es zu wärmen, wische nach oben, um es zu besprühen, und streichle es oder sing ihm etwas vor.\nWende es alle paar Stunden mit einer seitlichen Wischbewegung.\nEs schlüpft nach ungefähr einem Tag. Gute Pflege beschleunigt das, Vernachlässigung bremst es.\nWenn es so weit ist, wartet es auf dich: Tippe es an, um ihm herauszuhelfen.',
   'help.types.title': 'Elemente',
   'help.types.body':
-    'Die häufigste Pflege bestimmt das Element: Wärme ergibt Glut, Sprühen ergibt Flut, Zuwendung ergibt Blüte.\nGleichmäßig verteilte Pflege für ein gesundes Ei kann den seltenen Typ Astral ergeben.\nFlut schlägt Glut, Glut schlägt Blüte und Blüte schlägt Flut. Astral hat keine Schwäche. Das zählt später in Kämpfen.',
+    'Normale Pflege hält das Ei neutral. Extra Zuwendung, wenn es schon rundum versorgt ist, bestimmt das Element: Wärme ergibt Glut, Sprühen ergibt Flut, Zuwendung ergibt Blüte.\nVerwöhne es gleichmäßig auf alle drei Arten und halte es gesund, dann kann der seltene Typ Astral schlüpfen. Ein Ei, das niemand verwöhnt, wählt sein Element zufällig.\nFlut schlägt Glut, Glut schlägt Blüte und Blüte schlägt Flut. Astral hat keine Schwäche. Das zählt später in Kämpfen.',
   'help.care.title': 'Tägliche Pflege',
   'help.care.body':
     'Halte Futter und Laune mit Füttern und Spielen hoch. Babys brauchen am meisten Aufmerksamkeit.\nEine Weile nach dem Essen gibt es Häufchen. Mach sie weg, sonst kann dein Tier krank werden.\nEin krankes Tier braucht zwei Dosen Medizin.\nMach zur Schlafenszeit das Licht aus. Nachts sinken die Bedürfnisse viel langsamer.\nHat es keine Energie mehr, macht es von selbst ein Nickerchen.',

@@ -61,6 +61,7 @@ export const en = {
   'toast.toasty': 'Warm and toasty',
   'toast.misted': 'Nice and moist',
   'toast.full': 'It has plenty of that',
+  'toast.pampered': 'It loves the extra care',
   'toast.copied': 'Save code copied',
   'toast.linkCopied': 'Link copied',
   'toast.copyFailed': 'Copy failed. Select the code and copy it by hand',
@@ -307,7 +308,7 @@ export const en = {
     'Hold the egg to warm it, swipe up to mist it, and stroke it or sing to keep it company.\nTurn it every few hours with a sideways swipe.\nIt hatches after roughly a day. Good care speeds it up, neglect slows it down.\nOnce it is ready, it waits for you: tap it to help it out.',
   'help.types.title': 'Element types',
   'help.types.body':
-    'The care you give most decides the element: warmth makes Ember, mist makes Tide, comfort makes Bloom.\nEvenly balanced care for a healthy egg can give the rare Astral type.\nTide beats Ember, Ember beats Bloom and Bloom beats Tide. Astral has no weakness. This will matter in battles.',
+    'Ordinary care keeps the egg neutral. Extra care when it is already comfy decides the element: warmth makes Ember, mist makes Tide, comfort makes Bloom.\nPamper it evenly in all three ways and keep it healthy for a chance at the rare Astral type. An egg nobody pampers picks its element by chance.\nTide beats Ember, Ember beats Bloom and Bloom beats Tide. Astral has no weakness. This will matter in battles.',
   'help.care.title': 'Daily care',
   'help.care.body':
     'Keep Food and Mood up with Feed and Play. Babies need the most attention.\nDroppings appear a while after meals. Clean them up, or your pet may get sick.\nA sick pet needs two doses of medicine.\nTurn the lights off at bedtime. Overnight, needs drop much more slowly.\nA pet that runs out of energy takes a nap on its own.',

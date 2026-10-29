@@ -1,3 +1,4 @@
+import { migrateEggCare } from './egg';
 import { DEFAULT_SETTINGS } from './game';
 import { migratePet } from './pet';
 import type { GameState } from './types';
@@ -59,6 +60,7 @@ function parseSave(json: string): GameState | null {
   s.settings = { ...DEFAULT_SETTINGS, ...s.settings };
   s.family ??= [];
   s.egg.heritage ??= null;
+  migrateEggCare(s.egg);
   if (s.pet) s.pet = migratePet(s.pet);
   return s;
 }
