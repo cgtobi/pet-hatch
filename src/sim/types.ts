@@ -124,6 +124,8 @@ export interface PetState {
   napping: boolean;
   /** A power nap the player started by turning the lights off (null otherwise). */
   powerNap: { since: number } | null;
+  /** The player swept the old eggshell away (otherwise it weathers away over SHELL_DAYS). */
+  shellSwept: boolean;
   /** How the last power nap ended on its own, for the game to announce once. */
   wake: 'rested' | 'need' | null;
   /** Medicine doses still needed to cure the current sickness. */

@@ -70,6 +70,7 @@ export const de: Dict = {
   'toast.importFailed': 'Dieser Speichercode ist ungültig',
   'toast.lightsOff': 'Licht aus. Gute Nacht!',
   'toast.lightsOn': 'Licht an',
+  'toast.shellSwept': 'Alte Eierschale weggefegt',
   'toast.napStart': '{name} rollt sich zum Powernap ein',
   'toast.notSleepy': '{name} ist noch nicht müde',
   'toast.napNeeds': '{name} hat zu viel Hunger oder ist krank zum Schlafen',

@@ -277,7 +277,10 @@ time, drifting clouds and bobbing mini-islands.
   2–5 bushes (some with berries or flowers), 1–4 rocks, flowers and grass, and on about 40% of islands a small
   pond with a stone rim, a lily pad and sometimes reeds. Trees and the pond stay at the back and sides so they
   never hide the pet; the nest, the shell spot and both battle spots stay free. The pet walks around this
-  island's trees, bushes, larger rocks and pond, and droppings are nudged out of them. The egg's speckles take on the colors of the care it gets.
+  island's trees, bushes, larger rocks and pond, and droppings are nudged out of them.
+- **The old eggshell** weathers away over three days after hatching: it turns mossy, cracks (a few bits lie
+  around it), shrinks, sinks into the grass and fades out. Tapping it sweeps it away at once (it bursts into
+  shards; saved). Once it's gone, the pet may walk on that spot. The egg's speckles take on the colors of the care it gets.
 UI: Fredoka (display) + Nunito (body), self-hosted Latin subsets.
 
 ## Milestones

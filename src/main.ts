@@ -37,6 +37,7 @@ import {
   playWith,
   scold,
   startPowerNap,
+  SHELL_DAYS,
   STAGE_HOURS,
 } from './sim/pet';
 import { BATTLE_ENERGY, fighterFromPet, finishBattle, MOVES, wildFoe, type SideKey } from './sim/battle';
@@ -491,6 +492,21 @@ function petAction(action: DockAction) {
   updateHud();
 }
 
+/** Tapping the old eggshell sweeps it away: it bursts into shards that tumble off and vanish. */
+function sweepShell() {
+  const pet = livePet();
+  if (!pet || pet.shellSwept) return;
+  const at = world.egg.shellCenter();
+  pet.shellSwept = true;
+  world.updateShell(0, true);
+  world.effects.shatter(at, 14);
+  world.effects.emit('spark', at, 8);
+  sfx.crack();
+  haptic('tap');
+  hud.toast(t('toast.shellSwept'));
+  saveGame(state);
+}
+
 function tapPet() {
   const pet = livePet();
   if (!pet || !world.pet) return;
@@ -719,6 +735,7 @@ function updateHud() {
     });
     const health = pet.sick ? 'sick' : pet.health < 40 ? 'weak' : 'good';
     hud.setVitals(t(`pet.health.${health}` as TextKey), health !== 'good', pet.discipline / 100);
+    world.updateShell(ageHours(pet, now) / (SHELL_DAYS * 24), pet.shellSwept);
     const [text, urgent] = petHint(pet, now);
     hud.setHint(text, urgent);
     hud.setDockState(
@@ -835,6 +852,7 @@ attachGestures(canvas, {
   onTap: (target) => {
     unlockAudio();
     if (target === 'egg') tapEgg();
+    else if (target === 'shell') sweepShell();
     else tapPet();
   },
   onOrbit: (dx) => world.orbit(dx),

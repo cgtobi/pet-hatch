@@ -26,6 +26,9 @@ export interface EggLook {
   failed: boolean;
 }
 
+/** Old shells slowly turn mossy before they crumble away. */
+const SHELL_MOSS = new THREE.Color('#b9cf94');
+
 /** Egg in its nest: procedural speckles and cracks, a spring wobble and a warm glow. */
 export class Egg3D {
   readonly group = new THREE.Group();
@@ -34,6 +37,15 @@ export class Egg3D {
   private spinner = new THREE.Group();
   private mesh: THREE.Mesh<THREE.LatheGeometry, THREE.MeshToonMaterial>;
   private shellBottom: THREE.Mesh;
+  private shellMat: THREE.MeshToonMaterial;
+  /** A generous invisible tap target around the old shell. */
+  private shellHit: THREE.Mesh;
+  /** Bits that crack off the shell as it weathers, lying around it until it is gone. */
+  private shellBits = new THREE.Group();
+  private shellHiddenForBattle = false;
+  private cracked = false;
+  /** Weathered away or swept up: it never comes back for this pet. */
+  private shellGone = false;
   private glow: THREE.Sprite;
   private ctx: CanvasRenderingContext2D;
   private emCtx: CanvasRenderingContext2D;
@@ -97,7 +109,28 @@ export class Egg3D {
       if (uv.getY(i) > 0.999) pos.setY(i, pos.getY(i) + (i % 2 ? 0.08 : -0.05));
     }
     half.computeVertexNormals();
-    this.shellBottom = new THREE.Mesh(half, toon('#fff4e2', { side: THREE.DoubleSide }));
+    this.shellMat = toon('#fff4e2', { side: THREE.DoubleSide });
+    this.shellBottom = new THREE.Mesh(half, this.shellMat);
+    this.shellHit = new THREE.Mesh(new THREE.SphereGeometry(0.45, 10, 8), new THREE.MeshBasicMaterial({ visible: false }));
+    this.shellHit.position.y = 0.25;
+    this.shellBottom.add(this.shellHit);
+    for (const [dx, dz, size, turn] of [
+      [0.38, 0.2, 0.15, 0.4],
+      [0.05, 0.48, 0.12, 1.9],
+      [0.45, -0.18, 0.1, 3.1],
+      [0.62, 0.42, 0.09, 4.4],
+      [-0.2, 0.3, 0.08, 5.3],
+    ]) {
+      // A flat, slightly tilted triangle of shell lying in the grass.
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, size, -size, 0, -size * 0.6, size, 0, -size * 0.5], 3));
+      geo.computeVertexNormals();
+      const bit = new THREE.Mesh(geo, this.shellMat);
+      bit.position.set(0.95 + dx, 0.03, 0.35 + dz);
+      bit.rotation.set(0.35, turn, 0.2);
+      this.shellBits.add(bit);
+    }
+    this.shellBits.visible = false;
     // Tipped over beside the nest, so the baby stands in the open.
     this.shellBottom.position.set(0.95, 0.22, 0.35);
     this.shellBottom.rotation.set(0.3, 0.6, -1.25);
@@ -105,7 +138,7 @@ export class Egg3D {
 
     const nest = this.buildNest(rand);
     this.glow = this.buildGlow();
-    this.group.add(this.glow, nest, this.pivot, this.shellBottom);
+    this.group.add(this.glow, nest, this.pivot, this.shellBottom, this.shellBits);
     this.group.position.y = GROUND_Y;
     // An invisible, generous tap target so a hopping egg is still easy to hit.
     const hit = new THREE.Mesh(new THREE.SphereGeometry(0.85, 12, 8), new THREE.MeshBasicMaterial({ visible: false }));
@@ -243,13 +276,52 @@ export class Egg3D {
 
   setHatched(hatched: boolean): void {
     this.pivot.visible = !hatched;
-    this.shellBottom.visible = hatched;
     this.glow.visible = !hatched;
+    this.refreshShell();
+  }
+
+  /**
+   * Weather the old shell: `age` runs from 0 (just hatched) to 1 (gone). It gets mossy, shrinks, sinks into
+   * the grass and fades out at the end. `swept` removes it at once.
+   */
+  setShellAge(age: number, swept: boolean): void {
+    const a = Math.min(1, Math.max(0, age));
+    const ease = (from: number, to: number) => Math.min(1, Math.max(0, (a - from) / (to - from)));
+    this.shellMat.color.set('#fff4e2').lerp(SHELL_MOSS, 0.6 * ease(0.15, 0.9));
+    this.shellBottom.scale.setScalar(1 - 0.55 * ease(0.3, 1));
+    this.shellBottom.position.y = 0.22 - 0.2 * ease(0.4, 1);
+    const fade = ease(0.85, 1);
+    this.shellMat.transparent = fade > 0;
+    this.shellMat.opacity = 1 - fade;
+    this.shellGone = swept || a >= 1;
+    // Halfway through it cracks: a few bits lie around it and crumble away with it.
+    for (const bit of this.shellBits.children) bit.scale.setScalar(1 - 0.5 * ease(0.5, 1));
+    this.cracked = a >= 0.45;
+    this.refreshShell();
+  }
+
+  /** The old shell's tap target while it can be swept away, else null. */
+  get shellTarget(): THREE.Object3D | null {
+    return this.shellBottom.visible ? this.shellHit : null;
+  }
+
+  shellCenter(target = new THREE.Vector3()): THREE.Vector3 {
+    return this.shellBottom.getWorldPosition(target).setY(this.group.position.y + 0.25);
+  }
+
+  get shellPresent(): boolean {
+    return !this.shellGone;
+  }
+
+  private refreshShell(): void {
+    this.shellBottom.visible = !this.pivot.visible && !this.shellHiddenForBattle && !this.shellGone;
+    this.shellBits.visible = this.shellBottom.visible && this.cracked;
   }
 
   /** Tuck the old shell away so it doesn't stand between two battling creatures. */
   setShellVisible(visible: boolean): void {
-    this.shellBottom.visible = visible && !this.pivot.visible;
+    this.shellHiddenForBattle = !visible;
+    this.refreshShell();
   }
 
   /** World position of the egg's middle, for particle effects. */

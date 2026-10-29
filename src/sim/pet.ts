@@ -6,6 +6,8 @@ import type { EggState, ElementType, LifeStage, NeglectMode, PetNeed, PetState, 
 export const LIFE_STAGES: LifeStage[] = ['baby', 'child', 'teen', 'adult', 'elder'];
 /** Hours each life stage lasts; after the last one the pet retires and leaves an egg. */
 export const STAGE_HOURS: Record<LifeStage, number> = { baby: 24, child: 72, teen: 120, adult: 504, elder: 168 };
+/** The shell left after hatching weathers away over this many days, unless the player sweeps it up first. */
+export const SHELL_DAYS = 3;
 
 /** Need loss per awake hour, by life stage: babies need the most attention. */
 const DECAY: Record<LifeStage, Record<'hunger' | 'mood', number>> = {
@@ -88,6 +90,7 @@ export function createPet(egg: EggState, type: ElementType, at: number, alone: b
     napping: false,
     powerNap: null,
     wake: null,
+    shellSwept: false,
     sickDoses: 0,
     droppings: [],
     poopsDue: [],

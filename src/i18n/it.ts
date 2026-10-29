@@ -70,6 +70,7 @@ export const it: Dict = {
   'toast.importFailed': 'Questo codice di salvataggio non è valido',
   'toast.lightsOff': 'Luci spente. Buonanotte!',
   'toast.lightsOn': 'Luci accese',
+  'toast.shellSwept': 'Vecchio guscio spazzato via',
   'toast.napStart': '{name} si raggomitola per un pisolino',
   'toast.notSleepy': '{name} non ha ancora sonno',
   'toast.napNeeds': '{name} ha troppa fame o non sta bene per dormire',

@@ -70,6 +70,7 @@ export const nl: Dict = {
   'toast.importFailed': 'Die opslagcode is niet geldig',
   'toast.lightsOff': 'Licht uit. Slaap lekker!',
   'toast.lightsOn': 'Licht aan',
+  'toast.shellSwept': 'Oude eierschaal weggeveegd',
   'toast.napStart': '{name} rolt zich op voor een powernap',
   'toast.notSleepy': '{name} is nog niet moe',
   'toast.napNeeds': '{name} heeft te veel honger of is te ziek om te slapen',

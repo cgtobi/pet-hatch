@@ -3,7 +3,7 @@ import type { Dropping, ElementType, FormId } from '../sim/types';
 import { Effects } from './effects';
 import { Egg3D } from './egg3d';
 import { GROUND_Y, Island } from './island';
-import { Pet3D } from './pet3d';
+import { Pet3D, SHELL } from './pet3d';
 import { Sky, skyAt } from './sky';
 import { toon } from './toon';
 
@@ -98,11 +98,13 @@ export class World {
   }
 
   /** Returns what is under a screen point. */
-  pick(clientX: number, clientY: number): 'egg' | 'pet' | null {
+  pick(clientX: number, clientY: number): 'egg' | 'pet' | 'shell' | null {
     const rect = this.canvas.getBoundingClientRect();
     const ndc = new THREE.Vector2(((clientX - rect.left) / rect.width) * 2 - 1, -((clientY - rect.top) / rect.height) * 2 + 1);
     this.raycaster.setFromCamera(ndc, this.camera);
     if (this.pet && this.raycaster.intersectObject(this.pet.group, true).length) return 'pet';
+    const shell = this.egg.shellTarget;
+    if (shell && this.raycaster.intersectObject(shell, false).length) return 'shell';
     if (this.egg.group.visible && this.raycaster.intersectObjects(this.egg.hitTargets, true).length) return 'egg';
     return null;
   }
@@ -192,6 +194,12 @@ export class World {
       z = oz + (d > 0.001 ? dz : 0) * k;
     }
     return new THREE.Vector3(x, GROUND_Y, z);
+  }
+
+  /** Age the hatched shell (0 … 1 = gone) or sweep it away; once gone, the pet may walk on that spot. */
+  updateShell(age: number, swept: boolean): void {
+    this.egg.setShellAge(age, swept);
+    if (this.pet && !this.egg.shellPresent) this.pet.obstacles = this.pet.obstacles.filter((o) => o !== SHELL);
   }
 
   droppingPositions(): THREE.Vector3[] {

@@ -69,6 +69,7 @@ export const en = {
   'toast.importFailed': 'That save code is not valid',
   'toast.lightsOff': 'Lights off. Good night!',
   'toast.lightsOn': 'Lights on',
+  'toast.shellSwept': 'Swept the old shell away',
   'toast.napStart': '{name} curls up for a power nap',
   'toast.notSleepy': '{name} isn’t sleepy yet',
   'toast.napNeeds': '{name} is too hungry or unwell to sleep',

@@ -8,7 +8,7 @@ import { facet, toon, TYPE_COLORS } from './toon';
 const STAGE_SCALE = [1.3, 1.55, 1.8, 2.0, 1.95];
 const WANDER_RADIUS = 1.9;
 /** The tipped-over eggshell beside the nest, which every island has. */
-const SHELL: Obstacle = [0.95, 0.35, 1.0];
+export const SHELL: Obstacle = [0.95, 0.35, 1.0];
 const SICK_TINT = new THREE.Color('#a8b88a');
 const ELDER_TINT = new THREE.Color('#d9d2c8');
 

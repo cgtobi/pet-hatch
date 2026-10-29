@@ -305,9 +305,11 @@ describe('power naps', () => {
     const old = { ...s.pet } as Partial<PetState> & Pick<PetState, 'type' | 'seed' | 'hatchedAt'>;
     delete old.powerNap;
     delete old.wake;
+    delete old.shellSwept;
     const pet = migratePet(old);
     expect(pet.powerNap).toBeNull();
     expect(pet.wake).toBeNull();
+    expect(pet.shellSwept).toBe(false);
   });
 });
 
