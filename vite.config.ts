@@ -78,6 +78,8 @@ self.addEventListener('fetch', (event) => {
 // Relative base so the built dist/ works from any folder on any web server.
 export default defineConfig({
   base: './',
+  // In development, /relay goes to the live battle relay (npm run relay) on port 8787.
+  server: { proxy: { '/relay': { target: 'ws://localhost:8787', ws: true } } },
   build: { target: 'es2022', chunkSizeWarningLimit: 1000 },
   plugins: [serviceWorker()],
 });

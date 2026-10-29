@@ -201,6 +201,28 @@ line up, and a bottom sheet shows HP bars, a log line and the move buttons. 1v1,
   durations. iPhones can't vibrate from the web, so the setting only appears where vibration works.
 - Settings: **Sound effects**, **Music** and **Vibration** are separate switches.
 
+### Live battles ✅ (optional relay)
+
+- **What:** two friends fight in real time, each choosing their own moves on their own phone. Only shown when the
+  deployment has a relay (see README); everything else works without one.
+- **Relay** (`server/relay.mjs`, Node + `ws`): pairs two players by a 5-character room code (no 0/O/1/I) and
+  forwards messages. It knows nothing about battles and stores nothing. Limits: 2 players per room, 4 KB per
+  message, 60 messages per 10 s, rooms close after 15 minutes of silence, dead connections are pinged out. It also
+  serves `dist/` and `/relay.json`, so one process can host the whole game.
+- **Lockstep:** the battle is deterministic, so both phones run it themselves and only exchange pet snapshots
+  (battle codes), half a random seed each, and one move per turn (`src/net/live.ts`). The host is battle side a,
+  the guest side b, on both phones.
+- **Fairness without a referee:** the seed halves and each move are committed as a salted hash first and revealed
+  only after the other side committed, so nobody can pick after seeing the other's choice or steer the dice. After
+  every turn both phones compare a fingerprint of the battle state; a mismatch calls the battle off. A revealed
+  move must match its commitment and be one the pet actually knows.
+- **Leaving:** giving up, closing the app or not answering for 3 minutes hands the win to the other player.
+- **Flow:** Battle tab › "Start a live battle" shows the room code and an invite link (`?live=CODE`); the friend
+  opens the link or types the code into the same field used for battle codes. Each phone applies its own result
+  (energy, mood, record, reward) to its own pet.
+- **Cheating:** a modified app could still lie about its own pet's stats, as with battle codes. Fine between
+  friends; preventing it would need the whole game to run on a server.
+
 ## Look
 
 Cute low-poly scene: a floating island with toon shading (three-band gradient map), a sky that follows the local
@@ -224,6 +246,8 @@ UI: Fredoka (display) + Nunito (body), self-hosted Latin subsets.
 | `src/input/gestures.ts` | Pointer events → hold / swipe / stroke / tap / orbit. |
 | `src/ui/` | DOM HUD, settings sheet (with help), the Training/Battle sheet (`sheet.ts`, `training.ts`, `arena.ts`), the four minigames and icons. |
 | `src/i18n/` | All player-facing text: `en.ts` is the source, one file per translation, checked by `i18n.test.ts`. |
+| `src/net/` | Live battles: `live.ts` (lockstep protocol over the relay), `relayConfig.ts` (finding the relay). Tested end to end against a real relay in `live.test.ts`. |
+| `server/relay.mjs` | The optional live battle relay, which can also serve the built game. |
 | `src/feedback.ts` | Synthesized sound effects, generative music and haptic patterns. |
 | `src/main.ts` | Wires it together: game loop, care actions, hints, hatch moment, growing up and endings. |
 | `vite.config.ts` | Relative base and the service-worker generator. |

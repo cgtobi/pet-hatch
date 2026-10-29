@@ -37,6 +37,7 @@ import {
   STAGE_HOURS,
 } from './sim/pet';
 import { BATTLE_ENERGY, fighterFromPet, finishBattle, MOVES, wildFoe, type SideKey } from './sim/battle';
+import { findRelay } from './net/relayConfig';
 import { CHALLENGE_PARAM, encodeFighter } from './sim/battlecode';
 import { speciesName, topStat } from './sim/evolution';
 import { randomSeed } from './sim/rng';
@@ -50,6 +51,8 @@ import { ActivitySheet } from './ui/sheet';
 import { Training } from './ui/training';
 
 const params = new URLSearchParams(location.search);
+/** Invite links for live battles: ?live=ROOM. */
+const LIVE_PARAM = 'live';
 /** Debug: run game time faster than real time, e.g. ?speed=600. */
 const SPEED = Math.max(1, Number(params.get('speed')) || 1);
 const DEBUG = params.has('debug') || SPEED > 1;
@@ -146,8 +149,8 @@ new Training(sheet, {
   },
 });
 
-/** 3D pet for a battle side: a is the player's pet, b the opponent. */
-const fighter3d = (side: SideKey) => (side === 'a' ? world.pet : world.foe);
+/** 3D creature for a battle side: the player's own side is their pet, the other is the opponent. */
+const fighter3d = (side: SideKey, me: SideKey) => (side === me ? world.pet : world.foe);
 /** Particles for a hit, by the attacker's element. */
 const ELEMENT_FX: Record<ElementType, 'spark' | 'drop' | 'heart'> = { ember: 'spark', tide: 'drop', bloom: 'heart', astral: 'spark' };
 
@@ -167,14 +170,21 @@ const arena = new Arena(sheet, {
     url.searchParams.set(CHALLENGE_PARAM, code);
     return { code, link: url.toString() };
   },
+  liveLink: (room) => {
+    const url = new URL(location.href);
+    url.search = '';
+    url.hash = '';
+    url.searchParams.set(LIVE_PARAM, room);
+    return url.toString();
+  },
   share: (text, link) => void shareText(text, link),
   begin: (foe) => {
     world.startBattle(foe.type, foe.seed, foe.form, foe.stage);
     sfx.grow();
     haptic('press');
   },
-  fx: (e, b) => {
-    const self = fighter3d(e.side);
+  fx: (e, b, me) => {
+    const self = fighter3d(e.side, me);
     switch (e.kind) {
       case 'use':
         if (MOVES[e.move].power > 0) {
@@ -186,12 +196,12 @@ const arena = new Arena(sheet, {
         }
         break;
       case 'hit': {
-        const target = fighter3d(e.target);
+        const target = fighter3d(e.target, me);
         target?.hurt();
         const at = target?.center() ?? world.egg.center();
         world.effects.emit(ELEMENT_FX[b[e.side].f.type], at, e.crit ? 14 : 8);
         sfx.strike(e.crit || e.factor > 1);
-        if (e.target === 'a') haptic(e.crit ? 'crit' : 'hit');
+        if (e.target === me) haptic(e.crit ? 'crit' : 'hit');
         break;
       }
       case 'miss':
@@ -211,7 +221,7 @@ const arena = new Arena(sheet, {
         break;
       case 'faint':
         self?.faint();
-        fighter3d(e.side === 'a' ? 'b' : 'a')?.dance();
+        fighter3d(e.side === 'a' ? 'b' : 'a', me)?.dance();
         sfx.faint();
         break;
     }
@@ -812,13 +822,17 @@ if (state.phase === 'hatched' && state.pet) {
   }
 }
 
-// A friend's challenge link: open the Battle tab with their code filled in.
-const challenge = params.get(CHALLENGE_PARAM);
+// Live battles only show up when this deployment has a relay.
+const relayReady = findRelay().then((url) => (arena.relay = url));
+
+// A friend's challenge or live invite link: open the Battle tab with their code filled in.
+const challenge = params.get(CHALLENGE_PARAM) ?? params.get(LIVE_PARAM);
 if (challenge) {
   const url = new URL(location.href);
   url.searchParams.delete(CHALLENGE_PARAM);
+  url.searchParams.delete(LIVE_PARAM);
   history.replaceState(null, '', url);
-  if (livePet()?.revealSeen) setTimeout(() => arena.challenge(challenge), 600);
+  if (livePet()?.revealSeen) void relayReady.then(() => setTimeout(() => arena.challenge(challenge), 600));
   else setTimeout(() => hud.toast(t('battle.needPet')), 800);
 }
 

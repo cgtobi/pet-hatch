@@ -156,7 +156,7 @@ export interface Side {
   dazed: boolean;
 }
 
-/** Side a is the player; side b is always played by the computer. */
+/** Side a is the player; side b is the computer, or a second player in a live battle. */
 export interface Battle {
   a: Side;
   b: Side;
@@ -214,11 +214,15 @@ export function aiMove(b: Battle, key: SideKey): MoveId {
   return attacks.reduce((best, m) => (value(m) > value(best) ? m : best));
 }
 
-/** Play one round: both sides act (faster first), and the events describe what happened, in order. */
-export function playTurn(b: Battle, playerMove: MoveId): BattleEvent[] {
+/**
+ * Play one round: both sides act (faster first), and the events describe what happened, in order.
+ * Without `moveB` the computer picks side b's move. Given the same battle and moves, every device
+ * computes the same result, which is what live battles rely on.
+ */
+export function playTurn(b: Battle, moveA: MoveId, moveB?: MoveId): BattleEvent[] {
   if (b.winner) return [];
   const events: BattleEvent[] = [];
-  const chosen: Record<SideKey, MoveId> = { a: playerMove, b: aiMove(b, 'b') };
+  const chosen: Record<SideKey, MoveId> = { a: moveA, b: moveB ?? aiMove(b, 'b') };
   const fa = !!MOVES[chosen.a].first;
   const fb = !!MOVES[chosen.b].first;
   const sa = b.a.f.stats.speed;
@@ -299,6 +303,12 @@ function act(b: Battle, key: SideKey, move: MoveId, events: BattleEvent[]): void
     events.push({ kind: 'faint', side: tk });
     b.winner = key;
   }
+}
+
+/** A short fingerprint of the battle state, compared between devices after each live turn. */
+export function battleState(b: Battle): string {
+  const side = (s: Side) => [s.hp, s.focus ? 1 : 0, s.guardUp, s.dazed ? 1 : 0].join(',');
+  return `${b.turn}|${side(b.a)}|${side(b.b)}|${b.winner ?? '-'}`;
 }
 
 // ---------- after the battle ----------

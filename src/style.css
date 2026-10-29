@@ -1611,3 +1611,47 @@ body.sheet-open #hint {
 .train-gain.bloom {
   color: var(--bloom-ink);
 }
+
+/* ---------- live battles ---------- */
+
+.bt-host {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.bt-lobby {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 0 4px;
+}
+
+.bt-room-code {
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 40px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  padding: 10px 18px 10px 26px;
+  border-radius: 18px;
+  background: #f6f2fa;
+  -webkit-user-select: all;
+  user-select: all;
+}
+
+.bt-lobby .primary {
+  min-width: 200px;
+}
+
+.sheet .bt-lobby-status {
+  margin: 0;
+  font-weight: 800;
+  color: var(--muted);
+  text-align: center;
+}
+
+.sheet .bt-lobby-status.bad {
+  color: #b5321e;
+}
