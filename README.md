@@ -30,6 +30,10 @@ npm run build
 Upload the contents of `dist/` to any static web server, in any folder. Serve it over HTTPS so it can be
 installed as an app and played offline.
 
+`npm run deploy` builds the game and puts every way of hosting it in `deploy/` (not tracked), with a
+`README.txt`: `static/` (the game alone), `php/` (with the PHP relay) and `node/` (with the Node relay, started
+with `npm start`). See the live battle sections below.
+
 To change the app icon, edit `public/icons/icon.svg`, then run `npm run icons`.
 
 ## Live battles (optional)
@@ -66,10 +70,10 @@ or newer and no database, and keeps its little state in a `relay-data/` folder i
 
 ```bash
 npm install
-npm run build:php
+npm run deploy
 ```
 
-Then upload the contents of `dist-php/` (the game, `relay.php` and a `relay.json` pointing at it) to your host,
+Then upload the contents of `deploy/php/` (the game, `relay.php` and a `relay.json` pointing at it) to your host,
 over HTTPS. The web server's PHP user must be able to create `relay-data/`; its state file is unreadable over
 the web (Apache also gets an `.htaccess`). To keep it elsewhere, set the `PETHATCH_DATA_DIR` environment variable.
 

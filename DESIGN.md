@@ -311,7 +311,8 @@ UI: Fredoka (display) + Nunito (body), self-hosted Latin subsets.
 | `src/net/` | Live battles: `live.ts` (lockstep protocol over the relay), `dojo.ts` (waiting in the dojo), `channel.ts` (WebSocket or HTTP polling), `relayConfig.ts` (finding the relay). Tested end to end against a real relay in `live.test.ts` and `dojo.test.ts`, and against the PHP relay with `npm run test:php`. |
 | `server/relay.mjs` | The optional live battle relay (rooms and the dojo), which can also serve the built game. |
 | `server/dojo.mjs` | Dojo matchmaking: ratings from battle codes, the widening match window, pairing. |
-| `server/php/` | The relay for PHP web hosting (`relay.php`, `relay.json`); `npm run build:php` bundles it with the game. |
+| `server/php/` | The relay for PHP web hosting (`relay.php`, `relay.json`); `npm run deploy` bundles it with the game in `deploy/php/`. |
+| `scripts/deploy.mjs` | `npm run deploy`: the built game in `deploy/` (untracked), as static, PHP and Node hosting folders. |
 | `Dockerfile`, `docker-compose.yml` | One image with the game and the relay (amd64 and arm64). |
 | `repository.yaml`, `pet_hatch/` | Home Assistant app: sidebar via ingress plus a direct port; builds from this repository's Git URL. |
 | `src/feedback.ts` | Synthesized sound effects, generative music and haptic patterns. |
