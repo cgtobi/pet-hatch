@@ -79,6 +79,13 @@ export class Arena {
     this.sheet = s.el;
     s.register('battle', () => this.menu());
     s.onClose(() => this.leave());
+    // Closing the page in the middle of a live battle counts as giving up: a loss, recorded before the page goes.
+    window.addEventListener('pagehide', () => {
+      const b = this.battle;
+      if (!this.live || !b || b.winner || b.turn < 1) return;
+      this.live.close(true);
+      this.result('lost', undefined, { gaveUp: true });
+    });
     // Only players who are actually in the dojo take part: switching apps or locking the phone leaves it.
     document.addEventListener('visibilitychange', () => {
       if (document.hidden && (this.dojo || (this.live && !this.battle && this.fromDojo))) this.dojoLeft();
@@ -239,7 +246,7 @@ export class Arena {
   /** Why a live battle ended; without an opponent name (still in the lobby) "you win" messages don't apply. */
   private liveMessage(e: LiveError, foeName: string): string {
     const known = foeName
-      ? ['unreachable', 'no-room', 'full', 'left', 'gave-up', 'desync', 'timeout']
+      ? ['unreachable', 'no-room', 'full', 'left', 'gave-up', 'desync', 'timeout', 'disconnected']
       : ['unreachable', 'no-room', 'full', 'desync'];
     return t(`live.error.${known.includes(e.code) ? e.code : 'other'}` as TextKey, { name: foeName });
   }
@@ -409,7 +416,9 @@ export class Arena {
         // Once the winner is known both phones are just animating; a closing connection doesn't matter then.
         if (run !== this.run || b.winner) return;
         const forfeit = e.code === 'left' || e.code === 'gave-up' || e.code === 'timeout';
-        this.result(forfeit ? 'won' : 'fled', this.liveMessage(e, foe.name), { forfeit });
+        // Losing our own connection once the battle is under way counts as giving up, like leaving does.
+        if (e.code === 'disconnected' && b.turn >= 1) this.result('lost', this.liveMessage(e, foe.name), { gaveUp: true });
+        else this.result(forfeit ? 'won' : 'fled', this.liveMessage(e, foe.name), { forfeit });
       };
     }
     this.s.layout();

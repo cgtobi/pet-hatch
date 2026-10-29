@@ -312,6 +312,7 @@ export const de: Dict = {
   'live.error.left': '{name} hat den Kampf verlassen, also gewinnst du.',
   'live.error.gave-up': '{name} hat aufgegeben, also gewinnst du.',
   'live.error.timeout': '{name} hat nicht rechtzeitig geantwortet, also gewinnst du.',
+  'live.error.disconnected': 'Die Verbindung ist während des Kampfs abgebrochen, deshalb zählt er als verloren.',
   'live.error.desync': 'Die beiden Handys waren sich über den Kampf uneinig, deshalb wurde er abgebrochen.',
   'live.error.other': 'Der Live-Kampf wurde unerwartet beendet.',
   'dojo.title': 'Dojo',

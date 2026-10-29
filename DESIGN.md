@@ -262,6 +262,9 @@ A public waiting room for live battles against strangers of similar strength.
   every turn both phones compare a fingerprint of the battle state; a mismatch calls the battle off. A revealed
   move must match its commitment and be one the pet actually knows.
 - **Leaving:** giving up, closing the app or not answering for 3 minutes hands the win to the other player.
+  Once the first turn is played, leaving also counts as a **loss** for the leaver (recorded before the page closes),
+  and so does losing your own connection; a phone can tell the two apart, so only the player who stayed gets
+  the win. Leaving earns no experience.
 - **Flow:** Battle tab › "Start a live battle" shows the room code and an invite link (`?live=CODE`); the friend
   opens the link or types the code into the same field used for battle codes. Each phone applies its own result
   (energy, mood, record, reward) to its own pet.

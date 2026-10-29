@@ -125,6 +125,19 @@ describe('live battle over the relay', () => {
     expect(await seen).toBe('left');
   });
 
+  it('tells losing your own connection apart from the other player leaving', async () => {
+    const code = newRoomCode();
+    const host = new LiveSession(url, code, 'host', fighter({}));
+    const guest = new LiveSession(url, code, 'guest', fighter({}));
+    await Promise.all([host.ready, guest.ready]);
+    const hostSees = failureOf(host);
+    const guestSees = failureOf(guest);
+    // The host's network drops: its socket closes without a goodbye.
+    (host as unknown as { ws: WebSocket }).ws.close();
+    expect(await hostSees).toBe('disconnected');
+    expect(await guestSees).toBe('left');
+  });
+
   it('catches a desync between the two phones', async () => {
     const code = newRoomCode();
     const host = new LiveSession(url, code, 'host', fighter({}));

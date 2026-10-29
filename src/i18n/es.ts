@@ -312,6 +312,7 @@ export const es: Dict = {
   'live.error.left': '{name} abandonó el combate, así que ganas tú.',
   'live.error.gave-up': '{name} se rindió, así que ganas tú.',
   'live.error.timeout': '{name} no respondió a tiempo, así que ganas tú.',
+  'live.error.disconnected': 'Se perdió la conexión durante el combate, así que cuenta como derrota.',
   'live.error.desync': 'Los dos móviles no coincidían sobre el combate, así que se canceló.',
   'live.error.other': 'El combate en directo terminó de forma inesperada.',
   'dojo.title': 'Dojo',

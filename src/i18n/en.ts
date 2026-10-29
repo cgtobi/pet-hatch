@@ -311,6 +311,7 @@ export const en = {
   'live.error.left': '{name} left the battle, so you win.',
   'live.error.gave-up': '{name} gave up, so you win.',
   'live.error.timeout': '{name} didn’t answer in time, so you win.',
+  'live.error.disconnected': 'The connection dropped during the battle, so it counts as a loss.',
   'live.error.desync': 'The two phones disagreed about the battle, so it was called off.',
   'live.error.other': 'The live battle ended unexpectedly.',
   'dojo.title': 'Dojo',

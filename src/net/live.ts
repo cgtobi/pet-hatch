@@ -24,8 +24,11 @@ export type LiveErrorCode =
   | 'idle'
   | 'rate'
   | 'bad-request'
+  /** The other player left (their connection closed). */
   | 'left'
   | 'gave-up'
+  /** This player's own connection to the relay closed (network lost, app backgrounded, server gone). */
+  | 'disconnected'
   | 'desync'
   | 'invalid'
   | 'timeout';
@@ -132,7 +135,8 @@ export class LiveSession {
         this.fail('invalid');
       }
     };
-    this.ws.onclose = () => this.fail(this.opened ? 'left' : 'unreachable');
+    // The other player leaving arrives as a room update; our own socket closing means we lost the connection.
+    this.ws.onclose = () => this.fail(this.opened ? 'disconnected' : 'unreachable');
     this.ready = this.handshake();
     // Avoid unhandled-rejection noise when nobody awaits `ready` before a failure.
     this.ready.catch(() => {});

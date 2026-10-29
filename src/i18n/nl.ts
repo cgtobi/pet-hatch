@@ -312,6 +312,7 @@ export const nl: Dict = {
   'live.error.left': '{name} heeft het gevecht verlaten, dus jij wint.',
   'live.error.gave-up': '{name} heeft opgegeven, dus jij wint.',
   'live.error.timeout': '{name} reageerde niet op tijd, dus jij wint.',
+  'live.error.disconnected': 'De verbinding viel weg tijdens het gevecht, dus het telt als verloren.',
   'live.error.desync': 'De twee telefoons waren het niet eens over het gevecht, dus het is afgebroken.',
   'live.error.other': 'Het live gevecht is onverwacht gestopt.',
   'dojo.title': 'Dojo',
