@@ -238,6 +238,11 @@ export const es: Dict = {
   'move.shell.info': 'Cura · sube Defensa',
   'move.trick.info': 'Poder {n} · puede aturdir',
   'battle.record': 'Victorias: {w} · Derrotas: {l}',
+  'battle.xp': 'Experiencia',
+  'battle.xpGain': '+{n} de experiencia',
+  'battle.learned': 'Aprendido de {name}',
+  'battle.xpPoint': 'Gracias a la experiencia en combate',
+  'battle.xpFull': 'La barra de experiencia está llena. Se convertirá en un punto en la siguiente etapa.',
   'battle.cost': 'Un combate usa un {n} % de energía.',
   'battle.moves': 'Movimientos',
   'battle.explore': 'Buscar una criatura salvaje',
@@ -302,7 +307,7 @@ export const es: Dict = {
   'live.error.other': 'El combate en directo terminó de forma inesperada.',
   'help.battle.title': 'Combates',
   'help.battle.body':
-    'Desde la niñez, la pestaña Combate te deja luchar contra criaturas salvajes o la mascota de un amigo. Un combate usa un {battleEnergy} % de energía.\nElige un movimiento cada turno. La Fuerza aumenta el daño, la Rapidez decide quién actúa primero, la Defensa añade vida y protección, la Astucia da golpes críticos.\nLa mascota aprende movimientos al crecer: 2 en la niñez, 3 de joven, 4 de adulta. Sus formas deciden cuáles.\nUna mascota con poca disciplina puede ignorar tus órdenes.\nLas victorias suman un par de puntos. Comparte tu código o enlace para que tus amigos combatan contra una copia de tu mascota.\nCombates en directo (si este juego tiene servidor de combate): inicia uno, envía el código de sala a un amigo y luchad en tiempo real, cada uno elige sus movimientos.',
+    'Desde la niñez, la pestaña Combate te deja luchar contra criaturas salvajes o la mascota de un amigo. Un combate usa un {battleEnergy} % de energía.\nElige un movimiento cada turno. La Fuerza aumenta el daño, la Rapidez decide quién actúa primero, la Defensa añade vida y protección, la Astucia da golpes críticos.\nLa mascota aprende movimientos al crecer: 2 en la niñez, 3 de joven, 4 de adulta. Sus formas deciden cuáles.\nUna mascota con poca disciplina puede ignorar tus órdenes.\nLas victorias suman un par de puntos. Cada combate de verdad, ganado o perdido, llena la barra de experiencia; al llenarse da un punto, a menudo en la estadística con la que un rival te venció. Comparte tu código o enlace para que tus amigos combatan contra una copia de tu mascota.\nCombates en directo (si este juego tiene servidor de combate): inicia uno, envía el código de sala a un amigo y luchad en tiempo real, cada uno elige sus movimientos.',
   'help.title': 'Cómo se juega',
   'help.egg.title': 'Cuidar el huevo',
   'help.egg.body':

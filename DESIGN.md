@@ -179,6 +179,15 @@ line up, and a bottom sheet shows HP bars, a log line and the move buttons. 1v1,
 - **Cost and reward:** a battle uses 25% energy and a little food (it needs ≥ 25% energy, awake, healthy, fed).
   A win gives +10 mood and +2 to a random stat below the cap; a loss costs 8 mood. Running away costs 3 mood.
   Wins and losses are recorded.
+- **Battle experience:** every real fight fills a bar (10 points = +1 stat), shown in the Battle tab and on the
+  result screen. A win earns 4 and a loss 2, scaled quietly by effort (0.5–1.5×): a loser earns more the closer
+  the opponent came to fainting, a winner more for beating a stronger opponent (by stat total).
+  - **Lessons:** a counted loss remembers the stat where the opponent was furthest ahead (or its best stat if it
+    wasn't ahead anywhere). A full bar trains the stat taught most often, crediting the latest teacher
+    ("Speed +1, learned from Mochi"); with no lessons waiting, a random stat below the cap.
+  - **Guards against farming:** running away and giving up earn nothing; a loss only counts after 3 turns or
+    25% damage dealt; a win by forfeit only after 2 turns. Energy limits fights to about 4 a day. If every stat is
+    at the stage cap, the bar stays full until the next life stage.
 
 ### Friend battles (share codes) ✅
 

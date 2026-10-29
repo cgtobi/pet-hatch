@@ -238,6 +238,11 @@ export const nl: Dict = {
   'move.shell.info': 'Geneest · verhoogt Afweer',
   'move.trick.info': 'Kracht {n} · kan verdoven',
   'battle.record': 'Winst: {w} · Verlies: {l}',
+  'battle.xp': 'Ervaring',
+  'battle.xpGain': '+{n} ervaring',
+  'battle.learned': 'Geleerd van {name}',
+  'battle.xpPoint': 'Dankzij gevechtservaring',
+  'battle.xpFull': 'De ervaringsbalk is vol. Bij het volgende levensstadium wordt het een punt.',
   'battle.cost': 'Een gevecht kost {n}% energie.',
   'battle.moves': 'Aanvallen',
   'battle.explore': 'Zoek een wild wezen',
@@ -302,7 +307,7 @@ export const nl: Dict = {
   'live.error.other': 'Het live gevecht is onverwacht gestopt.',
   'help.battle.title': 'Gevechten',
   'help.battle.body':
-    'Vanaf het kindstadium kun je op het tabblad Gevecht vechten tegen wilde wezens of het dier van een vriend. Een gevecht kost {battleEnergy}% energie.\nKies elke beurt een aanval. Kracht verhoogt de schade, Snelheid bepaalt wie eerst gaat, Afweer geeft gezondheid en verdediging, Brein zorgt voor voltreffers.\nEen dier leert aanvallen terwijl het groeit: 2 als kind, 3 als tiener, 4 als volwassene. Zijn vormen bepalen welke.\nEen dier met weinig discipline luistert soms niet naar je.\nOverwinningen geven een paar waardepunten. Deel je code of link zodat vrienden tegen een kopie van jouw dier kunnen vechten.\nLive gevechten (als deze game een gevechtsserver heeft): start er een, stuur je vriend de kamercode en vecht in realtime, ieder kiest zijn eigen aanvallen.',
+    'Vanaf het kindstadium kun je op het tabblad Gevecht vechten tegen wilde wezens of het dier van een vriend. Een gevecht kost {battleEnergy}% energie.\nKies elke beurt een aanval. Kracht verhoogt de schade, Snelheid bepaalt wie eerst gaat, Afweer geeft gezondheid en verdediging, Brein zorgt voor voltreffers.\nEen dier leert aanvallen terwijl het groeit: 2 als kind, 3 als tiener, 4 als volwassene. Zijn vormen bepalen welke.\nEen dier met weinig discipline luistert soms niet naar je.\nOverwinningen geven een paar waardepunten. Elk echt gevecht, gewonnen of verloren, vult de ervaringsbalk; is die vol, dan krijg je een punt, vaak in de waarde waarmee een tegenstander je versloeg. Deel je code of link zodat vrienden tegen een kopie van jouw dier kunnen vechten.\nLive gevechten (als deze game een gevechtsserver heeft): start er een, stuur je vriend de kamercode en vecht in realtime, ieder kiest zijn eigen aanvallen.',
   'help.title': 'Zo speel je',
   'help.egg.title': 'Zorgen voor het ei',
   'help.egg.body':

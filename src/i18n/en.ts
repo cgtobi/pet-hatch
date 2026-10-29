@@ -237,6 +237,11 @@ export const en = {
   'move.shell.info': 'Heals · raises Guard',
   'move.trick.info': 'Power {n} · may daze',
   'battle.record': 'Wins: {w} · Losses: {l}',
+  'battle.xp': 'Experience',
+  'battle.xpGain': '+{n} experience',
+  'battle.learned': 'Learned from {name}',
+  'battle.xpPoint': 'From battle experience',
+  'battle.xpFull': 'The experience bar is full. It turns into a point at the next life stage.',
   'battle.cost': 'A battle uses {n}% energy.',
   'battle.moves': 'Moves',
   'battle.explore': 'Look for a wild creature',
@@ -301,7 +306,7 @@ export const en = {
   'live.error.other': 'The live battle ended unexpectedly.',
   'help.battle.title': 'Battles',
   'help.battle.body':
-    'From the child stage on, the Battle tab lets you fight wild creatures or a friend’s pet. A battle uses {battleEnergy}% energy.\nPick a move each turn. Power raises damage, Speed decides who goes first, Guard adds health and defense, Wits gives critical hits.\nA pet learns moves as it grows: 2 as a child, 3 as a teen, 4 as an adult. Its forms decide which.\nA pet with low discipline may ignore your orders.\nWins add a couple of stat points. Share your code or link so friends can battle a copy of your pet.\nLive battles (when this game has a battle server): start one, send your friend the room code, and fight in real time, each choosing your own moves.',
+    'From the child stage on, the Battle tab lets you fight wild creatures or a friend’s pet. A battle uses {battleEnergy}% energy.\nPick a move each turn. Power raises damage, Speed decides who goes first, Guard adds health and defense, Wits gives critical hits.\nA pet learns moves as it grows: 2 as a child, 3 as a teen, 4 as an adult. Its forms decide which.\nA pet with low discipline may ignore your orders.\nWins add a couple of stat points. Every real fight, won or lost, fills the experience bar; a full bar adds a point, often in the stat an opponent beat you with. Share your code or link so friends can battle a copy of your pet.\nLive battles (when this game has a battle server): start one, send your friend the room code, and fight in real time, each choosing your own moves.',
   'help.title': 'How to play',
   'help.egg.title': 'Caring for the egg',
   'help.egg.body':

@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   aiMove,
+  battleXp,
+  lessonFrom,
+  XP_PER_POINT,
+  type BattleSummary,
   createBattle,
   disobeyChance,
   fighterFromPet,
@@ -17,6 +21,7 @@ import {
 } from './battle';
 import { decodeFighter, encodeFighter } from './battlecode';
 import { DEFAULT_SETTINGS, hatch, newGame } from './game';
+import { migratePet } from './pet';
 import { STAT_CAPS, STATS } from './training';
 
 function fighter(over: Partial<Fighter> = {}): Fighter {
@@ -139,24 +144,105 @@ describe('battle results', () => {
     const s = newGame(Date.now(), DEFAULT_SETTINGS, 9);
     const p = hatch(s, Date.now(), false);
     Object.assign(p, { stage: 2, form: 'teen.physical', energy: 90, mood: 50, hunger: 80 });
+    p.stats = { power: 20, speed: 20, guard: 20, wits: 20 };
     return p;
   }
+  /** A real fight against an equal opponent unless overridden. */
+  const fought = (over: Partial<BattleSummary> = {}): BattleSummary => ({
+    turns: 5,
+    damageDealt: 0.5,
+    foe: fighter({ name: 'Mochi', stage: 2, form: 'teen.physical', stats: { power: 20, speed: 20, guard: 20, wits: 20 } }),
+    forfeit: false,
+    gaveUp: false,
+    ...over,
+  });
 
-  it('rewards a win with a stat point and records it', () => {
+  it('rewards a win with a stat point, experience and the record', () => {
     const p = pet();
-    const r = finishBattle(p, 'won', 5);
+    const r = finishBattle(p, 'won', 5, fought());
     expect(p.battles).toEqual({ wins: 1, losses: 0 });
     expect(r.gain).toBe(2);
-    expect(p.stats[r.stat!]).toBe(2);
+    expect(p.stats[r.stat!]).toBe(22);
+    expect(r.xp).toBe(4);
+    expect(p.battleXp).toBe(4);
     expect(p.energy).toBe(65);
     expect(p.mood).toBe(60);
   });
 
-  it('records a loss and costs some mood', () => {
+  it('gives a loser a little experience and remembers what beat it', () => {
     const p = pet();
-    finishBattle(p, 'lost', 5);
+    const foe = fought().foe;
+    foe.stats.speed = 45;
+    const r = finishBattle(p, 'lost', 5, fought({ foe }));
     expect(p.battles).toEqual({ wins: 0, losses: 1 });
     expect(p.mood).toBe(42);
+    expect(r.xp).toBe(2);
+    expect(r.stat).toBeNull();
+    expect(p.lessons).toEqual([{ stat: 'speed', from: 'Mochi' }]);
+  });
+
+  it('scales experience by how the fight went, without saying so', () => {
+    expect(battleXp(pet(), 'lost', fought({ damageDealt: 0.95 }))).toBe(3);
+    expect(battleXp(pet(), 'lost', fought({ damageDealt: 0.05 }))).toBe(1);
+    const strong = fought().foe;
+    strong.stats = { power: 40, speed: 40, guard: 40, wits: 40 };
+    expect(battleXp(pet(), 'won', fought({ foe: strong }))).toBe(6);
+    const weak = fought().foe;
+    weak.stats = { power: 2, speed: 2, guard: 2, wits: 2 };
+    expect(battleXp(pet(), 'won', fought({ foe: weak }))).toBe(2);
+  });
+
+  it('pays nothing for running away, giving up, quick losses or early forfeits', () => {
+    expect(battleXp(pet(), 'fled', fought())).toBe(0);
+    expect(battleXp(pet(), 'lost', fought({ gaveUp: true }))).toBe(0);
+    expect(battleXp(pet(), 'lost', fought({ turns: 2, damageDealt: 0.1 }))).toBe(0);
+    expect(battleXp(pet(), 'lost', fought({ turns: 2, damageDealt: 0.3 }))).toBeGreaterThan(0);
+    expect(battleXp(pet(), 'won', fought({ forfeit: true, turns: 1 }))).toBe(0);
+    expect(battleXp(pet(), 'won', fought({ forfeit: true, turns: 3 }))).toBeGreaterThan(0);
+    const p = pet();
+    finishBattle(p, 'lost', 5, fought({ gaveUp: true }));
+    expect(p.lessons).toEqual([]);
+  });
+
+  it('turns a full bar into a point in the stat opponents taught most', () => {
+    const p = pet();
+    p.battleXp = 9;
+    p.lessons = [
+      { stat: 'guard', from: 'Rock' },
+      { stat: 'speed', from: 'Zip' },
+      { stat: 'speed', from: 'Mochi' },
+    ];
+    const r = finishBattle(p, 'lost', 5, fought());
+    expect(r.learned).toBe('speed');
+    expect(r.teacher).toBe('Mochi');
+    expect(p.stats.speed).toBe(21);
+    expect(p.battleXp).toBe(1);
+    // The lesson that was used is gone; the new one from this loss was added.
+    expect(p.lessons.map((l) => l.stat)).toEqual(['guard', 'speed', lessonFrom(p, fought().foe)]);
+  });
+
+  it('falls back to a random stat without lessons, and waits when every stat is at its limit', () => {
+    const p = pet();
+    p.battleXp = 8;
+    const r = finishBattle(p, 'won', 5, fought());
+    expect(r.learned).not.toBeNull();
+    expect(r.teacher).toBeNull();
+
+    const maxed = pet();
+    maxed.stats = { power: 60, speed: 60, guard: 60, wits: 60 };
+    maxed.battleXp = 8;
+    const r2 = finishBattle(maxed, 'won', 5, fought());
+    expect(r2.learned).toBeNull();
+    expect(maxed.battleXp).toBe(XP_PER_POINT);
+  });
+
+  it('gives older pets an empty bar and no lessons', () => {
+    const p = pet() as Partial<ReturnType<typeof pet>> & Parameters<typeof migratePet>[0];
+    delete p.battleXp;
+    delete p.lessons;
+    const migrated = migratePet(p);
+    expect(migrated.battleXp).toBe(0);
+    expect(migrated.lessons).toEqual([]);
   });
 
   it('builds a fighter from the pet, including its teen path', () => {

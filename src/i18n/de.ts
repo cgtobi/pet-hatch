@@ -238,6 +238,11 @@ export const de: Dict = {
   'move.shell.info': 'Heilt · erhöht Abwehr',
   'move.trick.info': 'Stärke {n} · kann benommen machen',
   'battle.record': 'Siege: {w} · Niederlagen: {l}',
+  'battle.xp': 'Erfahrung',
+  'battle.xpGain': '+{n} Erfahrung',
+  'battle.learned': 'Von {name} gelernt',
+  'battle.xpPoint': 'Aus Kampferfahrung',
+  'battle.xpFull': 'Die Erfahrungsleiste ist voll. In der nächsten Lebensphase wird daraus ein Punkt.',
   'battle.cost': 'Ein Kampf kostet {n} % Energie.',
   'battle.moves': 'Attacken',
   'battle.explore': 'Nach wilden Wesen suchen',
@@ -302,7 +307,7 @@ export const de: Dict = {
   'live.error.other': 'Der Live-Kampf wurde unerwartet beendet.',
   'help.battle.title': 'Kämpfe',
   'help.battle.body':
-    'Ab dem Kindesalter kannst du im Tab Kampf gegen wilde Wesen oder das Tier von Freunden kämpfen. Ein Kampf kostet {battleEnergy} % Energie.\nWähle jede Runde eine Attacke. Kraft erhöht den Schaden, Tempo entscheidet, wer zuerst angreift, Abwehr bringt Lebenspunkte und Schutz, Köpfchen sorgt für Volltreffer.\nMit dem Alter lernt es Attacken dazu: 2 als Kind, 3 als Teenie, 4 als Erwachsener. Seine Formen bestimmen, welche.\nEin Tier mit wenig Disziplin hört manchmal nicht auf dich.\nSiege bringen ein paar Punkte. Teile deinen Code oder Link, damit Freunde gegen eine Kopie deines Tiers kämpfen können.\nLive-Kämpfe (wenn dieses Spiel einen Kampfserver hat): Starte einen, schick den Raumcode und kämpft in Echtzeit, jeder wählt seine Attacken selbst.',
+    'Ab dem Kindesalter kannst du im Tab Kampf gegen wilde Wesen oder das Tier von Freunden kämpfen. Ein Kampf kostet {battleEnergy} % Energie.\nWähle jede Runde eine Attacke. Kraft erhöht den Schaden, Tempo entscheidet, wer zuerst angreift, Abwehr bringt Lebenspunkte und Schutz, Köpfchen sorgt für Volltreffer.\nMit dem Alter lernt es Attacken dazu: 2 als Kind, 3 als Teenie, 4 als Erwachsener. Seine Formen bestimmen, welche.\nEin Tier mit wenig Disziplin hört manchmal nicht auf dich.\nSiege bringen ein paar Punkte. Jeder echte Kampf, ob gewonnen oder verloren, füllt die Erfahrungsleiste; ist sie voll, gibt es einen Punkt, oft im Wert, mit dem dich ein Gegner geschlagen hat. Teile deinen Code oder Link, damit Freunde gegen eine Kopie deines Tiers kämpfen können.\nLive-Kämpfe (wenn dieses Spiel einen Kampfserver hat): Starte einen, schick den Raumcode und kämpft in Echtzeit, jeder wählt seine Attacken selbst.',
   'help.title': 'So wird gespielt',
   'help.egg.title': 'Das Ei pflegen',
   'help.egg.body':

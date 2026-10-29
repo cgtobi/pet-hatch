@@ -238,6 +238,11 @@ export const fr: Dict = {
   'move.shell.info': 'Soigne · augmente la Garde',
   'move.trick.info': 'Puissance {n} · peut étourdir',
   'battle.record': 'Victoires : {w} · Défaites : {l}',
+  'battle.xp': 'Expérience',
+  'battle.xpGain': '+{n} d’expérience',
+  'battle.learned': 'Appris de {name}',
+  'battle.xpPoint': 'Grâce à l’expérience des combats',
+  'battle.xpFull': 'La barre d’expérience est pleine. Elle se changera en point au prochain stade.',
   'battle.cost': 'Un combat utilise {n} % d’énergie.',
   'battle.moves': 'Attaques',
   'battle.explore': 'Chercher une créature sauvage',
@@ -302,7 +307,7 @@ export const fr: Dict = {
   'live.error.other': 'Le combat en direct s’est arrêté de façon inattendue.',
   'help.battle.title': 'Combats',
   'help.battle.body':
-    'Dès le stade Enfant, l’onglet Combat te permet d’affronter des créatures sauvages ou le compagnon d’un ami. Un combat utilise {battleEnergy} % d’énergie.\nChoisis une attaque à chaque tour. La Force augmente les dégâts, la Vitesse décide qui joue en premier, la Garde ajoute de la vie et de la défense, l’Astuce donne des coups critiques.\nUn compagnon apprend des attaques en grandissant : 2 enfant, 3 ado, 4 adulte. Ses formes décident lesquelles.\nUn compagnon peu discipliné peut ignorer tes ordres.\nLes victoires ajoutent quelques points de stats. Partage ton code ou ton lien pour que tes amis combattent une copie de ton compagnon.\nCombats en direct (si ce jeu a un serveur de combat) : lances-en un, envoie le code de salle à un ami et affrontez-vous en temps réel, chacun choisit ses attaques.',
+    'Dès le stade Enfant, l’onglet Combat te permet d’affronter des créatures sauvages ou le compagnon d’un ami. Un combat utilise {battleEnergy} % d’énergie.\nChoisis une attaque à chaque tour. La Force augmente les dégâts, la Vitesse décide qui joue en premier, la Garde ajoute de la vie et de la défense, l’Astuce donne des coups critiques.\nUn compagnon apprend des attaques en grandissant : 2 enfant, 3 ado, 4 adulte. Ses formes décident lesquelles.\nUn compagnon peu discipliné peut ignorer tes ordres.\nLes victoires ajoutent quelques points de stats. Chaque vrai combat, gagné ou perdu, remplit la barre d’expérience ; pleine, elle donne un point, souvent dans la stat avec laquelle un adversaire t’a battu. Partage ton code ou ton lien pour que tes amis combattent une copie de ton compagnon.\nCombats en direct (si ce jeu a un serveur de combat) : lances-en un, envoie le code de salle à un ami et affrontez-vous en temps réel, chacun choisit ses attaques.',
   'help.title': 'Comment jouer',
   'help.egg.title': 'Soigner l’œuf',
   'help.egg.body':

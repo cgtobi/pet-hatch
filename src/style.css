@@ -1664,3 +1664,28 @@ body.sheet-open #hint {
   word-break: break-all;
   text-align: center;
 }
+
+/* ---------- battle experience ---------- */
+
+.bt-xp-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.bt-xp-row .muted {
+  white-space: nowrap;
+}
+
+.bt-xp {
+  flex-grow: 1;
+  height: 8px;
+  border-radius: 4px;
+}
+
+.bt-xp .fill {
+  background: #8c76d6;
+}

@@ -229,9 +229,9 @@ const arena = new Arena(sheet, {
         break;
     }
   },
-  finish: (outcome) => {
+  finish: (outcome, _foe, summary) => {
     const pet = state.pet!;
-    const r = finishBattle(pet, outcome, randomSeed());
+    const r = finishBattle(pet, outcome, randomSeed(), summary);
     if (outcome === 'won') {
       sfx.win();
       haptic('celebrate');

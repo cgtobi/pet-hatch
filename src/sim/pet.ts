@@ -98,6 +98,8 @@ export function createPet(egg: EggState, type: ElementType, at: number, alone: b
     trainings: 0,
     path: ['baby'],
     battles: { wins: 0, losses: 0 },
+    battleXp: 0,
+    lessons: [],
     generation: egg.heritage?.generation ?? 1,
   };
 }

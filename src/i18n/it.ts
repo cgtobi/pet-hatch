@@ -238,6 +238,11 @@ export const it: Dict = {
   'move.shell.info': 'Cura · alza la Difesa',
   'move.trick.info': 'Potenza {n} · può stordire',
   'battle.record': 'Vittorie: {w} · Sconfitte: {l}',
+  'battle.xp': 'Esperienza',
+  'battle.xpGain': '+{n} esperienza',
+  'battle.learned': 'Imparato da {name}',
+  'battle.xpPoint': 'Grazie all’esperienza in lotta',
+  'battle.xpFull': 'La barra dell’esperienza è piena. Diventerà un punto al prossimo stadio.',
   'battle.cost': 'Una lotta consuma il {n}% di energia.',
   'battle.moves': 'Mosse',
   'battle.explore': 'Cerca una creatura selvatica',
@@ -302,7 +307,7 @@ export const it: Dict = {
   'live.error.other': 'La lotta dal vivo si è interrotta inaspettatamente.',
   'help.battle.title': 'Lotte',
   'help.battle.body':
-    'Dallo stadio Piccolo in poi, la scheda Lotta ti permette di sfidare creature selvatiche o il cucciolo di un amico. Una lotta consuma il {battleEnergy}% di energia.\nScegli una mossa a ogni turno. La Forza aumenta il danno, la Velocità decide chi attacca per primo, la Difesa dà salute e protezione, l’Ingegno regala colpi critici.\nCrescendo, il cucciolo impara nuove mosse: 2 da Piccolo, 3 da Giovane, 4 da Adulto. Le sue forme decidono quali.\nUn cucciolo con poca disciplina può ignorare i tuoi ordini.\nOgni vittoria aggiunge qualche punto alle caratteristiche. Condividi il tuo codice o link così gli amici possono lottare contro una copia del tuo cucciolo.\nLotte dal vivo (se questo gioco ha un server di lotta): avviane una, manda il codice stanza a un amico e lottate in tempo reale, ognuno sceglie le sue mosse.',
+    'Dallo stadio Piccolo in poi, la scheda Lotta ti permette di sfidare creature selvatiche o il cucciolo di un amico. Una lotta consuma il {battleEnergy}% di energia.\nScegli una mossa a ogni turno. La Forza aumenta il danno, la Velocità decide chi attacca per primo, la Difesa dà salute e protezione, l’Ingegno regala colpi critici.\nCrescendo, il cucciolo impara nuove mosse: 2 da Piccolo, 3 da Giovane, 4 da Adulto. Le sue forme decidono quali.\nUn cucciolo con poca disciplina può ignorare i tuoi ordini.\nOgni vittoria aggiunge qualche punto alle caratteristiche. Ogni vera lotta, vinta o persa, riempie la barra dell’esperienza; quando è piena dà un punto, spesso nella caratteristica con cui un avversario ti ha battuto. Condividi il tuo codice o link così gli amici possono lottare contro una copia del tuo cucciolo.\nLotte dal vivo (se questo gioco ha un server di lotta): avviane una, manda il codice stanza a un amico e lottate in tempo reale, ognuno sceglie le sue mosse.',
   'help.title': 'Come si gioca',
   'help.egg.title': 'Prendersi cura dell’uovo',
   'help.egg.body':

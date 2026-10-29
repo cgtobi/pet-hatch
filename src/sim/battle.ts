@@ -315,31 +315,125 @@ export function battleState(b: Battle): string {
 
 export type Outcome = 'won' | 'lost' | 'fled';
 
-export interface BattleReward {
-  stat: Stat | null;
-  gain: number;
+/** Experience for a full bar, which turns into one stat point. */
+export const XP_PER_POINT = 10;
+const XP_WIN = 4;
+const XP_LOSS = 2;
+/** A loss only teaches something if the pet lasted this many turns… */
+const LOSS_MIN_TURNS = 3;
+/** …or took this share of the opponent's health. */
+const LOSS_MIN_DAMAGE = 0.25;
+/** A win by forfeit only counts once this many turns were played. */
+const FORFEIT_MIN_TURNS = 2;
+const MAX_LESSONS = 10;
+
+/** What happened in a battle, from the pet's side, for the experience it earns. */
+export interface BattleSummary {
+  turns: number;
+  /** How close the opponent came to fainting: 1 − its health left / its full health. */
+  damageDealt: number;
+  foe: Fighter;
+  /** The other side left or gave up. */
+  forfeit: boolean;
+  /** This pet's player gave up. */
+  gaveUp: boolean;
 }
 
-/** Apply a finished battle to the real pet: tiredness, mood, record, and a small stat gain for a win. */
-export function finishBattle(pet: PetState, outcome: Outcome, seed: number): BattleReward {
+export interface BattleReward {
+  /** The winner's instant stat gain. */
+  stat: Stat | null;
+  gain: number;
+  /** Experience earned in this battle. */
+  xp: number;
+  /** A full experience bar trained this stat… */
+  learned: Stat | null;
+  /** …taught by this opponent (null when no lesson was waiting, so it went into a random stat). */
+  teacher: string | null;
+}
+
+const total = (stats: Record<Stat, number>) => STATS.reduce((sum, s) => sum + stats[s], 0);
+
+/**
+ * Experience earned, before the bar. Hidden effort scaling: a loser earns more the closer the opponent came to
+ * fainting; a winner earns more for beating a stronger opponent. Running away, giving up, quick losses and
+ * early forfeits earn nothing, so losing on purpose doesn't pay.
+ */
+export function battleXp(pet: PetState, outcome: Outcome, s: BattleSummary): number {
+  if (outcome === 'fled' || s.gaveUp) return 0;
+  if (outcome === 'lost') {
+    if (s.turns < LOSS_MIN_TURNS && s.damageDealt < LOSS_MIN_DAMAGE) return 0;
+    return Math.round(XP_LOSS * (0.5 + clamp(s.damageDealt, 0, 1)));
+  }
+  if (s.forfeit && s.turns < FORFEIT_MIN_TURNS) return 0;
+  const ratio = total(s.foe.stats) / Math.max(1, total(pet.stats));
+  return Math.round(XP_WIN * clamp(0.5 + 0.5 * ratio, 0.5, 1.5));
+}
+
+/** The stat an opponent taught by winning: where it was furthest ahead, or else its best stat. */
+export function lessonFrom(pet: PetState, foe: Fighter): Stat {
+  const ahead = STATS.reduce((a, b) => (foe.stats[b] - pet.stats[b] > foe.stats[a] - pet.stats[a] ? b : a));
+  if (foe.stats[ahead] > pet.stats[ahead]) return ahead;
+  return STATS.reduce((a, b) => (foe.stats[b] > foe.stats[a] ? b : a));
+}
+
+/**
+ * Apply a finished battle to the real pet: tiredness, mood, record, the winner's instant stat gain, and
+ * battle experience for both sides. A full bar trains the stat it was taught most often (the most recent
+ * teacher of that stat gets the credit), or a random one when no lesson is waiting.
+ */
+export function finishBattle(pet: PetState, outcome: Outcome, seed: number, summary: BattleSummary): BattleReward {
+  const rand = mulberry32(seed);
+  const reward: BattleReward = { stat: null, gain: 0, xp: 0, learned: null, teacher: null };
   pet.energy = clamp(pet.energy - BATTLE_ENERGY, 0, 100);
   pet.hunger = clamp(pet.hunger - BATTLE_HUNGER, 0, 100);
+  const cap = STAT_CAPS[Math.min(pet.stage, STAT_CAPS.length - 1)];
+  const open = () => STATS.filter((s) => pet.stats[s] < cap);
+
+  reward.xp = battleXp(pet, outcome, summary);
   if (outcome === 'fled') {
     pet.mood = clamp(pet.mood - 3, 0, 100);
-    return { stat: null, gain: 0 };
-  }
-  if (outcome === 'lost') {
+  } else if (outcome === 'lost') {
     pet.battles.losses++;
     pet.mood = clamp(pet.mood - 8, 0, 100);
-    return { stat: null, gain: 0 };
+    if (reward.xp > 0) {
+      pet.lessons.push({ stat: lessonFrom(pet, summary.foe), from: summary.foe.name });
+      pet.lessons = pet.lessons.slice(-MAX_LESSONS);
+    }
+  } else {
+    pet.battles.wins++;
+    pet.mood = clamp(pet.mood + 10, 0, 100);
+    const choices = open();
+    if (choices.length) {
+      const stat = choices[Math.floor(rand() * choices.length)];
+      reward.stat = stat;
+      reward.gain = Math.min(WIN_REWARD, cap - pet.stats[stat]);
+      pet.stats[stat] += reward.gain;
+    }
   }
-  pet.battles.wins++;
-  pet.mood = clamp(pet.mood + 10, 0, 100);
-  const cap = STAT_CAPS[Math.min(pet.stage, STAT_CAPS.length - 1)];
-  const open = STATS.filter((s) => pet.stats[s] < cap);
-  if (!open.length) return { stat: null, gain: 0 };
-  const stat = open[Math.floor(mulberry32(seed)() * open.length)];
-  const gain = Math.min(WIN_REWARD, cap - pet.stats[stat]);
-  pet.stats[stat] += gain;
-  return { stat, gain };
+
+  pet.battleXp += reward.xp;
+  if (pet.battleXp >= XP_PER_POINT) {
+    const choices = open();
+    if (!choices.length) {
+      // Every stat is at this stage's limit: the bar waits, full, for the next life stage.
+      pet.battleXp = XP_PER_POINT;
+      return reward;
+    }
+    const counts = new Map<Stat, number>();
+    for (const l of pet.lessons) if (choices.includes(l.stat)) counts.set(l.stat, (counts.get(l.stat) ?? 0) + 1);
+    let stat: Stat;
+    if (counts.size) {
+      // Most often taught; ties go to the most recent lesson.
+      const best = Math.max(...counts.values());
+      let index = pet.lessons.length - 1;
+      while (counts.get(pet.lessons[index].stat) !== best) index--;
+      stat = pet.lessons[index].stat;
+      reward.teacher = pet.lessons[index].from;
+      pet.lessons.splice(index, 1);
+    } else stat = choices[Math.floor(rand() * choices.length)];
+    pet.stats[stat] += 1;
+    pet.battleXp -= XP_PER_POINT;
+    reward.learned = stat;
+  }
+  return reward;
 }

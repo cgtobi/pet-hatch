@@ -150,6 +150,10 @@ export interface PetState {
   /** Every form taken so far, in order (the teen form decides one of the adult's moves). */
   path: FormId[];
   battles: { wins: number; losses: number };
+  /** Battle experience toward the next stat point (0 … XP_PER_POINT). */
+  battleXp: number;
+  /** Stats opponents taught it by beating it, oldest first; a full experience bar trains one of them. */
+  lessons: { stat: Stat; from: string }[];
   /** 1 for a first pet; each retired parent's egg adds one. */
   generation: number;
 }

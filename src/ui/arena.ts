@@ -7,11 +7,13 @@ import {
   fighterFromPet,
   MAX_TURNS,
   MOVES,
+  XP_PER_POINT,
   movesFor,
   playTurn,
   type Battle,
   type BattleEvent,
   type BattleReward,
+  type BattleSummary,
   type Fighter,
   type MoveId,
   type Outcome,
@@ -40,8 +42,8 @@ export interface ArenaHandlers {
   begin(foe: Fighter): void;
   /** 3D and sound for one battle event; `me` is the side the player controls. */
   fx(e: BattleEvent, b: Battle, me: SideKey): void;
-  /** Apply the outcome to the real pet; returns any stat reward. */
-  finish(outcome: Outcome, foe: Fighter): BattleReward;
+  /** Apply the outcome to the real pet; returns any stat reward and the experience earned. */
+  finish(outcome: Outcome, foe: Fighter, summary: BattleSummary): BattleReward;
   /** Send the opponent away and free the pet. */
   end(): void;
 }
@@ -89,6 +91,13 @@ export class Arena {
     this.me = 'a';
   }
 
+  private xpBar(xp: number, label = t('battle.xp')): string {
+    return `<div class="bt-xp-row">
+      <span class="muted">${esc(label)}</span>
+      <div class="track bt-xp"><div class="fill" style="width:${(xp / XP_PER_POINT) * 100}%"></div></div>
+    </div>`;
+  }
+
   private moveName(move: MoveId, f: Fighter): string {
     return move === 'element' ? t(`move.element.${f.type}`) : t(`move.${move}` as TextKey);
   }
@@ -115,6 +124,7 @@ export class Arena {
     const code = pet.stage >= 1 ? this.h.myCode().code : '';
     this.sheet.innerHTML = `${this.s.head({ tab: 'battle', sub, closeLabel: t('train.close') })}
       ${moves ? `<div class="bt-moves-preview"><span class="muted">${t('battle.moves')}</span>${moves}</div>` : ''}
+      ${pet.stage >= 1 ? this.xpBar(pet.battleXp) : ''}
       <button type="button" class="primary bt-explore" ${ok ? '' : 'disabled'}>${icon('leaf', 20)} ${t('battle.explore')}</button>
       <div class="bt-friends">
         <b>${t('battle.friends')}</b>
@@ -290,14 +300,14 @@ export class Arena {
     );
     this.sheet.querySelector('.bt-flee')!.addEventListener('click', () => {
       this.live?.close(true);
-      this.result(foe.wild ? 'fled' : 'lost');
+      this.result(foe.wild ? 'fled' : 'lost', undefined, { gaveUp: !foe.wild });
     });
     if (this.live) {
       this.live.onFail = (e) => {
         // Once the winner is known both phones are just animating; a closing connection doesn't matter then.
         if (run !== this.run || b.winner) return;
         const forfeit = e.code === 'left' || e.code === 'gave-up' || e.code === 'timeout';
-        this.result(forfeit ? 'won' : 'fled', this.liveMessage(e, foe.name));
+        this.result(forfeit ? 'won' : 'fled', this.liveMessage(e, foe.name), { forfeit });
       };
     }
     this.s.layout();
@@ -413,8 +423,11 @@ export class Arena {
     }
   }
 
-  /** `note` replaces the usual summary line (e.g. why a live battle ended early). */
-  private result(outcome: Outcome, note?: string): void {
+  /**
+   * `note` replaces the usual summary line (e.g. why a live battle ended early); `how` says whether the
+   * other side forfeited or the player gave up, which matters for experience.
+   */
+  private result(outcome: Outcome, note?: string, how: { forfeit?: boolean; gaveUp?: boolean } = {}): void {
     const foe = this.foe!;
     const pet = this.h.pet();
     const wasLive = !!this.live;
@@ -422,7 +435,16 @@ export class Arena {
     // The battle is decided: close the connection without telling the other side we gave up.
     this.live?.close(false);
     this.live = null;
-    const reward = this.h.finish(outcome, foe);
+    const b = this.battle;
+    const foeSide = b?.[other(this.me)];
+    const summary: BattleSummary = {
+      turns: b?.turn ?? 0,
+      damageDealt: foeSide ? 1 - foeSide.hp / foeSide.maxHp : 0,
+      foe,
+      forfeit: !!how.forfeit,
+      gaveUp: !!how.gaveUp,
+    };
+    const reward = this.h.finish(outcome, foe, summary);
     this.s.busy = false;
     const foeName = this.foeName(foe);
     const body =
@@ -435,12 +457,26 @@ export class Arena {
     const gain = reward.stat
       ? `<p class="train-gain ${pet.type}">${t('train.gain', { stat: t(`stat.${reward.stat}`), n: reward.gain })}</p>`
       : '';
+    // Experience: what this battle added, the bar, and a stat point when the bar filled.
+    const capped = !reward.learned && pet.battleXp >= XP_PER_POINT;
+    const xp = reward.xp
+      ? `${this.xpBar(pet.battleXp, t('battle.xpGain', { n: reward.xp }))}
+         ${
+           reward.learned
+             ? `<p class="train-gain ${pet.type}">${t('train.gain', { stat: t(`stat.${reward.learned}`), n: 1 })}</p>
+                <p class="muted">${esc(reward.teacher ? t('battle.learned', { name: reward.teacher }) : t('battle.xpPoint'))}</p>`
+             : capped
+               ? `<p class="muted">${t('battle.xpFull')}</p>`
+               : ''
+         }`
+      : '';
     const share = !foe.wild && !wasLive && outcome !== 'fled';
     this.sheet.innerHTML = `<div class="train-result">
         <span class="bubble ${outcome === 'won' ? 'amber-btn' : 'violet-btn'}">${icon(outcome === 'won' ? 'star' : 'shield', 34)}</span>
         <h2>${t(`battle.${outcome}`)}</h2>
         <p>${esc(body)}</p>
         ${gain}
+        ${xp}
         <p class="muted">${t('battle.record', { w: pet.battles.wins, l: pet.battles.losses })}</p>
         <div class="train-actions">
           ${share ? `<button type="button" class="secondary bt-share-result">${t('battle.shareResult')}</button>` : '<span></span>'}
