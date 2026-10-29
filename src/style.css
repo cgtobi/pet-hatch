@@ -656,6 +656,13 @@ button:focus:not(:focus-visible) {
   font-size: 14px;
 }
 
+.app-version {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+}
+
 .field small {
   color: var(--muted);
   font-size: 12px;

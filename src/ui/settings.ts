@@ -221,6 +221,7 @@ export function openSettings(
         ),
       );
     }
+    body.append(el('small', { className: 'app-version' }, `Pet Hatch ${__APP_VERSION__}`));
     dialog.replaceChildren(body);
   };
 
