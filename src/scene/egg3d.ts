@@ -247,6 +247,11 @@ export class Egg3D {
     this.glow.visible = !hatched;
   }
 
+  /** Tuck the old shell away so it doesn't stand between two battling creatures. */
+  setShellVisible(visible: boolean): void {
+    this.shellBottom.visible = visible && !this.pivot.visible;
+  }
+
   /** World position of the egg's middle, for particle effects. */
   center(target = new THREE.Vector3()): THREE.Vector3 {
     return this.mesh.getWorldPosition(target).setY(this.group.position.y + 0.65);

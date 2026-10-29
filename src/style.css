@@ -774,9 +774,9 @@ textarea {
 
 /* ---------- training ---------- */
 
-body.training #status,
-body.training #dock,
-body.training #hint {
+body.sheet-open #status,
+body.sheet-open #dock,
+body.sheet-open #hint {
   display: none;
 }
 
@@ -1304,4 +1304,280 @@ body.training #hint {
 
 .mg-pads.watching .mg-pad {
   cursor: default;
+}
+
+/* ---------- sheet tabs ---------- */
+
+.train-head-main {
+  min-width: 0;
+  flex-grow: 1;
+}
+
+.tabs {
+  display: inline-grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 16px;
+  background: #f3eef7;
+}
+
+.tabs button {
+  min-height: 36px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 17px;
+  color: var(--muted);
+}
+
+.tabs button[aria-selected='true'] {
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 1px 4px rgba(46, 42, 58, 0.12);
+}
+
+.tabs + .train-sub {
+  margin-top: 6px;
+}
+
+/* ---------- battle menu ---------- */
+
+.bt-moves-preview {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.bt-moves-preview .muted {
+  margin-right: 2px;
+}
+
+.bt-explore {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.primary:disabled,
+.secondary:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.bt-friends {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1.5px solid var(--line);
+  border-radius: 18px;
+  font-size: 14px;
+}
+
+.sheet .bt-friends p {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.bt-code-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.bt-code,
+.bt-input {
+  flex-grow: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 12px;
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 13px;
+}
+
+.bt-code {
+  display: flex;
+  align-items: center;
+  background: #f6f2fa;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  -webkit-user-select: all;
+  user-select: all;
+}
+
+.bt-input {
+  border: 1.5px solid #e1d9ea;
+  color: var(--ink);
+  background: #fff;
+  font-size: 16px;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.sheet .bt-error {
+  color: #b5321e;
+  font-weight: 800;
+}
+
+/* ---------- battle ---------- */
+
+.bt-side {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: #f6f2fa;
+}
+
+.bt-side[data-side='a'] {
+  background: #fff4ec;
+}
+
+.bt-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 15px;
+}
+
+.bt-name b {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bt-name .muted {
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.bt-hpnum {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.bt-hp {
+  height: 10px;
+  border-radius: 5px;
+}
+
+.bt-hp .fill {
+  border-radius: 5px;
+  transition:
+    width 0.45s ease-out,
+    background-color 0.3s;
+}
+
+.sheet .bt-log {
+  margin: 0;
+  min-height: 2.9em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 17px;
+  line-height: 1.3;
+  color: var(--ink);
+}
+
+.bt-moves {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.bt-move {
+  min-height: 58px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2px;
+  text-align: left;
+  background: #f3eef7;
+  color: #4a4258;
+}
+
+.bt-move b {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.bt-move span {
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0.85;
+}
+
+.bt-move.ember {
+  background: var(--ember-bg);
+  color: #9a3a0c;
+}
+.bt-move.tide {
+  background: var(--tide-bg);
+  color: #155a87;
+}
+.bt-move.bloom {
+  background: var(--bloom-bg);
+  color: #1e6b41;
+}
+.bt-move.astral {
+  background: var(--violet-bg);
+  color: var(--violet-ink);
+}
+
+.bt-move:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.bt-move:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.link {
+  align-self: center;
+  min-height: 36px;
+  border: 0;
+  background: none;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--muted);
+  text-decoration: underline;
+}
+
+.link:disabled {
+  opacity: 0.4;
+}
+
+.train-gain.astral {
+  color: var(--violet-ink);
+}
+.train-gain.bloom {
+  color: var(--bloom-ink);
 }

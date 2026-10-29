@@ -16,7 +16,7 @@ const OBSTACLES: [number, number, number][] = [
 const SICK_TINT = new THREE.Color('#a8b88a');
 const ELDER_TINT = new THREE.Color('#d9d2c8');
 
-type Anim = 'hop' | 'eat' | 'cower' | 'dance' | 'evolve' | 'pop';
+type Anim = 'hop' | 'eat' | 'cower' | 'dance' | 'evolve' | 'pop' | 'lunge' | 'hurt';
 
 export interface PetLook {
   sleeping: boolean;
@@ -110,6 +110,9 @@ export class Pet3D {
   private walkPhase = 0;
   private blinkIn = 2;
   private anim: { kind: Anim; t: number; dur: number } | null = null;
+  /** In a battle: hold this spot and facing instead of wandering. */
+  private post: { x: number; z: number; heading: number } | null = null;
+  private fainted = false;
 
   constructor(
     private type: ElementType,
@@ -454,6 +457,40 @@ export class Pet3D {
   cower(): void {
     this.play('cower', 1.2);
   }
+  /** Jump toward the opponent (battle attack). */
+  lunge(): void {
+    this.play('lunge', 0.5);
+  }
+  /** Shake with a red flash (took a hit). */
+  hurt(): void {
+    this.play('hurt', 0.5);
+  }
+  /** Topple over until the battle ends. */
+  faint(): void {
+    this.anim = null;
+    this.fainted = true;
+  }
+
+  /** Walk to a spot and face a direction until released; used for battles. */
+  hold(x: number, z: number, heading: number): void {
+    this.post = { x, z, heading };
+    this.target = new THREE.Vector2(x, z);
+    this.fainted = false;
+  }
+
+  release(): void {
+    this.post = null;
+    this.fainted = false;
+    this.target = null;
+    this.idleFor = 1;
+  }
+
+  /** Put the pet straight on a spot (a creature that just appeared). */
+  placeAt(x: number, z: number, heading: number): void {
+    this.group.position.x = x;
+    this.group.position.z = z;
+    this.heading = heading;
+  }
 
   /** World position of the pet's middle, for particle effects. */
   center(target = new THREE.Vector3()): THREE.Vector3 {
@@ -478,6 +515,9 @@ export class Pet3D {
     let squash = Math.sin(time * (sleeping ? 1.2 : 3.2)) * (sleeping ? 0.05 : 0.03);
     let tilt = 0;
     let flash = 0;
+    let flashColor = 0xffffff;
+    let lunge = 0;
+    let shake = 0;
     let scaleMul = 1;
 
     if (this.anim) {
@@ -503,6 +543,15 @@ export class Pet3D {
         case 'cower':
           tilt = 0.3 * Math.sin(p * Math.PI);
           squash = -0.08 * Math.sin(p * Math.PI);
+          break;
+        case 'lunge':
+          lunge = Math.sin(p * Math.PI) * 0.55;
+          hopY = Math.sin(p * Math.PI) * 0.15;
+          break;
+        case 'hurt':
+          shake = Math.sin(a.t * 60) * 0.06 * (1 - p);
+          flash = 0.9 * (1 - p);
+          flashColor = 0xff3b2f;
           break;
         case 'evolve': {
           const target = STAGE_SCALE[this.stage];
@@ -531,16 +580,18 @@ export class Pet3D {
     // Wandering.
     const pos = this.group.position;
     let walking = false;
-    if (!this.anim && !sleeping) {
+    if (!this.anim && !sleeping && !this.fainted) {
       if (this.target) {
         const dx = this.target.x - pos.x;
         const dz = this.target.y - pos.z;
         const dist = Math.hypot(dx, dz);
-        const speed = (sick ? 0.2 : 0.4) * (this.scale / 1.3);
+        // Hurry to the spot when a battle starts.
+        const speed = (sick ? 0.2 : 0.4) * (this.scale / 1.3) * (this.post ? 3 : 1);
         if (dist < 0.05) {
           this.target = null;
           this.idleFor = 2 + this.rand() * 5;
         } else {
+          if (this.post) walking = true;
           walking = true;
           const step = Math.min(dist, speed * dt);
           pos.x += (dx / dist) * step;
@@ -548,32 +599,38 @@ export class Pet3D {
           this.heading = turnToward(this.heading, Math.atan2(dx, dz), dt * 5);
         }
       } else {
-        this.idleFor -= dt;
-        // Face the player while standing around.
-        this.heading = turnToward(this.heading, 0, dt * 2);
-        if (this.idleFor <= 0) this.target = this.pickTarget();
+        // Face the opponent in a battle, otherwise the player while standing around.
+        this.heading = turnToward(this.heading, this.post?.heading ?? 0, dt * (this.post ? 6 : 2));
+        if (!this.post) {
+          this.idleFor -= dt;
+          if (this.idleFor <= 0) this.target = this.pickTarget();
+        } else if (Math.hypot(pos.x - this.post.x, pos.z - this.post.z) > 0.05) {
+          // An animation interrupted the walk to the battle spot.
+          this.target = new THREE.Vector2(this.post.x, this.post.z);
+        }
       }
     }
     if (walking) this.walkPhase += dt * 10;
     hopY += walking ? Math.abs(Math.sin(this.walkPhase)) * 0.06 : 0;
 
     this.group.scale.setScalar(this.scale * scaleMul);
-    this.body.position.y = hopY;
-    this.body.rotation.set(tilt, this.heading + spin, walking ? Math.sin(this.walkPhase) * 0.1 : 0);
+    this.body.position.set(Math.sin(this.heading) * lunge + shake, hopY, Math.cos(this.heading) * lunge);
+    const roll = this.fainted ? 1.35 : walking ? Math.sin(this.walkPhase) * 0.1 : 0;
+    this.body.rotation.set(tilt, this.heading + spin, roll);
     this.body.scale.set(1 + squash, 1 - squash, 1 + squash);
 
     for (const { mat } of this.tinted) {
-      mat.emissive.setRGB(1, 1, 1);
+      mat.emissive.setHex(flashColor);
       mat.emissiveIntensity = flash * 0.8;
     }
 
     // Face.
     this.blinkIn -= dt;
-    const closed = sleeping || this.blinkIn < 0.12 || this.anim?.kind === 'cower';
+    const closed = sleeping || this.fainted || this.blinkIn < 0.12 || this.anim?.kind === 'cower';
     for (const e of this.eyes) e.scale.y = closed ? 0.15 : 1.15 * this.eyeOpen;
     if (this.blinkIn < 0) this.blinkIn = 2 + this.rand() * 3;
     const happy = mood >= 60 && !sick;
-    const sad = mood < 30 || sick || this.anim?.kind === 'cower';
+    const sad = mood < 30 || sick || this.fainted || this.anim?.kind === 'cower' || this.anim?.kind === 'hurt';
     this.smile.visible = happy && !sad;
     this.frown.visible = sad;
     this.flat.visible = !this.smile.visible && !this.frown.visible;

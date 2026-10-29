@@ -36,12 +36,17 @@ import {
   scold,
   STAGE_HOURS,
 } from './sim/pet';
+import { BATTLE_ENERGY, fighterFromPet, finishBattle, MOVES, wildFoe, type SideKey } from './sim/battle';
+import { CHALLENGE_PARAM, encodeFighter } from './sim/battlecode';
 import { speciesName } from './sim/evolution';
+import { randomSeed } from './sim/rng';
 import { exportSave, importSave, loadGame, saveGame } from './sim/save';
 import { canTrain, finishTraining, startTraining } from './sim/training';
-import type { GameState, PetState, Stat } from './sim/types';
+import type { ElementType, GameState, PetState, Stat } from './sim/types';
 import { Hud, type DockAction } from './ui/hud';
 import { openSettings, type InstallState } from './ui/settings';
+import { Arena } from './ui/arena';
+import { ActivitySheet } from './ui/sheet';
 import { Training } from './ui/training';
 
 const params = new URLSearchParams(location.search);
@@ -92,7 +97,12 @@ const hud = new Hud({
   onMore: () => showSettings(),
 });
 
-const training = new Training({
+const sheet = new ActivitySheet(() => {
+  insetKey = '';
+  updateHud();
+});
+
+new Training(sheet, {
   pet: () => state.pet!,
   check: () => {
     const pet = livePet();
@@ -132,11 +142,105 @@ const training = new Training({
     updateHud();
     return r;
   },
-  layout: () => {
-    insetKey = '';
-    updateHud();
-  },
 });
+
+/** 3D pet for a battle side: a is the player's pet, b the opponent. */
+const fighter3d = (side: SideKey) => (side === 'a' ? world.pet : world.foe);
+/** Particles for a hit, by the attacker's element. */
+const ELEMENT_FX: Record<ElementType, 'spark' | 'drop' | 'heart'> = { ember: 'spark', tide: 'drop', bloom: 'heart', astral: 'spark' };
+
+const arena = new Arena(sheet, {
+  pet: () => state.pet!,
+  check: () => {
+    const pet = livePet();
+    return pet ? canTrain(pet, gameNow(state), state.settings, BATTLE_ENERGY) : 'asleep';
+  },
+  seed: () => randomSeed(),
+  wildFoe: () => wildFoe(state.pet!, randomSeed()),
+  myCode: () => {
+    const code = encodeFighter(fighterFromPet(state.pet!));
+    const url = new URL(location.href);
+    url.search = '';
+    url.hash = '';
+    url.searchParams.set(CHALLENGE_PARAM, code);
+    return { code, link: url.toString() };
+  },
+  share: (text, link) => void shareText(text, link),
+  begin: (foe) => {
+    world.startBattle(foe.type, foe.seed, foe.form, foe.stage);
+    sfx.grow();
+    buzz(20);
+  },
+  fx: (e, b) => {
+    const self = fighter3d(e.side);
+    switch (e.kind) {
+      case 'use':
+        if (MOVES[e.move].power > 0) self?.lunge();
+        else self?.hop();
+        sfx.tap();
+        break;
+      case 'hit': {
+        const target = fighter3d(e.target);
+        target?.hurt();
+        const at = target?.center() ?? world.egg.center();
+        world.effects.emit(ELEMENT_FX[b[e.side].f.type], at, e.crit ? 14 : 8);
+        sfx.hit();
+        if (e.target === 'a') buzz(e.crit ? [30, 40, 30] : 25);
+        break;
+      }
+      case 'miss':
+        sfx.miss();
+        break;
+      case 'heal':
+      case 'focus':
+      case 'guard':
+        world.effects.emit(e.kind === 'heal' ? 'heart' : 'spark', self?.center() ?? world.egg.center(), 6);
+        sfx.cure();
+        break;
+      case 'dazed':
+      case 'ignore':
+      case 'skip':
+        world.effects.emit('zzz', self?.center() ?? world.egg.center(), 1);
+        sfx.nope();
+        break;
+      case 'faint':
+        self?.faint();
+        fighter3d(e.side === 'a' ? 'b' : 'a')?.dance();
+        sfx.scold();
+        break;
+    }
+  },
+  finish: (outcome) => {
+    const pet = state.pet!;
+    const r = finishBattle(pet, outcome, randomSeed());
+    if (outcome === 'won') {
+      sfx.grow();
+      buzz([20, 60, 20, 60, 40]);
+    }
+    saveGame(state);
+    updateHud();
+    return r;
+  },
+  end: () => world.endBattle(),
+});
+
+async function shareText(text: string, link: string) {
+  try {
+    if (navigator.share) {
+      await navigator.share({ title: 'Pet Hatch', text, url: link });
+      return;
+    }
+  } catch (e) {
+    // The share sheet was dismissed: nothing to do.
+    if ((e as Error).name === 'AbortError') return;
+  }
+  try {
+    await navigator.clipboard.writeText(`${text} ${link}`);
+    hud.toast(t('toast.linkCopied'));
+  } catch {
+    hud.toast(t('toast.copyFailed'));
+  }
+}
 
 const eggActive = () => state.phase === 'egg' && !state.egg.failed;
 const livePet = (): PetState | null => (state.phase === 'hatched' && state.pet?.status === 'alive' ? state.pet : null);
@@ -254,7 +358,7 @@ function petAction(action: DockAction) {
       return;
     case 'train':
       sfx.tap();
-      training.open();
+      sheet.open('train');
       return;
     case 'feed': {
       const r = feedPet(pet, now, state.settings);
@@ -405,7 +509,7 @@ function evolve(pet: PetState) {
 function showEnding(pet: PetState) {
   endShown = true;
   warming = false;
-  training.close();
+  sheet.close();
   const name = { name: pet.name };
   if (pet.status === 'retired') {
     world.pet?.dance();
@@ -673,6 +777,16 @@ if (state.phase === 'hatched' && state.pet) {
   }
 }
 
+// A friend's challenge link: open the Battle tab with their code filled in.
+const challenge = params.get(CHALLENGE_PARAM);
+if (challenge) {
+  const url = new URL(location.href);
+  url.searchParams.delete(CHALLENGE_PARAM);
+  history.replaceState(null, '', url);
+  if (livePet()?.revealSeen) setTimeout(() => arena.challenge(challenge), 600);
+  else setTimeout(() => hud.toast(t('battle.needPet')), 800);
+}
+
 let last = performance.now();
 let time = 0;
 let hudTimer = 0;
@@ -729,9 +843,9 @@ function frame(ms: number) {
     if (pet.status !== 'alive') {
       if (!endShown && pet.revealSeen) showEnding(pet);
     } else {
-      if (pet.stage > pet.shownStage && pet.revealSeen && !hud.overlayOpen && !training.isOpen) evolve(pet);
+      if (pet.stage > pet.shownStage && pet.revealSeen && !hud.overlayOpen && !sheet.isOpen) evolve(pet);
       const sleeping = isSleeping(pet, now, state.settings);
-      world.pet.setLook({ sleeping, sick: pet.sick, calling: pet.call !== null, mood: pet.mood });
+      world.pet.setLook({ sleeping, sick: pet.sick, calling: pet.call !== null && !sheet.isOpen, mood: pet.mood });
       world.setDroppings(pet.droppings);
       if (sleeping && Math.random() < dt / 2) world.effects.emit('zzz', world.pet.center(), 1);
     }

@@ -1,4 +1,5 @@
 import { t, type TextKey } from '../i18n';
+import { BATTLE_ENERGY } from '../sim/battle';
 import { STAT_CAPS, TRAIN_ENERGY } from '../sim/training';
 import type { NeglectMode, Settings } from '../sim/types';
 import { icon } from './icons';
@@ -22,7 +23,7 @@ export interface SettingsHandlers {
   debug: null | { skip(hours: number): void; readyNow(): void };
 }
 
-const HELP_TOPICS = ['egg', 'types', 'care', 'calls', 'mistakes', 'life', 'train', 'evolve', 'modes'] as const;
+const HELP_TOPICS = ['egg', 'types', 'care', 'calls', 'mistakes', 'life', 'train', 'evolve', 'battle', 'modes'] as const;
 
 const hourLabel = (h: number) => `${String(h).padStart(2, '0')}:00`;
 
@@ -103,7 +104,7 @@ export function openSettings(
 
     // Collapsed topics; each body line becomes a bullet.
     const help = el('div', { className: 'field' }, el('span', { className: 'field-title' }, t('help.title')));
-    const params = { energy: TRAIN_ENERGY, child: STAT_CAPS[1], teen: STAT_CAPS[2], adult: STAT_CAPS[3] };
+    const params = { energy: TRAIN_ENERGY, battleEnergy: BATTLE_ENERGY, child: STAT_CAPS[1], teen: STAT_CAPS[2], adult: STAT_CAPS[3] };
     for (const topic of HELP_TOPICS) {
       const lines = t(`help.${topic}.body` as TextKey, params).split('\n');
       help.append(

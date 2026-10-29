@@ -289,8 +289,8 @@ export class Hud {
     const dock = this.dock.getBoundingClientRect();
     const h = window.innerHeight;
     const top = status.height ? status.bottom + 8 : 16;
-    // The training sheet replaces the status card and dock; keep the pet visible above it.
-    const sheet = document.querySelector('#training:not([hidden]) .sheet');
+    // The training/battle sheet replaces the status card and dock; keep the pet visible above it.
+    const sheet = document.querySelector('#activity:not([hidden]) .sheet');
     if (sheet) return { top, bottom: h - sheet.getBoundingClientRect().top + 8 };
     return { top, bottom: dock.height ? h - dock.top + 56 : 56 };
   }

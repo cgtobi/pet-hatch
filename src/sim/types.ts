@@ -112,6 +112,9 @@ export interface PetState {
   stats: Record<Stat, number>;
   /** Finished training sessions. */
   trainings: number;
+  /** Every form taken so far, in order (the teen form decides one of the adult's moves). */
+  path: FormId[];
+  battles: { wins: number; losses: number };
 }
 
 export interface GameState {

@@ -96,6 +96,8 @@ export function createPet(egg: EggState, type: ElementType, at: number, alone: b
     shownForm: 'baby',
     stats: { power: 0, speed: 0, guard: 0, wits: 0 },
     trainings: 0,
+    path: ['baby'],
+    battles: { wins: 0, losses: 0 },
   };
 }
 
@@ -107,7 +109,9 @@ export function migratePet(pet: Partial<PetState> & Pick<PetState, 'type' | 'see
     pet.hatchedAt,
     pet.hatchedAlone ?? false,
   );
-  return { ...base, ...pet };
+  const merged = { ...base, ...pet };
+  if (!merged.path.includes(merged.form)) merged.path = [...merged.path, merged.form];
+  return merged;
 }
 
 export function ageHours(pet: PetState, now: number): number {
@@ -165,6 +169,7 @@ export function tickPet(pet: PetState, t: number, dtH: number, settings: Setting
   while (pet.stage < stageIndex) {
     pet.stage++;
     pet.form = formFor(pet, pet.stage);
+    if (!pet.path.includes(pet.form)) pet.path.push(pet.form);
   }
   const stage = lifeStage(pet, t);
   const night = isAsleep(t, settings);

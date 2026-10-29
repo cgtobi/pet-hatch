@@ -8,7 +8,15 @@ import { Sky, skyAt } from './sky';
 import { toon } from './toon';
 
 const PITCH = 0.3;
+/** Where the two sides of a battle stand (x, z, facing): your pet on the left, the opponent on the right. */
+const BATTLE_SPOTS = {
+  pet: [-1.35, 0.55, Math.PI / 2],
+  foe: [1.35, 0.55, -Math.PI / 2],
+} as const;
 const TARGET = new THREE.Vector3(0, -0.1, 0);
+/** During a battle the camera looks at the island top and fighters, letting the rock below go off-screen. */
+const BATTLE_TARGET = new THREE.Vector3(0, 0.75, 0);
+const BATTLE_HALF_HEIGHT = 1.9;
 const VERTICAL_FOV = 34;
 /** World-space half extents the camera keeps in view. */
 const HALF_WIDTH = 3.7;
@@ -27,6 +35,8 @@ export class World {
   readonly egg: Egg3D;
   readonly effects = new Effects();
   pet: Pet3D | null = null;
+  /** The opponent during a battle. */
+  foe: Pet3D | null = null;
   private droppings = new Map<number, THREE.Group>();
   private droppingMats = [toon('#9a6b4c'), toon('#a87756'), toon('#b5845f')];
 
@@ -68,7 +78,7 @@ export class World {
     const freeH = Math.max(h * 0.35, h - this.insets.top - this.insets.bottom);
     const tanV = Math.tan(THREE.MathUtils.degToRad(VERTICAL_FOV / 2));
     const fitWidth = HALF_WIDTH / (tanV * this.camera.aspect);
-    const fitHeight = HALF_HEIGHT / (tanV * (freeH / h));
+    const fitHeight = (this.foe ? BATTLE_HALF_HEIGHT : HALF_HEIGHT) / (tanV * (freeH / h));
     this.distance = Math.max(fitWidth, fitHeight, 9);
     const freeCenter = this.insets.top + freeH / 2;
     this.camera.setViewOffset(w, h, 0, h / 2 - freeCenter, w, h);
@@ -102,6 +112,30 @@ export class World {
     this.scene.add(this.pet.group);
     this.egg.setHatched(true);
     return this.pet;
+  }
+
+  /** Bring in an opponent and line both creatures up for a battle. */
+  startBattle(type: ElementType, seed: number, form: FormId, stage: number): Pet3D {
+    this.endBattle();
+    const [x, z, heading] = BATTLE_SPOTS.foe;
+    this.foe = new Pet3D(type, seed, form);
+    this.foe.setForm(form, stage, false);
+    this.foe.placeAt(x, z, heading);
+    this.foe.hold(x, z, heading);
+    this.foe.pop();
+    this.scene.add(this.foe.group);
+    this.pet?.hold(...BATTLE_SPOTS.pet);
+    this.egg.setShellVisible(false);
+    this.resize();
+    return this.foe;
+  }
+
+  endBattle(): void {
+    if (this.foe) this.scene.remove(this.foe.group);
+    this.foe = null;
+    this.pet?.release();
+    this.egg.setShellVisible(true);
+    this.resize();
   }
 
   removePet(): void {
@@ -153,12 +187,13 @@ export class World {
     }
     this.yaw = THREE.MathUtils.clamp(this.yaw, -1.1, 1.1);
     const d = this.distance;
+    const target = this.foe ? BATTLE_TARGET : TARGET;
     this.camera.position.set(
-      TARGET.x + Math.sin(this.yaw) * Math.cos(PITCH) * d,
-      TARGET.y + Math.sin(PITCH) * d,
-      TARGET.z + Math.cos(this.yaw) * Math.cos(PITCH) * d,
+      target.x + Math.sin(this.yaw) * Math.cos(PITCH) * d,
+      target.y + Math.sin(PITCH) * d,
+      target.z + Math.cos(this.yaw) * Math.cos(PITCH) * d,
     );
-    this.camera.lookAt(TARGET);
+    this.camera.lookAt(target);
 
     const look = skyAt(hour);
     const dim = lightsOff ? 0.35 : 1;
@@ -175,6 +210,7 @@ export class World {
     this.island.update(time, dt);
     this.effects.update(dt);
     this.pet?.update(dt, time);
+    this.foe?.update(dt, time);
     this.renderer.render(this.scene, this.camera);
   }
 }

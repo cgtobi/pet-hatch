@@ -5,6 +5,7 @@ import { grade, STATS, statCap, TRAIN_ENERGY, type TrainCheck, type TrainResult 
 import type { PetState, Stat } from '../sim/types';
 import { icon } from './icons';
 import { GAMES, STAT_ICONS, type GameText, type Minigame } from './minigames';
+import { esc, type ActivitySheet } from './sheet';
 
 export interface TrainingHandlers {
   pet(): PetState;
@@ -14,57 +15,28 @@ export interface TrainingHandlers {
   hit(): void;
   miss(): void;
   finish(stat: Stat, score: number): TrainResult;
-  /** The sheet opened, closed or changed size: re-frame the 3D view. */
-  layout(): void;
 }
 
 const TONES: Record<Stat, string> = { power: 'ember', speed: 'amber', guard: 'tide', wits: 'violet' };
 
-const esc = (s: string) => s.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
-
-/** The training sheet: stats overview, then one minigame, then the result. */
+/** The Training tab: stats overview, then one minigame, then the result. */
 export class Training {
-  private root = document.getElementById('training')!;
-  private sheet = this.root.querySelector<HTMLElement>('.sheet')!;
   private game: Minigame | null = null;
+  private sheet: HTMLElement;
 
-  constructor(private h: TrainingHandlers) {
-    this.root.addEventListener('click', (e) => {
-      if (e.target === this.root) this.close();
-    });
-  }
-
-  get isOpen(): boolean {
-    return !this.root.hidden;
-  }
-
-  open(): void {
-    this.root.hidden = false;
-    document.body.classList.add('training');
-    this.menu();
-  }
-
-  close(): void {
-    this.stopGame();
-    this.root.hidden = true;
-    document.body.classList.remove('training');
-    this.h.layout();
+  constructor(
+    private s: ActivitySheet,
+    private h: TrainingHandlers,
+  ) {
+    this.sheet = s.el;
+    s.register('train', () => this.menu());
+    s.onClose(() => this.stopGame());
   }
 
   private stopGame(): void {
     this.game?.stop();
     this.game = null;
-  }
-
-  private head(title: string, sub: string, closeLabel: string): string {
-    return `<div class="train-head">
-      <div><h2>${esc(title)}</h2><p class="muted train-sub">${esc(sub)}</p></div>
-      <button type="button" class="round train-close" aria-label="${esc(closeLabel)}">${icon('close', 20)}</button>
-    </div>`;
-  }
-
-  private onClose(fn: () => void): void {
-    this.sheet.querySelector('.train-close')!.addEventListener('click', fn);
+    this.s.busy = false;
   }
 
   /** Stats with their caps, and one button per minigame. */
@@ -92,24 +64,24 @@ export class Training {
       </button>`;
     }).join('');
     const note = check === 'ok' ? t('train.cost', { n: TRAIN_ENERGY }) : t(`train.no.${check}`, { name: pet.name });
-    this.sheet.innerHTML = `${this.head(t('train.title'), sub, t('train.close'))}
+    this.sheet.innerHTML = `${this.s.head({ tab: 'train', sub, closeLabel: t('train.close') })}
       <p class="train-goal">${t(`train.goal.${Math.max(1, stage)}` as TextKey)}</p>
       <div class="train-rows">${rows}</div>
       <p class="train-note ${check === 'ok' ? '' : 'bad'}">${esc(note)}</p>`;
-    this.onClose(() => this.close());
+    this.s.bindHead();
     this.sheet.querySelectorAll<HTMLButtonElement>('.train-row').forEach((b) =>
       b.addEventListener('click', () => {
         const stat = b.dataset.stat as Stat;
         if (this.h.start(stat)) this.intro(stat);
-        else this.close();
+        else this.s.close();
       }),
     );
-    this.h.layout();
+    this.s.layout();
   }
 
   /** How to play, and a start button, so the game never begins before the player is ready. */
   private intro(stat: Stat): void {
-    this.sheet.innerHTML = `${this.head(t(`game.${stat}`), t(`stat.${stat}`), t('train.quit'))}
+    this.sheet.innerHTML = `${this.s.head({ title: t(`game.${stat}`), sub: t(`stat.${stat}`), closeLabel: t('train.quit') })}
       <div class="track mg-progress"><div class="fill ${TONES[stat]}-fill"></div></div>
       <div class="mg-area mg-${stat}">
         <div class="mg-intro">
@@ -118,9 +90,9 @@ export class Training {
           <button type="button" class="primary mg-start">${t('train.start')}</button>
         </div>
       </div>`;
-    this.onClose(() => this.menu());
+    this.s.bindHead(() => this.menu());
     this.sheet.querySelector('.mg-start')!.addEventListener('click', () => this.play(stat));
-    this.h.layout();
+    this.s.layout();
   }
 
   private play(stat: Stat): void {
@@ -135,6 +107,7 @@ export class Training {
       yourTurn: t('game.yourTurn'),
     };
     area.replaceChildren();
+    this.s.busy = true;
     this.game = GAMES[stat](
       area,
       {
@@ -149,6 +122,7 @@ export class Training {
     void game.done.then((score) => {
       if (this.game !== game) return;
       this.game = null;
+      this.s.busy = false;
       this.result(stat, score, this.h.finish(stat, score));
     });
   }
@@ -171,8 +145,8 @@ export class Training {
     this.sheet.querySelector('.train-done')!.addEventListener('click', () => this.menu());
     this.sheet.querySelector('.train-again')!.addEventListener('click', () => {
       if (this.h.start(stat)) this.intro(stat);
-      else this.close();
+      else this.s.close();
     });
-    this.h.layout();
+    this.s.layout();
   }
 }

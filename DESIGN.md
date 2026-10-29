@@ -132,13 +132,56 @@ Evolution happens in the simulation, so it also happens while you're away; the a
 
 ### Help ✅
 
-Settings › How to play explains the mechanics in nine short, collapsible topics (egg, types, care, calls and
-discipline, care mistakes, growing up, training, evolution, neglect modes). It never reveals the hidden hatch time.
+Settings › How to play explains the mechanics in ten short, collapsible topics (egg, types, care, calls and
+discipline, care mistakes, growing up, training, evolution, battles, neglect modes). It never reveals the hidden hatch time.
 
-### Still to come (🔜 milestone 4)
+### Battles ✅
 
-- Battles: 1v1 turn-based, 4 moves, type triangle Tide › Ember › Bloom › Tide (Astral has no weakness).
-  Low discipline means the pet may ignore orders. Wild AI battles, plus async battles via share codes.
+Train › **Battle** tab (from the child stage on). Battles happen on the island: the opponent pops in, both creatures
+line up, and a bottom sheet shows HP bars, a log line and the move buttons. 1v1, turn-based, one move per turn.
+
+- **Stats in battle:** HP = 60 + 15 per life stage (up to adult) + Guard. Power raises damage, Guard lowers damage
+  taken, Speed decides who acts first (and gives a small dodge chance), Wits raises the critical-hit chance.
+- **Type triangle:** Tide › Ember › Bloom › Tide: ×1.5 when strong, ×0.67 when weak. Only element moves use it.
+  Astral has no strength and no weakness.
+- **Moves** grow with the pet: a child knows 2, a teen 3, an adult 4. The teen form decides the third move, the
+  adult form the fourth.
+
+| Move | Learned | Effect |
+|---|---|---|
+| Tackle | always | Power 35 |
+| Element move (Ember Spit / Splash Jet / Vine Whip / Star Ray) | always | Power 45, element |
+| Rush | sporty teen | Power 60, 85% accuracy |
+| Focus | clever teen | Heals 20%; next hit ×1.5 |
+| Power Slam | Power adult | Power 80, element, 80% accuracy |
+| Flurry | Speed adult | 3 × 18, always strikes first |
+| Shell Up | Guard adult | Heals 15%; raises Guard (twice at most) |
+| Mind Trick | Wits adult | Power 40, element; 50% chance the foe loses its next turn |
+
+- **Disobedience:** below 50 discipline a pet may ignore an order (up to 40% at 0): it either loafs or uses a move of
+  its own choosing. This applies to a friend's pet too, so their discipline matters when you battle their code.
+- **Opponent AI:** heals when low, sometimes sets up a daze or focus, otherwise picks the hardest-hitting move (with
+  some randomness).
+- **Wild creatures** match your pet's life stage and are about as strong as it (75–115% of its stat total, with a
+  floor so untrained pets still meet real foes). Any type, Astral rarely. Simulated: a pet of average stats wins
+  about 50–65% of wild battles in 3–6 turns.
+- **Cost and reward:** a battle uses 25% energy and a little food (it needs ≥ 25% energy, awake, healthy, fed).
+  A win gives +10 mood and +2 to a random stat below the cap; a loss costs 8 mood. Running away costs 3 mood.
+  Wins and losses are recorded.
+
+### Friend battles (share codes) ✅
+
+- **Battle code:** a ~20-character snapshot of your pet (name, type, form, life stage, stats, discipline, teen
+  path) with a checksum, encoded as base64url (`src/sim/battlecode.ts`). Codes are validated: typos, cut-off pastes
+  and impossible pets (stats over the stage cap, form not matching the stage) are rejected.
+- **Share** sends a challenge link (`…/?challenge=CODE`) through the phone's share sheet, or copies it. Opening the
+  link opens the Battle tab with the code filled in. Pasting either the code or the whole link works.
+- The friend's pet is played by the computer on your device; nothing is sent anywhere, and your own pet is never
+  changed by someone else's battle. After a friend battle you can share the result.
+
+### Still to come
+
+- The new egg inherits one trait or move from its parent.
 
 ## Look
 
@@ -151,17 +194,17 @@ UI: Fredoka (display) + Nunito (body), self-hosted Latin subsets.
 1. ✅ Simulation core, island scene, egg phase, hatch and reveal, settings, i18n, installable app.
 2. ✅ Pet care loop, attention calls and discipline, sickness, naps, aging stages, endings, naming.
 3. ✅ Training minigames, stats with stage caps, evolution forms, help section.
-4. 🔜 Moves and battles, wild creatures and share codes.
+4. ✅ Moves and battles, wild creatures, share codes and challenge links.
 5. 🔜 Polish: sound design, haptics tuning, more languages.
 
 ## Code map
 
 | Path | What |
 |---|---|
-| `src/sim/` | Pure game rules, no DOM or three.js: `egg.ts` and `pet.ts` rules, `training.ts` stats and caps, `evolution.ts` forms and species names, `game.ts` catch-up and hatching, `save.ts` persistence and save upgrades. Unit tested in `sim.test.ts`, `pet.test.ts` and `training.test.ts`. |
+| `src/sim/` | Pure game rules, no DOM or three.js: `egg.ts` and `pet.ts` rules, `training.ts` stats and caps, `evolution.ts` forms and species names, `battle.ts` battle rules, moves and wild creatures, `battlecode.ts` share codes, `game.ts` catch-up and hatching, `save.ts` persistence and save upgrades. Unit tested in `sim.test.ts`, `pet.test.ts`, `training.test.ts` and `battle.test.ts`. |
 | `src/scene/` | three.js: `world.ts` (renderer, camera framing, lights), `island.ts`, `egg3d.ts`, `pet3d.ts` (the living pet and its 9 body plans), `sky.ts`, `effects.ts`. |
 | `src/input/gestures.ts` | Pointer events → hold / swipe / stroke / tap / orbit. |
-| `src/ui/` | DOM HUD, settings sheet (with help), training sheet, the four minigames and icons. |
+| `src/ui/` | DOM HUD, settings sheet (with help), the Training/Battle sheet (`sheet.ts`, `training.ts`, `arena.ts`), the four minigames and icons. |
 | `src/i18n.ts` | All player-facing text, English and German. |
 | `src/main.ts` | Wires it together: game loop, care actions, hints, hatch moment, growing up and endings. |
 | `vite.config.ts` | Relative base and the service-worker generator. |

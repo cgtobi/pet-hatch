@@ -18,12 +18,12 @@ export type TrainCheck = 'ok' | 'baby' | 'asleep' | 'sick' | 'tired' | 'hungry';
 
 const clamp = (v: number, lo = 0, hi = 100) => Math.min(hi, Math.max(lo, v));
 
-/** Whether the pet is in a state to train at all (the dock button's reason when it isn't). */
-export function canTrain(pet: PetState, now: number, settings: Settings): TrainCheck {
+/** Whether the pet is in a state to train (or battle, with its own energy need), and why not. */
+export function canTrain(pet: PetState, now: number, settings: Settings, minEnergy = TRAIN_ENERGY): TrainCheck {
   if (pet.stage < 1) return 'baby';
   if (pet.napping || isAsleep(now, settings)) return 'asleep';
   if (pet.sick) return 'sick';
-  if (pet.energy < TRAIN_ENERGY) return 'tired';
+  if (pet.energy < minEnergy) return 'tired';
   if (pet.hunger < MIN_HUNGER) return 'hungry';
   return 'ok';
 }
