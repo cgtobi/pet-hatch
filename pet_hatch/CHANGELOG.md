@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.0
+
+- Every island is different now: varied trees (round, pine, blossom, apple), bushes, rocks and sometimes a
+  small pond.
+- The old eggshell weathers away over three days after hatching, or tap it to sweep it away.
+
 ## 0.2.0
 
 - New: the **Dojo**. Enter it from the Battle tab to be matched with other players' pets of similar strength
