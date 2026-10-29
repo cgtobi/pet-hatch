@@ -34,7 +34,7 @@ To change the app icon, edit `public/icons/icon.svg`, then run `npm run icons`.
 
 ## Live battles (optional)
 
-Live battles let two friends fight in real time. They need a tiny relay server that pairs two phones by a room
+Live battles let two friends fight in real time, and the **dojo** matches strangers' pets of similar strength. They need a tiny relay server that pairs two phones by a room
 code and forwards their moves; both phones run the battle themselves, and the relay stores nothing. Without a
 relay, the game works exactly the same and the live battle button simply doesn't appear.
 

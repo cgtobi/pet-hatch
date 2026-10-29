@@ -206,6 +206,26 @@ line up, and a bottom sheet shows HP bars, a log line and the move buttons. 1v1,
 - The friend's pet is played by the computer on your device; nothing is sent anywhere, and your own pet is never
   changed by someone else's battle. After a friend battle you can share the result.
 
+### Dojo ✅ (needs the relay)
+
+A public waiting room for live battles against strangers of similar strength.
+
+- **Flow:** Battle tab › "Enter the dojo" (same requirements as any battle). The dojo shows how many other pets
+  are waiting. When a match is found, both players go straight into a live battle; afterwards "Fight again" goes
+  back to waiting and "Done" leaves.
+- **Only while there:** you take part only while the dojo screen is open and the app is in the foreground.
+  Leaving the screen, closing the sheet, switching apps or locking the phone leaves the dojo at once.
+- **Strength:** battle rating = all four stats + 20 per life stage (up to adult). Opponents must be within
+  ±10% of your rating at first (at least ±8 points), widening by 5% every 10 s of waiting up to ±35%, so most
+  matches are close and some are slightly stronger or weaker. Closest ratings are paired first.
+- **Fairness:** the relay computes each rating from the pet's battle code itself (a copy of the game's reader,
+  kept in step by a test), so a player can't claim to be weaker than the pet they fight with. The same two pets
+  aren't paired again for 2 minutes.
+- **Anonymous:** dojo opponents are shown by species and type only, never by the name their owner typed.
+- **Relay side** (`server/dojo.mjs`, `/dojo` WebSocket): a queue of waiting players, a matching pass every
+  second, and a room reserved for each pair so both can arrive in any order; it closes if they don't both arrive
+  within 30 s (the game then simply goes back to waiting). Up to 500 waiting players; nothing is stored.
+
 ### Family ✅
 
 - A pet that **retires** (the happy ending) leaves an egg that inherits a head start: about a tenth of the
@@ -271,8 +291,9 @@ UI: Fredoka (display) + Nunito (body), self-hosted Latin subsets.
 | `src/input/gestures.ts` | Pointer events → hold / swipe / stroke / tap / orbit. |
 | `src/ui/` | DOM HUD, settings sheet (with help), the Training/Battle sheet (`sheet.ts`, `training.ts`, `arena.ts`), the four minigames and icons. |
 | `src/i18n/` | All player-facing text: `en.ts` is the source, one file per translation, checked by `i18n.test.ts`. |
-| `src/net/` | Live battles: `live.ts` (lockstep protocol over the relay), `relayConfig.ts` (finding the relay). Tested end to end against a real relay in `live.test.ts`. |
-| `server/relay.mjs` | The optional live battle relay, which can also serve the built game. |
+| `src/net/` | Live battles: `live.ts` (lockstep protocol over the relay), `dojo.ts` (waiting in the dojo), `relayConfig.ts` (finding the relay). Tested end to end against a real relay in `live.test.ts` and `dojo.test.ts`. |
+| `server/relay.mjs` | The optional live battle relay (rooms and the dojo), which can also serve the built game. |
+| `server/dojo.mjs` | Dojo matchmaking: ratings from battle codes, the widening match window, pairing. |
 | `Dockerfile`, `docker-compose.yml` | One image with the game and the relay (amd64 and arm64). |
 | `repository.yaml`, `pet_hatch/` | Home Assistant app: sidebar via ingress plus a direct port; builds from this repository's Git URL. |
 | `src/feedback.ts` | Synthesized sound effects, generative music and haptic patterns. |

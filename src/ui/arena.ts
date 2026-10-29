@@ -1,5 +1,6 @@
 import { t, type TextKey } from '../i18n';
-import { LiveSession, newRoomCode, parseRoomCode, type LiveError } from '../net/live';
+import { DojoSession } from '../net/dojo';
+import { LiveError, LiveSession, newRoomCode, parseRoomCode, type LiveErrorCode } from '../net/live';
 import {
   BATTLE_ENERGY,
   battleState,
@@ -64,6 +65,12 @@ export class Arena {
   /** Bumped whenever a fight is abandoned, so a running animation sequence stops. */
   private run = 0;
   private prefill = '';
+  /** Waiting in the dojo (open only while the dojo screen is). */
+  private dojo: DojoSession | null = null;
+  /** The current fight came from the dojo: opponents stay anonymous and "Fight again" re-enters. */
+  private fromDojo = false;
+  /** How long a matched pair may take to meet in their room before both go back to waiting. */
+  private static DOJO_MEET_MS = 20_000;
 
   constructor(
     private s: ActivitySheet,
@@ -72,6 +79,10 @@ export class Arena {
     this.sheet = s.el;
     s.register('battle', () => this.menu());
     s.onClose(() => this.leave());
+    // Only players who are actually in the dojo take part: switching apps or locking the phone leaves it.
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && (this.dojo || (this.live && !this.battle && this.fromDojo))) this.dojoLeft();
+    });
   }
 
   /** Open the Battle tab with a friend's battle code or live room ready (from a link). */
@@ -82,6 +93,8 @@ export class Arena {
 
   private leave(): void {
     this.run++;
+    this.dojo?.close();
+    this.dojo = null;
     // Leaving mid-battle counts as giving up for the other player.
     this.live?.close(!!this.battle && !this.battle.winner);
     this.live = null;
@@ -89,6 +102,7 @@ export class Arena {
     this.battle = null;
     this.foe = null;
     this.me = 'a';
+    this.fromDojo = false;
   }
 
   private xpBar(xp: number, label = t('battle.xp')): string {
@@ -126,6 +140,11 @@ export class Arena {
       ${moves ? `<div class="bt-moves-preview"><span class="muted">${t('battle.moves')}</span>${moves}</div>` : ''}
       ${pet.stage >= 1 ? this.xpBar(pet.battleXp) : ''}
       <button type="button" class="primary bt-explore" ${ok ? '' : 'disabled'}>${icon('leaf', 20)} ${t('battle.explore')}</button>
+      ${
+        this.relay && pet.stage >= 1
+          ? `<button type="button" class="secondary bt-enter-dojo" ${ok ? '' : 'disabled'}>${icon('shield', 18)} ${t('dojo.enter')}</button>`
+          : ''
+      }
       <div class="bt-friends">
         <b>${t('battle.friends')}</b>
         <p class="muted">${t(this.relay ? 'live.hint' : 'battle.friendsHint')}</p>
@@ -153,6 +172,7 @@ export class Arena {
     this.prefill = '';
     this.s.bindHead();
     this.sheet.querySelector('.bt-explore')!.addEventListener('click', () => void this.fight(this.h.wildFoe()));
+    this.sheet.querySelector('.bt-enter-dojo')?.addEventListener('click', () => this.enterDojo());
     this.sheet.querySelector('.bt-host')?.addEventListener('click', () => this.lobby('host', newRoomCode()));
     this.sheet.querySelector('.bt-share')?.addEventListener('click', () => {
       const { link } = this.h.myCode();
@@ -224,6 +244,81 @@ export class Arena {
     return t(`live.error.${known.includes(e.code) ? e.code : 'other'}` as TextKey, { name: foeName });
   }
 
+  /** The dojo: wait to be matched with a pet of similar strength, then fight live automatically. */
+  private enterDojo(): void {
+    this.leave();
+    if (this.h.check() !== 'ok' || !this.relay) return this.menu();
+    const run = this.run;
+    const pet = this.h.pet();
+    this.fromDojo = true;
+    this.s.busy = true;
+    this.sheet.innerHTML = `${this.s.head({ title: t('dojo.title'), sub: t('dojo.about'), closeLabel: t('live.back') })}
+      <div class="bt-lobby">
+        <span class="bubble violet-btn dojo-mark">${icon('shield', 34)}</span>
+        <p class="bt-lobby-status">${t('dojo.waiting')}</p>
+        <p class="bt-lobby-detail dojo-players">${t('dojo.empty')}</p>
+        <button type="button" class="secondary bt-leave-dojo">${t('dojo.leave')}</button>
+      </div>`;
+    this.s.bindHead(() => this.menu());
+    this.sheet.querySelector('.bt-leave-dojo')!.addEventListener('click', () => this.menu());
+    const status = this.sheet.querySelector<HTMLElement>('.bt-lobby-status')!;
+    const players = this.sheet.querySelector<HTMLElement>('.dojo-players')!;
+    const fail = (code: LiveErrorCode) => {
+      if (run !== this.run) return;
+      status.textContent = this.liveMessage(new LiveError(code), '');
+      status.classList.add('bad');
+      players.hidden = true;
+      this.s.busy = false;
+    };
+
+    const dojo = (this.dojo = new DojoSession(this.relay, this.h.myCode().code));
+    dojo.onPlayers = (n) => {
+      players.textContent = n === 0 ? t('dojo.empty') : n === 1 ? t('dojo.one') : t('dojo.players', { n });
+    };
+    dojo.onFail = fail;
+    dojo.onMatch = (room, role) => {
+      if (run !== this.run) return;
+      this.dojo = null;
+      status.textContent = t('dojo.found');
+      players.hidden = true;
+      const live = (this.live = new LiveSession(this.relay!, room, role, fighterFromPet(pet)));
+      // If the other pet never shows up, both simply go back to waiting.
+      const giveUp = setTimeout(() => run === this.run && this.enterDojo(), Arena.DOJO_MEET_MS);
+      live.onFail = () => {
+        clearTimeout(giveUp);
+        if (run === this.run) setTimeout(() => run === this.run && this.enterDojo(), 1200);
+      };
+      live.ready.then(
+        (match) => {
+          clearTimeout(giveUp);
+          if (run !== this.run) return;
+          // Strangers stay anonymous: their pet is shown by its species only.
+          const theirs = other(live.side);
+          const anon = (f: Fighter): Fighter => ({ ...f, name: speciesName(f.type, f.form) });
+          const a = theirs === 'a' ? anon(match.a) : match.a;
+          const b = theirs === 'b' ? anon(match.b) : match.b;
+          void this.fight(theirs === 'a' ? a : b, { session: live, seed: match.seed, a, b });
+        },
+        () => {},
+      );
+    };
+    this.s.layout();
+  }
+
+  /** The player switched away while in the dojo: they're out; offer to come back in. */
+  private dojoLeft(): void {
+    this.leave();
+    this.sheet.innerHTML = `${this.s.head({ title: t('dojo.title'), sub: t('dojo.about'), closeLabel: t('live.back') })}
+      <div class="bt-lobby">
+        <p class="bt-lobby-status">${t('dojo.left')}</p>
+        <button type="button" class="primary bt-reenter">${t('dojo.enter')}</button>
+      </div>`;
+    this.s.bindHead(() => this.menu());
+    this.sheet.querySelector('.bt-reenter')!.addEventListener('click', () => this.enterDojo());
+    this.s.busy = false;
+    this.s.layout();
+  }
+
   private sideHtml(key: SideKey, side: Side): string {
     const f = side.f;
     const label = f.wild ? t('battle.wildName', { species: f.name }) : f.name;
@@ -231,7 +326,7 @@ export class Arena {
       <div class="bt-name">
         <b>${esc(label)}</b>
         <span class="chip ${f.type}">${t(`type.${f.type}`)}</span>
-        ${f.wild ? '' : `<span class="muted">${esc(speciesName(f.type, f.form))}</span>`}
+        ${f.wild || f.name === speciesName(f.type, f.form) ? '' : `<span class="muted">${esc(speciesName(f.type, f.form))}</span>`}
         <span class="bt-hpnum">${side.hp} / ${side.maxHp}</span>
       </div>
       <div class="track bt-hp"><div class="fill"></div></div>
@@ -268,6 +363,7 @@ export class Arena {
   ): Promise<void> {
     const pet = this.h.pet();
     if (!live) this.leave();
+    const dojoFight = this.fromDojo && !!live;
     this.run++;
     const run = this.run;
     this.foe = foe;
@@ -278,7 +374,13 @@ export class Arena {
       : createBattle(fighterFromPet(pet), foe, this.h.seed()));
     const me = this.me;
     this.s.busy = true;
-    const title = live ? t('live.title') : foe.wild ? t('battle.wildTitle') : t('battle.friendTitle');
+    const title = dojoFight
+      ? t('dojo.title')
+      : live
+        ? t('live.title')
+        : foe.wild
+          ? t('battle.wildTitle')
+          : t('battle.friendTitle');
     const moves = b[me].moves
       .map((m) => {
         const tone = MOVES[m].typed ? pet.type : 'neutral';
@@ -316,7 +418,9 @@ export class Arena {
     this.log(
       foe.wild
         ? t('battle.appearWild', { species: foe.name })
-        : t('battle.appearFriend', { name: foe.name, species: speciesName(foe.type, foe.form) }),
+        : dojoFight
+          ? t('dojo.appear', { species: foe.name })
+          : t('battle.appearFriend', { name: foe.name, species: speciesName(foe.type, foe.form) }),
     );
     await wait(1300);
     if (run !== this.run) return;
@@ -471,6 +575,9 @@ export class Arena {
          }`
       : '';
     const share = !foe.wild && !wasLive && outcome !== 'fled';
+    const dojoAgain = this.fromDojo
+      ? `<button type="button" class="secondary bt-dojo-again" ${this.h.check() === 'ok' ? '' : 'disabled'}>${t('dojo.again')}</button>`
+      : '';
     this.sheet.innerHTML = `<div class="train-result">
         <span class="bubble ${outcome === 'won' ? 'amber-btn' : 'violet-btn'}">${icon(outcome === 'won' ? 'star' : 'shield', 34)}</span>
         <h2>${t(`battle.${outcome}`)}</h2>
@@ -479,11 +586,12 @@ export class Arena {
         ${xp}
         <p class="muted">${t('battle.record', { w: pet.battles.wins, l: pet.battles.losses })}</p>
         <div class="train-actions">
-          ${share ? `<button type="button" class="secondary bt-share-result">${t('battle.shareResult')}</button>` : '<span></span>'}
+          ${dojoAgain || (share ? `<button type="button" class="secondary bt-share-result">${t('battle.shareResult')}</button>` : '<span></span>')}
           <button type="button" class="primary train-done">${t('train.done')}</button>
         </div>
       </div>`;
     this.sheet.querySelector('.train-done')!.addEventListener('click', () => this.menu());
+    this.sheet.querySelector('.bt-dojo-again')?.addEventListener('click', () => this.enterDojo());
     this.sheet.querySelector('.bt-share-result')?.addEventListener('click', () => {
       const text = t(outcome === 'won' ? 'battle.shareWon' : 'battle.shareLost', { name: pet.name, foe: foe.name });
       this.h.share(text, this.h.myCode().link);

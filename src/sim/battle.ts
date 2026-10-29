@@ -84,6 +84,14 @@ export function movesFor(f: Fighter): MoveId[] {
   return moves;
 }
 
+/**
+ * Rough battle strength, for matching opponents in the dojo: all stats plus a bonus per life stage
+ * (which brings health and moves). The relay computes the same number from the battle code.
+ */
+export function battleRating(f: Pick<Fighter, 'stage' | 'stats'>): number {
+  return STATS.reduce((sum, s) => sum + f.stats[s], 0) + 20 * Math.min(f.stage, 3);
+}
+
 export function maxHp(f: Fighter): number {
   return 60 + 15 * Math.min(f.stage, 3) + f.stats.guard;
 }

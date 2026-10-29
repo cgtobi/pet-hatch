@@ -13,12 +13,19 @@ import { createServer } from 'node:http';
 import { extname, join, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { WebSocketServer } from 'ws';
+import { DOJO, findPairs, pairKey, ratingFromCode } from './dojo.mjs';
 
 /**
  * The relay's WebSocket path. Matched by suffix, so it also works under a path prefix (e.g. Home Assistant
  * ingress at /api/hassio_ingress/<token>/relay, whether or not the proxy strips the prefix).
  */
 const PATH = '/relay';
+/** The dojo's WebSocket path (matched by suffix too): waiting players, paired by strength. */
+const DOJO_PATH = '/dojo';
+const ROOM_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+/** A room the dojo set up for two matched players closes if they haven't both arrived by then. */
+const RESERVED_MS = 30_000;
+const DOJO_TICK_MS = 1000;
 const ROOM_CODE = /^[A-Z2-9]{4,8}$/;
 /** Battle messages are tiny; anything bigger is not from the game. */
 const MAX_MESSAGE = 4096;
@@ -94,11 +101,12 @@ export function createRelay({ staticDir = null, log = () => {} } = {}) {
 
   server.on('upgrade', (req, socket, head) => {
     const url = new URL(req.url ?? '/', 'http://localhost');
-    if (!url.pathname.endsWith(PATH)) {
+    const enter = url.pathname.endsWith(PATH) ? enterRoom : url.pathname.endsWith(DOJO_PATH) ? enterDojo : null;
+    if (!enter) {
       socket.destroy();
       return;
     }
-    wss.handleUpgrade(req, socket, head, (ws) => enterRoom(ws, url));
+    wss.handleUpgrade(req, socket, head, (ws) => enter(ws, url));
   });
 
   const send = (ws, msg) => ws.readyState === ws.OPEN && ws.send(JSON.stringify(msg));
@@ -117,16 +125,46 @@ export function createRelay({ staticDir = null, log = () => {} } = {}) {
     for (const p of room.peers) send(p, { t: 'room', peers: room.peers.size });
   };
 
+  /** Drop connections that stop answering pings; returns a cleanup for when the socket closes. */
+  function keepAlive(ws) {
+    let alive = true;
+    ws.on('pong', () => (alive = true));
+    const ping = setInterval(() => {
+      if (!alive) return ws.terminate();
+      alive = false;
+      ws.ping();
+    }, PING_MS);
+    return () => clearInterval(ping);
+  }
+
+  /** True while a connection stays within the message rate limit. */
+  function rateLimiter() {
+    let windowStart = Date.now();
+    let count = 0;
+    return () => {
+      const now = Date.now();
+      if (now - windowStart > RATE_LIMIT.windowMs) {
+        windowStart = now;
+        count = 0;
+      }
+      return ++count <= RATE_LIMIT.messages;
+    };
+  }
+
   function enterRoom(ws, url) {
     const code = (url.searchParams.get('room') ?? '').toUpperCase();
     const role = url.searchParams.get('role');
     if (!ROOM_CODE.test(code) || (role !== 'host' && role !== 'guest')) return reject(ws, 'bad-request');
     let room = rooms.get(code);
     if (role === 'host') {
-      if (room) return reject(ws, 'taken');
-      if (rooms.size >= MAX_ROOMS) return reject(ws, 'busy');
-      room = { peers: new Set(), timer: undefined };
-      rooms.set(code, room);
+      // A room the dojo reserved is waiting for its host; any other existing room is taken.
+      if (room && !(room.reserved && !room.hasHost)) return reject(ws, 'taken');
+      if (!room) {
+        if (rooms.size >= MAX_ROOMS) return reject(ws, 'busy');
+        room = { peers: new Set(), timer: undefined };
+        rooms.set(code, room);
+      }
+      room.hasHost = true;
     } else {
       if (!room) return reject(ws, 'no-room');
       if (room.peers.size >= 2) return reject(ws, 'full');
@@ -136,31 +174,18 @@ export function createRelay({ staticDir = null, log = () => {} } = {}) {
     announce(room);
     log(`room ${code}: ${role} joined (${room.peers.size}/2)`);
 
-    let windowStart = Date.now();
-    let count = 0;
-    let alive = true;
-    ws.on('pong', () => (alive = true));
-    const ping = setInterval(() => {
-      if (!alive) return ws.terminate();
-      alive = false;
-      ws.ping();
-    }, PING_MS);
-
+    const stopPing = keepAlive(ws);
+    const withinRate = rateLimiter();
     ws.on('message', (data, isBinary) => {
       if (isBinary) return;
-      const now = Date.now();
-      if (now - windowStart > RATE_LIMIT.windowMs) {
-        windowStart = now;
-        count = 0;
-      }
-      if (++count > RATE_LIMIT.messages) return reject(ws, 'rate');
+      if (!withinRate()) return reject(ws, 'rate');
       touch(code, room);
       const text = data.toString();
       for (const p of room.peers) if (p !== ws && p.readyState === p.OPEN) p.send(text);
     });
 
     ws.on('close', () => {
-      clearInterval(ping);
+      stopPing();
       room.peers.delete(ws);
       if (room.peers.size === 0) {
         clearTimeout(room.timer);
@@ -170,6 +195,74 @@ export function createRelay({ staticDir = null, log = () => {} } = {}) {
     });
   }
 
+  // ---------- dojo ----------
+
+  /** Waiting players by socket. */
+  const waiting = new Map();
+  /** When two players (by their dojo id) were last matched, to avoid instant rematches. */
+  const recent = new Map();
+
+  const announceDojo = () => {
+    for (const ws of waiting.keys()) send(ws, { t: 'dojo', players: waiting.size - 1 });
+  };
+
+  function enterDojo(ws, url) {
+    const rating = ratingFromCode(url.searchParams.get('code'));
+    const id = (url.searchParams.get('id') ?? '').slice(0, 40);
+    if (rating === null || !id) return reject(ws, 'bad-request');
+    if (waiting.size >= DOJO.maxPlayers) return reject(ws, 'busy');
+    waiting.set(ws, { ws, id, rating, joinedAt: Date.now() });
+    announceDojo();
+    const stopPing = keepAlive(ws);
+    const withinRate = rateLimiter();
+    // Players don't need to say anything while they wait; chatter only counts toward the rate limit.
+    ws.on('message', () => withinRate() || reject(ws, 'rate'));
+    ws.on('close', () => {
+      stopPing();
+      if (waiting.delete(ws)) announceDojo();
+    });
+  }
+
+  function newRoomCode() {
+    let code;
+    do {
+      code = Array.from({ length: 5 }, () => ROOM_ALPHABET[Math.floor(Math.random() * ROOM_ALPHABET.length)]).join('');
+    } while (rooms.has(code));
+    return code;
+  }
+
+  /** Pair waiting players and send each pair into a fresh room, as host and guest. */
+  function matchDojo() {
+    const now = Date.now();
+    for (const [key, at] of recent) if (now - at > DOJO.rematchMs) recent.delete(key);
+    if (waiting.size < 2 || rooms.size >= MAX_ROOMS) return;
+    const pairs = findPairs([...waiting.values()], now, recent);
+    for (const [a, b] of pairs) {
+      const code = newRoomCode();
+      const room = { peers: new Set(), timer: undefined, reserved: true, hasHost: false };
+      rooms.set(code, room);
+      touch(code, room);
+      setTimeout(() => {
+        if (rooms.get(code) !== room || room.peers.size >= 2) return;
+        for (const p of room.peers) reject(p, 'idle');
+        clearTimeout(room.timer);
+        rooms.delete(code);
+      }, RESERVED_MS);
+      recent.set(pairKey(a.id, b.id), now);
+      for (const [entry, role] of [
+        [a, 'host'],
+        [b, 'guest'],
+      ]) {
+        waiting.delete(entry.ws);
+        send(entry.ws, { t: 'match', room: code, role });
+        entry.ws.close(1000, 'matched');
+      }
+      log(`dojo: matched ratings ${a.rating} and ${b.rating} in room ${code}`);
+    }
+    if (pairs.length) announceDojo();
+  }
+  const dojoTimer = setInterval(matchDojo, DOJO_TICK_MS);
+
   return {
     server,
     rooms,
@@ -178,6 +271,7 @@ export function createRelay({ staticDir = null, log = () => {} } = {}) {
       return new Promise((done) => server.listen(port, host, () => done(server.address().port)));
     },
     close() {
+      clearInterval(dojoTimer);
       for (const room of rooms.values()) clearTimeout(room.timer);
       for (const ws of wss.clients) ws.terminate();
       return new Promise((done) => server.close(() => done()));
