@@ -1,7 +1,8 @@
 export const DOJO: {
   baseWindow: number;
-  growWindow: number;
+  widenFromMs: number;
   maxWindow: number;
+  widenUntilMs: number;
   minPoints: number;
   rematchMs: number;
   offerAfterMs: number;

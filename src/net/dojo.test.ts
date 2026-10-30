@@ -37,10 +37,12 @@ describe('dojo ratings', () => {
 describe('dojo matching', () => {
   const at = (id: string, rating: number, joinedAt = 0): Waiting => ({ id, rating, joinedAt });
 
-  it('starts at ±10% and widens to ±35% while waiting, never below 8 points', () => {
+  it('starts at ±10%, widens steadily from 10 s to ±35% at 40 s, never below 8 points', () => {
     expect(matchWindow(200, 0)).toBe(20);
-    expect(matchWindow(200, 25_000)).toBeCloseTo(40);
-    expect(matchWindow(200, 10 * 60_000)).toBe(70);
+    expect(matchWindow(200, 10_000)).toBe(20);
+    expect(matchWindow(200, 25_000)).toBeCloseTo(45);
+    expect(matchWindow(200, 40_000)).toBeCloseTo(70);
+    expect(matchWindow(200, 10 * 60_000)).toBeCloseTo(70);
     expect(matchWindow(30, 0)).toBe(DOJO.minPoints);
   });
 
@@ -52,7 +54,8 @@ describe('dojo matching', () => {
   it('only matches distant ratings after waiting long enough', () => {
     const far = [at('a', 200), at('b', 250)];
     expect(findPairs(far, 0, new Map())).toEqual([]);
-    expect(findPairs(far, 45_000, new Map())).toHaveLength(1);
+    expect(findPairs(far, 27_000, new Map())).toEqual([]);
+    expect(findPairs(far, 29_000, new Map())).toHaveLength(1);
   });
 
   it('doesn’t pair the same two pets again right away', () => {
@@ -68,7 +71,7 @@ describe('dojo matching', () => {
     expect(findOffers(far, DOJO.offerAfterMs - 1, new Map(), new Map())).toEqual([]);
     expect(findOffers(far, DOJO.offerAfterMs, new Map(), new Map()).map(([x, y]) => [x.id, y.id])).toEqual([['a', 'b']]);
     // Only once both have waited: b just arrived.
-    expect(findOffers([asks('a', 54), asks('b', 94, 60_000)], DOJO.offerAfterMs, new Map(), new Map())).toEqual([]);
+    expect(findOffers([asks('a', 54), asks('b', 94, 1)], DOJO.offerAfterMs, new Map(), new Map())).toEqual([]);
   });
 
   it('offers the closest first, never to games that can’t answer, nor to someone already asked', () => {

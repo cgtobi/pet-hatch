@@ -9,10 +9,11 @@ declare(strict_types=1);
 
 /** Stat limits by life stage (child … elder), as in the game. */
 const STAT_CAPS = [0, 30, 60, 100, 100];
-/** Opponents within this share of your rating at first, widening every 10 s of waiting, up to the most. */
+/** Opponents within this share of your rating at first, widening steadily from 10 s into the wait to the most at 40 s. */
 const DOJO_BASE_WINDOW = 0.1;
-const DOJO_GROW_WINDOW = 0.05;
+const DOJO_WIDEN_FROM_MS = 10_000;
 const DOJO_MAX_WINDOW = 0.35;
+const DOJO_WIDEN_UNTIL_MS = 40_000;
 /** Never narrower than this many rating points, so beginners still find each other. */
 const DOJO_MIN_POINTS = 8;
 /** The same two pets aren't matched again within this time. */
@@ -21,7 +22,7 @@ const DOJO_REMATCH_MS = 2 * 60_000;
  * With nobody close in strength, two pets that have both waited this long are offered to each other however far
  * apart they are; both must say yes within DOJO_ANSWER_MS. A pair that said no isn't offered again for a while.
  */
-const DOJO_OFFER_AFTER_MS = 90_000;
+const DOJO_OFFER_AFTER_MS = 40_000;
 const DOJO_ANSWER_MS = 20_000;
 const DOJO_DECLINED_MS = 10 * 60_000;
 
@@ -50,7 +51,9 @@ function rating_from_code(mixed $code): ?int
 
 function match_window(int $rating, int $waitedMs): float
 {
-    $share = min(DOJO_MAX_WINDOW, DOJO_BASE_WINDOW + DOJO_GROW_WINDOW * floor($waitedMs / 10_000));
+    // In the same order as matchWindow() in server/dojo.mjs, so both relays get the very same number.
+    $progress = max(0, min(1, ($waitedMs - DOJO_WIDEN_FROM_MS) / (DOJO_WIDEN_UNTIL_MS - DOJO_WIDEN_FROM_MS)));
+    $share = DOJO_BASE_WINDOW + (DOJO_MAX_WINDOW - DOJO_BASE_WINDOW) * $progress;
     return max(DOJO_MIN_POINTS, $rating * $share);
 }
 

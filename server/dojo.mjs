@@ -9,10 +9,11 @@ const STAT_CAPS = [0, 30, 60, 100, 100];
 export const DOJO = {
   /** Opponents within this share of your rating at first… */
   baseWindow: 0.1,
-  /** …widening by this much every 10 seconds of waiting… */
-  growWindow: 0.05,
-  /** …up to this much. */
+  /** …widening steadily from this long into the wait… */
+  widenFromMs: 10_000,
+  /** …until it reaches this share, this long in (when uneven offers start too). */
   maxWindow: 0.35,
+  widenUntilMs: 40_000,
   /** Never narrower than this many rating points, so beginners still find each other. */
   minPoints: 8,
   /** The same two pets aren't matched again within this time. */
@@ -21,7 +22,7 @@ export const DOJO = {
    * With nobody close in strength, two pets that have both waited this long are offered to each other however
    * far apart they are; both must say yes within answerMs. A pair that said no isn't offered again for declinedMs.
    */
-  offerAfterMs: 90_000,
+  offerAfterMs: 40_000,
   answerMs: 20_000,
   declinedMs: 10 * 60_000,
   maxPlayers: 500,
@@ -52,7 +53,8 @@ export function ratingFromCode(code) {
 
 /** How far from your own rating an opponent may be after waiting this long. */
 export function matchWindow(rating, waitedMs) {
-  const share = Math.min(DOJO.maxWindow, DOJO.baseWindow + DOJO.growWindow * Math.floor(waitedMs / 10_000));
+  const progress = Math.max(0, Math.min(1, (waitedMs - DOJO.widenFromMs) / (DOJO.widenUntilMs - DOJO.widenFromMs)));
+  const share = DOJO.baseWindow + (DOJO.maxWindow - DOJO.baseWindow) * progress;
   return Math.max(DOJO.minPoints, rating * share);
 }
 

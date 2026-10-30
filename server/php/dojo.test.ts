@@ -112,7 +112,7 @@ describe.skipIf(!command)('PHP dojo rules match the Node ones', () => {
 
   it('widens the match window the same way while waiting', () => {
     const windows: [number, number][] = [];
-    for (const rating of [0, 20, 60, 150, 300, 460]) for (const waited of [0, 9_999, 10_000, 25_000, 60_000, 600_000]) windows.push([rating, waited]);
+    for (const rating of [0, 20, 60, 150, 300, 460]) for (const waited of [-5, 0, 9_999, 10_000, 10_001, 17_321, 25_000, 39_999, 40_000, 60_000, 600_000]) windows.push([rating, waited]);
     const node = windows.map(([r, w]) => matchWindow(r, w));
     const got = php({ codes: [], windows }).windows;
     got.forEach((w, i) => expect(w).toBeCloseTo(node[i], 9));

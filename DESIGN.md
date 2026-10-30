@@ -268,13 +268,13 @@ A public waiting room for live battles against strangers of similar strength.
 - **Only while there:** you take part only while the dojo screen is open and the app is in the foreground.
   Leaving the screen, closing the sheet, switching apps or locking the phone leaves the dojo at once.
 - **Strength:** battle rating = all four stats + 20 per life stage (up to adult). Opponents must be within
-  ±10% of your rating at first (at least ±8 points), widening by 5% every 10 s of waiting up to ±35%, so most
-  matches are close and some are slightly stronger or weaker. Closest ratings are paired first.
+  ±10% of your rating at first (at least ±8 points); after 10 s of waiting it widens steadily, reaching ±35% at
+  40 s, so most matches are close and some are slightly stronger or weaker. Closest ratings are paired first.
 - **Fairness:** the relay computes each rating from the pet's battle code itself (a copy of the game's reader,
   kept in step by a test), so a player can't claim to be weaker than the pet they fight with. The same two pets
   aren't paired again for 2 minutes.
 - **Uneven offers:** when the dojo is quiet, two pets may wait without ever coming within each other's window.
-  Once both have waited 90 s, the relay offers them to each other anyway (closest first): each player sees the
+  Once both have waited 40 s (the window is at its widest by then), the relay offers them to each other anyway (closest first): each player sees the
   other pet's species and both ratings ("stronger" or "weaker") and has 20 s to say yes or no. Only if both say
   yes does the match start; a no, no answer or leaving cancels it for both, who simply go on waiting, and a pair
   that turned each other down isn't offered again for 10 minutes. The weaker side has a reason to accept: an
