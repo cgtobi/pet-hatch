@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.1
+
+- For PHP hosting: the server's secrets (stats token, push keys) can be kept outside the web folder, and are never
+  handed out even if PHP stops working. Nothing changes in play.
+
 ## 0.5.0
 
 - Alerts: where the game is hosted with PHP, players can turn on alerts in Settings, and their phone tells them
