@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.13
+
+- Preview, off by default: Endurance training with a jump-rope rhythm game. Endurance gives the pet more
+  energy, so it can train, play and battle longer. Open the game with `?endu=1` to try it (`?endu=0` to hide it
+  again).
+
 ## 0.3.12
 
 - Settings shows only the difficulty you chose for this egg, and Language has moved below Start a new egg.
