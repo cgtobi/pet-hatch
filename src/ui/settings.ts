@@ -24,12 +24,24 @@ export interface SettingsHandlers {
   onImport(code: string): boolean;
   onNewEgg(): void;
   onInstall(): void;
+  /** Current game time, which runs ahead of the real clock after debug skips or with ?speed=. */
+  now(): number;
   debug: null | { skip(hours: number): void; readyNow(): void };
 }
 
 const HELP_TOPICS = ['egg', 'types', 'care', 'calls', 'mistakes', 'life', 'train', 'evolve', 'battle', 'modes'] as const;
 
 const hourLabel = (h: number) => `${String(h).padStart(2, '0')}:00`;
+
+const clockLabel = (t: number) =>
+  new Date(t).toLocaleString(document.documentElement.lang || undefined, {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
 
 function el<K extends keyof HTMLElementTagNameMap>(
   tag: K,
@@ -221,9 +233,15 @@ export function openSettings(
         ),
       );
     }
-    body.append(el('small', { className: 'app-version' }, `Pet Hatch ${__APP_VERSION__}`));
+    clock = el('small', { className: 'app-clock' }, clockLabel(h.now()));
+    body.append(el('small', { className: 'app-version' }, `Pet Hatch ${__APP_VERSION__}`), clock);
     dialog.replaceChildren(body);
   };
+
+  // The game clock under the version, ticking while the sheet is open.
+  let clock: HTMLElement | undefined;
+  const tick = setInterval(() => clock && (clock.textContent = clockLabel(h.now())), 1000);
+  dialog.addEventListener('close', () => clearInterval(tick), { once: true });
 
   render();
   if (!dialog.open) dialog.showModal();

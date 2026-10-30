@@ -689,6 +689,14 @@ button:focus:not(:focus-visible) {
   text-align: center;
 }
 
+.app-clock {
+  margin-top: -8px;
+  color: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
 .field small {
   color: var(--muted);
   font-size: 12px;

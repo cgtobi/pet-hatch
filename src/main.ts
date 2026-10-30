@@ -892,6 +892,7 @@ function showSettings() {
       await installPrompt?.prompt();
       installPrompt = null;
     },
+    now: () => gameNow(state),
     debug: DEBUG
       ? {
           skip: (hours) => {
