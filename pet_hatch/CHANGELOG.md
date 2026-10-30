@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.0
+
+- Wild creatures come as runts, even matches, strong ones and champions. Strong ones and champions have traits
+  (tough, swift, fierce, rival), fight smarter and pay more: up to +5 stat points for beating a champion.
+- The more a pet wins, the tougher the creatures it meets; after losses it meets weaker ones again.
+- Before a wild fight you see what you found and can back off for free. Champions beaten count in the record.
+
 ## 0.5.1
 
 - For PHP hosting: the server's secrets (stats token, push keys) can be kept outside the web folder, and are never
