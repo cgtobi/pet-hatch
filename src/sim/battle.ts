@@ -63,6 +63,11 @@ export const MAX_TURNS = 40;
 export const BATTLE_ENERGY = 25;
 const BATTLE_HUNGER = 8;
 const WIN_REWARD = 2;
+/**
+ * A win against another pet (not a wild creature) this much stronger, by battle rating, is an upset and earns double
+ * the stat points.
+ */
+export const UPSET_SHARE = 1.35;
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
@@ -357,6 +362,8 @@ export interface BattleReward {
   learned: Stat | null;
   /** …taught by this opponent (null when no lesson was waiting, so it went into a random stat). */
   teacher: string | null;
+  /** Won against a much stronger pet (see UPSET_SHARE): the stat gain was doubled. */
+  upset: boolean;
 }
 
 const total = (stats: Record<Stat, number>) => STATS.reduce((sum, s) => sum + stats[s], 0);
@@ -391,7 +398,7 @@ export function lessonFrom(pet: PetState, foe: Fighter): Stat {
  */
 export function finishBattle(pet: PetState, outcome: Outcome, seed: number, summary: BattleSummary): BattleReward {
   const rand = mulberry32(seed);
-  const reward: BattleReward = { stat: null, gain: 0, xp: 0, learned: null, teacher: null };
+  const reward: BattleReward = { stat: null, gain: 0, xp: 0, learned: null, teacher: null, upset: false };
   pet.energy = clamp(pet.energy - BATTLE_ENERGY, 0, maxEnergy(pet));
   pet.hunger = clamp(pet.hunger - BATTLE_HUNGER, 0, 100);
   const cap = STAT_CAPS[Math.min(pet.stage, STAT_CAPS.length - 1)];
@@ -410,11 +417,12 @@ export function finishBattle(pet: PetState, outcome: Outcome, seed: number, summ
   } else {
     pet.battles.wins++;
     pet.mood = clamp(pet.mood + 10, 0, 100);
+    reward.upset = !summary.foe.wild && battleRating(summary.foe) >= UPSET_SHARE * battleRating(pet);
     const choices = open();
     if (choices.length) {
       const stat = choices[Math.floor(rand() * choices.length)];
       reward.stat = stat;
-      reward.gain = Math.min(WIN_REWARD, cap - pet.stats[stat]);
+      reward.gain = Math.min(WIN_REWARD * (reward.upset ? 2 : 1), cap - pet.stats[stat]);
       pet.stats[stat] += reward.gain;
     }
   }

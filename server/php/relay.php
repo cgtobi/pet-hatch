@@ -66,8 +66,7 @@ const STALE_MS = 25_000;
  * stored), with first and last visit and the last stage and form. Kept until this long after the last visit.
  */
 const DOJO_PETS_KEEP_DAYS = 90;
-/** Dojo matching (the rating and match window are in dojo.php). */
-const DOJO_REMATCH_MS = 2 * 60_000;
+/** Dojo matching (ratings, windows, pairing and uneven offers are in dojo.php). */
 const DOJO_MAX_PLAYERS = 100;
 /** Matching compares every waiting pair, so it runs at most this often rather than on every request. */
 const DOJO_MATCH_EVERY_MS = 1000;
@@ -213,6 +212,8 @@ function detach(array &$s, string $id): void
         $s['rooms'][$code]['peers'] = $peers;
         announce($s, $code);
     } elseif ($c['waiting']) {
+        // Leaving in the middle of an offer: the other player simply goes on waiting (it's not a no).
+        if (!empty($c['offer'])) cancel_offer($s, $id, false, 0);
         $s['conns'][$id]['waiting'] = false;
         announce_dojo($s);
     }
@@ -233,8 +234,8 @@ function within_rate(array &$s, string $id, int $now, int $count): bool
 }
 
 /** Forward a client's messages to the other player in its room (the dojo has nobody to forward to). */
-/** Message types only the relay itself sends (errors, room and dojo news, matches). */
-const RELAY_TYPES = ['error', 'room', 'dojo', 'match'];
+/** Message types only the relay itself sends (errors, room and dojo news, matches and offers). */
+const RELAY_TYPES = ['error', 'room', 'dojo', 'match', 'offer', 'offer-off'];
 
 function speaks_for_relay(string $text): bool
 {
@@ -261,6 +262,14 @@ function forward(array &$s, string $id, mixed $msgs, int $now): void
     // A player may not speak for the relay (e.g. a fake error that would end the other player's battle as a loss).
     $msgs = array_values(array_filter($msgs, fn(string $text) => !speaks_for_relay($text)));
     $c = $s['conns'][$id];
+    if ($c['kind'] === 'dojo') {
+        // In the dojo the only thing to say is the answer to an uneven offer.
+        foreach ($msgs as $text) {
+            $m = json_decode($text, true);
+            if (is_array($m) && ($m['t'] ?? null) === 'answer') answer_offer($s, $id, ($m['yes'] ?? false) === true, $now);
+        }
+        return;
+    }
     if ($c['kind'] !== 'room' || !$msgs || !isset($s['rooms'][$c['room']])) return;
     $s['rooms'][$c['room']]['touched'] = $now;
     foreach ($s['rooms'][$c['room']]['peers'] as $p) {
@@ -309,6 +318,14 @@ function cleanup(array &$s, int $now): void
     }
     foreach ($s['misses'] ?? [] as $v => [$since]) {
         if ($now - $since >= ROOM_MISS_WINDOW_MS) unset($s['misses'][$v]);
+    }
+    foreach ($s['declined'] ?? [] as $key => $at) {
+        if ($now - $at >= DOJO_DECLINED_MS) unset($s['declined'][$key]);
+    }
+    // An offer nobody answered in time counts as a no.
+    foreach (array_keys($s['conns']) as $id) {
+        $offer = $s['conns'][$id]['offer'] ?? null;
+        if ($offer && $now > $offer['until']) cancel_offer($s, (string) $id, true, $now);
     }
     if ($now - ($s['matchedAt'] ?? 0) >= DOJO_MATCH_EVERY_MS) match_dojo($s, $now);
 }
@@ -421,49 +438,105 @@ function announce_dojo(array &$s): void
     foreach ($ids as $id) push($s, $id, message(['t' => 'dojo', 'players' => count($ids) - 1]));
 }
 
-function join_dojo(array &$s, int $now, int $rating, string $player, string $code): array
+function join_dojo(array &$s, int $now, int $rating, string $player, string $code, bool $offers): array
 {
     if (count(waiting($s)) >= DOJO_MAX_PLAYERS || !visitor_has_room($s)) return refused('busy');
-    $id = new_conn($s, $now, ['kind' => 'dojo', 'waiting' => true, 'player' => $player, 'rating' => $rating, 'code' => $code, 'joinedAt' => $now]);
+    $id = new_conn($s, $now, [
+        'kind' => 'dojo',
+        'waiting' => true,
+        'player' => $player,
+        'rating' => $rating,
+        'code' => $code,
+        'joinedAt' => $now,
+        // Games that can answer uneven offers say so; older ones are never asked.
+        'offers' => $offers,
+        'offer' => null,
+    ]);
     announce_dojo($s);
     return deliver($s, $id, 0);
 }
 
-/** Pair waiting players (closest ratings first, as in server/dojo.mjs) and send each pair into a fresh room. */
+/** The offer time, in ms; PETHATCH_DOJO_OFFER_AFTER_MS changes it (tests use a few seconds). */
+function offer_after_ms(): int
+{
+    $env = getenv('PETHATCH_DOJO_OFFER_AFTER_MS');
+    return $env === false || $env === '' ? DOJO_OFFER_AFTER_MS : max(0, (int) $env);
+}
+
+/**
+ * Pair waiting players close in strength (closest first) and send each pair into a fresh room; then offer the
+ * closest of those who've waited long enough to each other, however far apart (see dojo.php).
+ */
 function match_dojo(array &$s, int $now): void
 {
-    $ids = waiting($s);
+    $ids = array_values(array_filter(waiting($s), fn ($id) => empty($s['conns'][$id]['offer'])));
     if (count($ids) < 2 || count($s['rooms']) >= MAX_ROOMS) return;
     $s['matchedAt'] = $now;
-    $candidates = [];
-    foreach ($ids as $i => $a) {
-        foreach (array_slice($ids, $i + 1) as $b) {
-            $x = $s['conns'][$a];
-            $y = $s['conns'][$b];
-            if ($x['player'] === $y['player']) continue;
-            $diff = abs($x['rating'] - $y['rating']);
-            $allowed = min(match_window($x['rating'], $now - $x['joinedAt']), match_window($y['rating'], $now - $y['joinedAt']));
-            if ($diff > $allowed) continue;
-            if ($now - ($s['recent'][pair_key($x['player'], $y['player'])] ?? PHP_INT_MIN) < DOJO_REMATCH_MS) continue;
-            $candidates[] = [$a, $b, $diff];
+    $list = array_map(fn ($id) => ['id' => $s['conns'][$id]['player']] + $s['conns'][$id], $ids);
+    $paired = [];
+    foreach (find_pairs($list, $now, $s['recent']) as [$i, $j]) {
+        start_match($s, $ids[$i], $ids[$j], $now);
+        $paired[$i] = $paired[$j] = true;
+    }
+    $rest = array_values(array_diff_key($ids, $paired));
+    $list = array_map(fn ($id) => ['id' => $s['conns'][$id]['player']] + $s['conns'][$id], $rest);
+    foreach (find_offers($list, $now, $s['recent'], $s['declined'] ?? [], offer_after_ms()) as [$i, $j]) {
+        $a = $rest[$i];
+        $b = $rest[$j];
+        foreach ([[$a, $b], [$b, $a]] as [$me, $other]) {
+            $s['conns'][$me]['offer'] = ['with' => $other, 'until' => $now + DOJO_ANSWER_MS, 'yes' => false];
+            push($s, $me, message([
+                't' => 'offer',
+                'rating' => $s['conns'][$me]['rating'],
+                'foe' => $s['conns'][$other]['code'],
+                'foeRating' => $s['conns'][$other]['rating'],
+            ]));
         }
     }
-    usort($candidates, fn ($p, $q) => $p[2] <=> $q[2]);
-    $used = [];
-    foreach ($candidates as [$a, $b]) {
-        if (isset($used[$a]) || isset($used[$b])) continue;
-        $used[$a] = $used[$b] = true;
-        $code = new_room_code($s);
-        $s['rooms'][$code] = new_room($now, true);
-        $s['recent'][pair_key($s['conns'][$a]['player'], $s['conns'][$b]['player'])] = $now;
-        foreach ([[$a, 'host', $b], [$b, 'guest', $a]] as [$id, $role, $other]) {
-            // The other pet's code, so the game can check it really battles the pet it was matched with.
-            push($s, $id, message(['t' => 'match', 'room' => $code, 'role' => $role, 'foe' => $s['conns'][$other]['code'] ?? null]));
-            $s['conns'][$id]['waiting'] = false;
-            $s['conns'][$id]['closed'] = true;
-        }
+    if ($paired) announce_dojo($s);
+}
+
+/** Send two dojo players into a fresh room, as host and guest. */
+function start_match(array &$s, string $a, string $b, int $now): void
+{
+    $code = new_room_code($s);
+    $s['rooms'][$code] = new_room($now, true);
+    $s['recent'][pair_key($s['conns'][$a]['player'], $s['conns'][$b]['player'])] = $now;
+    foreach ([[$a, 'host', $b], [$b, 'guest', $a]] as [$id, $role, $other]) {
+        // The other pet's code, so the game can check it really battles the pet it was matched with.
+        push($s, $id, message(['t' => 'match', 'room' => $code, 'role' => $role, 'foe' => $s['conns'][$other]['code'] ?? null]));
+        $s['conns'][$id]['waiting'] = false;
+        $s['conns'][$id]['closed'] = true;
+        $s['conns'][$id]['offer'] = null;
     }
-    if ($used) announce_dojo($s);
+}
+
+/** A player's yes or no to the offer it's being asked about. */
+function answer_offer(array &$s, string $id, bool $yes, int $now): void
+{
+    $offer = $s['conns'][$id]['offer'] ?? null;
+    if (!$offer || !isset($s['conns'][$offer['with']])) return;
+    if (!$yes) {
+        cancel_offer($s, $id, true, $now);
+        return;
+    }
+    $s['conns'][$id]['offer']['yes'] = true;
+    if ($s['conns'][$offer['with']]['offer']['yes'] ?? false) start_match($s, $id, $offer['with'], $now);
+    announce_dojo($s);
+}
+
+/** The offer is off for both: one said no or didn't answer in time ($declined), or one left. */
+function cancel_offer(array &$s, string $id, bool $declined, int $now): void
+{
+    $other = $s['conns'][$id]['offer']['with'] ?? null;
+    foreach ([$id, $other] as $c) {
+        if ($c === null || !isset($s['conns'][$c])) continue;
+        $s['conns'][$c]['offer'] = null;
+        push($s, $c, message(['t' => 'offer-off']));
+    }
+    if ($declined && $other !== null && isset($s['conns'][$other])) {
+        $s['declined'][pair_key($s['conns'][$id]['player'], $s['conns'][$other]['player'])] = $now;
+    }
 }
 
 // ---------- requests ----------
@@ -505,7 +578,8 @@ switch (field($req, 'a')) {
         if ($rating === null || $id === '' || strlen($id) > 40) reply(refused('bad-request'));
         $player = $id;
         $battleCode = $req['code'];
-        $joined = with_state(fn (array &$s, int $now) => join_dojo($s, $now, $rating, $player, $battleCode));
+        $offers = in_array($req['offers'] ?? null, [true, '1'], true);
+        $joined = with_state(fn (array &$s, int $now) => join_dojo($s, $now, $rating, $player, $battleCode, $offers));
         // Only pets that actually got in count (not ones turned away because the dojo is full).
         if (isset($joined['id'])) count_dojo_pet($req['code']);
         reply($joined);

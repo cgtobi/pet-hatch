@@ -235,7 +235,8 @@ line up, and a bottom sheet shows HP bars, a log line and the move buttons. 1v1,
   floor so untrained pets still meet real foes). Any type, Astral rarely. Simulated: a pet of average stats wins
   about 50–65% of wild battles in 3–6 turns.
 - **Cost and reward:** a battle uses 25% energy and a little food (it needs ≥ 25% energy, awake, healthy, fed).
-  A win gives +10 mood and +2 to a random stat below the cap; a loss costs 8 mood. Running away costs 3 mood.
+  A win gives +10 mood and +2 to a random stat below the cap (+4 for an **upset**: beating another pet whose
+  battle rating is at least 35% higher; wild creatures don't count); a loss costs 8 mood. Running away costs 3 mood.
   Wins and losses are recorded.
 - **Battle experience:** every real fight fills a bar (10 points = +1 stat), shown in the Battle tab and on the
   result screen. A win earns 4 and a loss 2, scaled quietly by effort (0.5–1.5×): a loser earns more the closer
@@ -272,10 +273,17 @@ A public waiting room for live battles against strangers of similar strength.
 - **Fairness:** the relay computes each rating from the pet's battle code itself (a copy of the game's reader,
   kept in step by a test), so a player can't claim to be weaker than the pet they fight with. The same two pets
   aren't paired again for 2 minutes.
+- **Uneven offers:** when the dojo is quiet, two pets may wait without ever coming within each other's window.
+  Once both have waited 90 s, the relay offers them to each other anyway (closest first): each player sees the
+  other pet's species and both ratings ("stronger" or "weaker") and has 20 s to say yes or no. Only if both say
+  yes does the match start; a no, no answer or leaving cancels it for both, who simply go on waiting, and a pair
+  that turned each other down isn't offered again for 10 minutes. The weaker side has a reason to accept: an
+  upset win pays double (see Battles).
 - **Anonymous:** dojo opponents are shown by species and type only, never by the name their owner typed.
 - **Relay side** (`server/dojo.mjs`, `/dojo` WebSocket): a queue of waiting players, a matching pass every
   second, and a room reserved for each pair so both can arrive in any order; it closes if they don't both arrive
-  within 30 s (the game then simply goes back to waiting). Up to 500 waiting players; nothing is stored.
+  within 30 s (the game then simply goes back to waiting). Up to 500 waiting players; nothing is stored. A game
+  that can answer offers says so when it joins (`?offers=1`), so older games are only ever matched normally.
 
 ### Family ✅
 
@@ -388,8 +396,8 @@ UI: Fredoka (display) + Nunito (body), self-hosted Latin subsets.
 | `src/i18n/` | All player-facing text: `en.ts` is the source, one file per translation, checked by `i18n.test.ts`. |
 | `src/net/` | Live battles: `live.ts` (lockstep protocol over the relay), `dojo.ts` (waiting in the dojo), `channel.ts` (WebSocket or HTTP polling), `relayConfig.ts` (finding the relay), `sha256.ts` (move commitments), `stats.ts` (opt-in pet stats). Tested end to end against a real relay in `live.test.ts` and `dojo.test.ts`, and against the PHP relay with `npm run test:php`. |
 | `server/relay.mjs` | The optional live battle relay (rooms and the dojo), which can also serve the built game. |
-| `server/dojo.mjs` | Dojo matchmaking: ratings from battle codes, the widening match window, pairing. |
-| `server/php/` | For PHP web hosting: the relay (`relay.php`, `relay.json`), its dojo rules (`dojo.php`, compared with `server/dojo.mjs` on the same codes by `dojo.test.ts` through `check-dojo.php`), the stats and dashboard (`stats.php`, `stats.json`, `.htaccess`) and what they share (`common.php`: the data folder, safe writes, visitors). `npm run deploy` bundles them with the game in `deploy/php/`. |
+| `server/dojo.mjs` | Dojo matchmaking: ratings from battle codes, the widening match window, pairing, uneven offers. |
+| `server/php/` | For PHP web hosting: the relay (`relay.php`, `relay.json`), its dojo rules (`dojo.php`, compared with `server/dojo.mjs` on the same codes and waiting rooms by `dojo.test.ts` through `check-dojo.php`), the stats and dashboard (`stats.php`, `stats.json`, `.htaccess`) and what they share (`common.php`: the data folder, safe writes, visitors). `npm run deploy` bundles them with the game in `deploy/php/`. |
 | `scripts/deploy.mjs` | `npm run deploy`: the built game in `deploy/` (untracked), as static, PHP and Node hosting folders. |
 | `Dockerfile`, `docker-compose.yml` | One image with the game and the relay (amd64 and arm64). |
 | `repository.yaml`, `pet_hatch/` | Home Assistant app: sidebar via ingress plus a direct port; builds from this repository's Git URL. |

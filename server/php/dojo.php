@@ -15,6 +15,15 @@ const DOJO_GROW_WINDOW = 0.05;
 const DOJO_MAX_WINDOW = 0.35;
 /** Never narrower than this many rating points, so beginners still find each other. */
 const DOJO_MIN_POINTS = 8;
+/** The same two pets aren't matched again within this time. */
+const DOJO_REMATCH_MS = 2 * 60_000;
+/**
+ * With nobody close in strength, two pets that have both waited this long are offered to each other however far
+ * apart they are; both must say yes within DOJO_ANSWER_MS. A pair that said no isn't offered again for a while.
+ */
+const DOJO_OFFER_AFTER_MS = 90_000;
+const DOJO_ANSWER_MS = 20_000;
+const DOJO_DECLINED_MS = 10 * 60_000;
 
 function checksum(array $bytes): int
 {
@@ -48,4 +57,60 @@ function match_window(int $rating, int $waitedMs): float
 function pair_key(string $x, string $y): string
 {
     return $x < $y ? "$x|$y" : "$y|$x";
+}
+
+/**
+ * Pairs among the waiting players ([['id' => player, 'rating', 'joinedAt'], …]), as index pairs: closest ratings
+ * first, each within both players' current windows, skipping recent rematches. As findPairs() in server/dojo.mjs.
+ */
+function find_pairs(array $waiting, int $now, array $recent): array
+{
+    $candidates = [];
+    foreach ($waiting as $i => $a) {
+        foreach ($waiting as $j => $b) {
+            if ($j <= $i || $a['id'] === $b['id']) continue;
+            $diff = abs($a['rating'] - $b['rating']);
+            $allowed = min(match_window($a['rating'], $now - $a['joinedAt']), match_window($b['rating'], $now - $b['joinedAt']));
+            if ($diff > $allowed) continue;
+            if ($now - ($recent[pair_key($a['id'], $b['id'])] ?? PHP_INT_MIN) < DOJO_REMATCH_MS) continue;
+            $candidates[] = [$i, $j, $diff];
+        }
+    }
+    return take_closest($candidates);
+}
+
+/**
+ * Uneven offers, as index pairs: among players that take offers ('offers'), aren't in one already ('offer') and
+ * have waited at least $afterMs, the closest pairs however far apart, skipping recent rematches and pairs that
+ * turned each other down lately. As findOffers() in server/dojo.mjs.
+ */
+function find_offers(array $waiting, int $now, array $recent, array $declined, int $afterMs = DOJO_OFFER_AFTER_MS): array
+{
+    $candidates = [];
+    $ready = fn(array $w) => !empty($w['offers']) && empty($w['offer']) && $now - $w['joinedAt'] >= $afterMs;
+    foreach ($waiting as $i => $a) {
+        foreach ($waiting as $j => $b) {
+            if ($j <= $i || !$ready($a) || !$ready($b) || $a['id'] === $b['id']) continue;
+            $key = pair_key($a['id'], $b['id']);
+            if ($now - ($recent[$key] ?? PHP_INT_MIN) < DOJO_REMATCH_MS) continue;
+            if ($now - ($declined[$key] ?? PHP_INT_MIN) < DOJO_DECLINED_MS) continue;
+            $candidates[] = [$i, $j, abs($a['rating'] - $b['rating'])];
+        }
+    }
+    return take_closest($candidates);
+}
+
+/** Closest first, each player in at most one pair. */
+function take_closest(array $candidates): array
+{
+    // Stable, like JavaScript's sort, so equal gaps pair up the same way on both relays.
+    usort($candidates, fn($p, $q) => $p[2] <=> $q[2]);
+    $used = [];
+    $pairs = [];
+    foreach ($candidates as [$i, $j]) {
+        if (isset($used[$i]) || isset($used[$j])) continue;
+        $used[$i] = $used[$j] = true;
+        $pairs[] = [$i, $j];
+    }
+    return $pairs;
 }

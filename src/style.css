@@ -1155,6 +1155,26 @@ body.sheet-open #update {
   color: var(--violet-ink);
 }
 
+.dojo-offer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 16px;
+  background: var(--violet-bg);
+  text-align: center;
+}
+
+.dojo-offer[hidden] {
+  display: none;
+}
+
+.dojo-offer p {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
 .train-actions {
   display: grid;
   grid-template-columns: 1fr 1.4fr;

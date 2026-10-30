@@ -269,6 +269,13 @@ export class Arena {
         <span class="bubble violet-btn dojo-mark">${icon('shield', 34)}</span>
         <p class="bt-lobby-status">${t('dojo.waiting')}</p>
         <p class="bt-lobby-detail dojo-players">${t('dojo.empty')}</p>
+        <div class="dojo-offer" hidden>
+          <p class="dojo-offer-text"></p>
+          <div class="train-actions">
+            <button type="button" class="secondary dojo-no">${t('dojo.offerNo')}</button>
+            <button type="button" class="primary dojo-yes">${t('dojo.offerYes')}</button>
+          </div>
+        </div>
         <button type="button" class="secondary bt-leave-dojo">${t('dojo.leave')}</button>
       </div>`;
     this.s.bindHead(() => this.menu());
@@ -288,9 +295,39 @@ export class Arena {
       players.textContent = n === 0 ? t('dojo.empty') : n === 1 ? t('dojo.one') : t('dojo.players', { n });
     };
     dojo.onFail = fail;
+
+    // Nobody close in strength: the dojo asks whether to fight a far stronger or weaker pet anyway.
+    const offer = this.sheet.querySelector<HTMLElement>('.dojo-offer')!;
+    const offerText = this.sheet.querySelector<HTMLElement>('.dojo-offer-text')!;
+    const answers = [...offer.querySelectorAll<HTMLButtonElement>('button')];
+    const answer = (yes: boolean) => {
+      dojo.answer(yes);
+      answers.forEach((b) => (b.disabled = true));
+      if (yes) status.textContent = t('dojo.offerWaiting');
+      else offer.hidden = true;
+      this.s.layout();
+    };
+    offer.querySelector('.dojo-yes')!.addEventListener('click', () => answer(true));
+    offer.querySelector('.dojo-no')!.addEventListener('click', () => answer(false));
+    dojo.onOffer = ({ foe, rating, foeRating }) => {
+      if (run !== this.run) return;
+      const f = decodeFighter(foe);
+      const params = { species: f ? speciesName(f.type, f.form) : '?', foe: foeRating, mine: rating };
+      offerText.textContent = t(foeRating >= rating ? 'dojo.offerStronger' : 'dojo.offerWeaker', params);
+      answers.forEach((b) => (b.disabled = false));
+      offer.hidden = false;
+      this.s.layout();
+    };
+    dojo.onOfferOff = () => {
+      if (run !== this.run) return;
+      offer.hidden = true;
+      status.textContent = t('dojo.waiting');
+      this.s.layout();
+    };
     dojo.onMatch = (room, role, foe) => {
       if (run !== this.run) return;
       this.dojo = null;
+      offer.hidden = true;
       status.textContent = t('dojo.found');
       players.hidden = true;
       const live = (this.live = new LiveSession(this.relay!, room, role, fighterFromPet(pet), foe));
@@ -572,9 +609,9 @@ export class Arena {
         : outcome === 'lost'
           ? t('battle.lostBody', { foe: foeName })
           : t('battle.fledBody'));
-    const gain = reward.stat
-      ? `<p class="train-gain ${pet.type}">${t('train.gain', { stat: t(`stat.${reward.stat}`), n: reward.gain })}</p>`
-      : '';
+    const gain =
+      (reward.upset ? `<p class="train-goal">${t('battle.upset')}</p>` : '') +
+      (reward.stat ? `<p class="train-gain ${pet.type}">${t('train.gain', { stat: t(`stat.${reward.stat}`), n: reward.gain })}</p>` : '');
     // Experience: what this battle added, the bar, and a stat point when the bar filled.
     const capped = !reward.learned && pet.battleXp >= XP_PER_POINT;
     const xp = reward.xp

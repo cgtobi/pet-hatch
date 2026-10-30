@@ -13,6 +13,8 @@ export function createRelay(options?: {
   log?: (msg: string) => void;
   /** Open connections per visitor (IP address, IPv6 by /64); 0 turns the limit off. */
   maxPerVisitor?: number;
+  /** How long two pets wait before an uneven offer (tests use less). */
+  offerAfterMs?: number;
 }): Relay;
 
 /** The visitor an address counts as: the IP itself, or an IPv6 address's /64 network. */

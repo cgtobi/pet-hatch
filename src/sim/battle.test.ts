@@ -169,6 +169,23 @@ describe('battle results', () => {
     expect(p.mood).toBe(60);
   });
 
+  it('doubles the stat points for beating a much stronger pet', () => {
+    const p = pet();
+    // Ratings 120 (this pet) and 165: over 35% stronger.
+    const strong = fighter({ name: 'Mochi', stage: 2, form: 'teen.physical', stats: { power: 40, speed: 40, guard: 30, wits: 15 } });
+    const r = finishBattle(p, 'won', 5, fought({ foe: strong }));
+    expect(r.upset).toBe(true);
+    expect(r.gain).toBe(4);
+    const q = pet();
+    const even = finishBattle(q, 'won', 5, fought());
+    expect(even.upset).toBe(false);
+    expect(even.gain).toBe(2);
+    // Wild creatures don't count: a new pet often meets one with a few points more.
+    const wild = finishBattle(pet(), 'won', 5, fought({ foe: { ...strong, wild: true } }));
+    expect(wild.upset).toBe(false);
+    expect(wild.gain).toBe(2);
+  });
+
   it('gives a loser a little experience and remembers what beat it', () => {
     const p = pet();
     const foe = fought().foe;

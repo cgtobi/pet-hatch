@@ -6,7 +6,7 @@
  */
 import { spawnSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
-import { matchWindow, ratingFromCode } from '../dojo.mjs';
+import { DOJO, findOffers, findPairs, matchWindow, pairKey, ratingFromCode, type Waiting } from '../dojo.mjs';
 import type { Fighter } from '../../src/sim/battle';
 import { encodeFighter } from '../../src/sim/battlecode';
 import { mulberry32 } from '../../src/sim/rng';
@@ -14,7 +14,19 @@ import { STAT_CAPS } from '../../src/sim/training';
 
 const command = process.env.PHP_CHECK_DOJO ? (JSON.parse(process.env.PHP_CHECK_DOJO) as string[]) : null;
 
-function php(input: { codes: string[]; windows: [number, number][] }): { ratings: (number | null)[]; windows: number[] } {
+interface Scene {
+  waiting: (Waiting & { offer: unknown })[];
+  now: number;
+  recent: Record<string, number>;
+  declined: Record<string, number>;
+}
+
+function php(input: { codes: string[]; windows: [number, number][]; scenes?: Scene[] }): {
+  ratings: (number | null)[];
+  windows: number[];
+  pairs: [number, number][][];
+  offers: [number, number][][];
+} {
   const [cmd, ...args] = command!;
   const run = spawnSync(cmd, args, { input: JSON.stringify(input), encoding: 'utf8' });
   if (run.status !== 0) throw new Error(run.stderr);
@@ -59,6 +71,37 @@ function codes(): string[] {
   return out;
 }
 
+/**
+ * Random dojo rooms: a few to a dozen players (some sharing an id, some not taking offers, some already in one),
+ * waiting from just now to several minutes, with recent rematches and turned-down offers among them.
+ */
+function scenes(): Scene[] {
+  const rand = mulberry32(7);
+  const now = 1_000_000_000;
+  const out: Scene[] = [];
+  for (let n = 0; n < 60; n++) {
+    const count = 2 + Math.floor(rand() * 11);
+    const ids = Array.from({ length: count }, (_, i) => `p${rand() < 0.1 ? 0 : i}`);
+    const waiting = ids.map((id) => ({
+      id,
+      // Coarse ratings, so equal gaps (and the order they're taken in) come up often.
+      rating: Math.floor(rand() * 12) * 15,
+      joinedAt: now - Math.floor(rand() * 4 * DOJO.offerAfterMs),
+      offers: rand() < 0.85,
+      offer: rand() < 0.1 ? { with: 'x' } : null,
+    }));
+    const recent: Record<string, number> = {};
+    const declined: Record<string, number> = {};
+    for (let k = 0; k < count; k++) {
+      const [x, y] = [ids[Math.floor(rand() * count)], ids[Math.floor(rand() * count)]];
+      const when = now - Math.floor(rand() * 2 * Math.max(DOJO.rematchMs, DOJO.declinedMs));
+      (rand() < 0.5 ? recent : declined)[pairKey(x, y)] = when;
+    }
+    out.push({ waiting, now, recent, declined });
+  }
+  return out;
+}
+
 describe.skipIf(!command)('PHP dojo rules match the Node ones', () => {
   it('rates every battle code the same, and turns away the same broken ones', () => {
     const all = codes();
@@ -73,5 +116,21 @@ describe.skipIf(!command)('PHP dojo rules match the Node ones', () => {
     const node = windows.map(([r, w]) => matchWindow(r, w));
     const got = php({ codes: [], windows }).windows;
     got.forEach((w, i) => expect(w).toBeCloseTo(node[i], 9));
+  });
+
+  it('pairs up and offers the same players, in the same order', () => {
+    const all = scenes();
+    const got = php({ codes: [], windows: [], scenes: all });
+    const asIndexes = (scene: Scene, pairs: [Waiting, Waiting][]) =>
+      pairs.map(([a, b]) => [scene.waiting.indexOf(a as Scene['waiting'][number]), scene.waiting.indexOf(b as Scene['waiting'][number])]);
+    const map = (o: Record<string, number>) => new Map(Object.entries(o));
+    const pairs = all.map((c) => asIndexes(c, findPairs(c.waiting, c.now, map(c.recent))));
+    const offers = all.map((c) => asIndexes(c, findOffers(c.waiting, c.now, map(c.recent), map(c.declined))));
+    // The scenes should exercise both: some rooms with pairs or offers, some with none.
+    expect(pairs.filter((p) => p.length).length).toBeGreaterThan(10);
+    expect(offers.filter((p) => p.length).length).toBeGreaterThan(10);
+    expect(offers.filter((p) => !p.length).length).toBeGreaterThan(3);
+    expect(got.pairs).toEqual(pairs);
+    expect(got.offers).toEqual(offers);
   });
 });

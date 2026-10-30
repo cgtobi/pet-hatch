@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { DOJO, findPairs, matchWindow, ratingFromCode, type Waiting } from '../../server/dojo.mjs';
+import { DOJO, findOffers, findPairs, matchWindow, ratingFromCode, type Waiting } from '../../server/dojo.mjs';
 import { createRelay, type Relay } from '../../server/relay.mjs';
 import { mulberry32 } from '../sim/rng';
 import { battleRating, type Fighter } from '../sim/battle';
@@ -60,12 +60,39 @@ describe('dojo matching', () => {
     expect(findPairs([at('a', 200), at('b', 200)], 30_000, recent)).toEqual([]);
     expect(findPairs([at('a', 200), at('b', 200)], DOJO.rematchMs + 1, recent)).toHaveLength(1);
   });
+
+  const asks = (id: string, rating: number, joinedAt = 0): Waiting => ({ id, rating, joinedAt, offers: true });
+
+  it('offers far-apart pets to each other once both have waited long enough', () => {
+    const far = [asks('a', 54), asks('b', 94)];
+    expect(findOffers(far, DOJO.offerAfterMs - 1, new Map(), new Map())).toEqual([]);
+    expect(findOffers(far, DOJO.offerAfterMs, new Map(), new Map()).map(([x, y]) => [x.id, y.id])).toEqual([['a', 'b']]);
+    // Only once both have waited: b just arrived.
+    expect(findOffers([asks('a', 54), asks('b', 94, 60_000)], DOJO.offerAfterMs, new Map(), new Map())).toEqual([]);
+  });
+
+  it('offers the closest first, never to games that can’t answer, nor to someone already asked', () => {
+    const now = DOJO.offerAfterMs;
+    const pairs = findOffers([asks('a', 20), asks('b', 200), asks('c', 100), asks('d', 90)], now, new Map(), new Map());
+    expect(pairs.map(([x, y]) => [x.id, y.id])).toEqual([['c', 'd'], ['a', 'b']]);
+    expect(findOffers([asks('a', 54), at('b', 94)], now, new Map(), new Map())).toEqual([]);
+    expect(findOffers([asks('a', 54), { ...asks('b', 94), offer: {} }], now, new Map(), new Map())).toEqual([]);
+  });
+
+  it('doesn’t ask a pair again for a while after one of them said no', () => {
+    const far = [asks('a', 54), asks('b', 94)];
+    const declined = new Map([['a|b', DOJO.offerAfterMs]]);
+    expect(findOffers(far, DOJO.offerAfterMs + 60_000, new Map(), declined)).toEqual([]);
+    expect(findOffers(far, DOJO.offerAfterMs + DOJO.declinedMs, new Map(), declined)).toHaveLength(1);
+  });
 });
 
 let relay: Relay;
 let nodeUrl: string;
+/** Offers come after this long in these tests (the PHP relay gets the same through PETHATCH_DOJO_OFFER_AFTER_MS). */
+const OFFER_AFTER_MS = 1500;
 beforeAll(async () => {
-  relay = createRelay();
+  relay = createRelay({ offerAfterMs: OFFER_AFTER_MS });
   nodeUrl = `ws://127.0.0.1:${await relay.listen(0, '127.0.0.1')}/relay`;
 });
 afterAll(() => relay.close());
@@ -143,6 +170,45 @@ describe.each(relays)('dojo over the %s relay', (_, relayUrl) => {
     expect(strong.players.at(-1)).toBe(0);
     strong.dojo.close();
   });
+
+  /** A pet waiting in the dojo that answers an uneven offer with `yes`; resolves with its offer, then its match. */
+  const answering = (f: Fighter, yes: boolean) => {
+    const w = enter(f);
+    const offered = new Promise<{ foe: string; rating: number; foeRating: number }>((done) => {
+      w.dojo.onOffer = (o) => {
+        done(o);
+        w.dojo.answer(yes);
+      };
+    });
+    const off = new Promise<void>((done) => (w.dojo.onOfferOff = () => done()));
+    return { ...w, offered, off };
+  };
+
+  it('offers far-apart pets to each other after a while, and matches them if both say yes', async () => {
+    const weak = fighter(1, { power: 4, speed: 2, guard: 17, wits: 11 }, 'Kiwi');
+    const strong = fighter(1, { power: 30, speed: 24, guard: 16, wits: 4 }, 'Tofu');
+    const a = answering(weak, true);
+    const b = answering(strong, true);
+    const [oa, ob] = await Promise.all([a.offered, b.offered]);
+    expect(oa).toEqual({ foe: encodeFighter(strong), rating: 54, foeRating: 94 });
+    expect(ob).toEqual({ foe: encodeFighter(weak), rating: 94, foeRating: 54 });
+    const [ma, mb] = await Promise.all([a.match, b.match]);
+    expect(ma.room).toBe(mb.room);
+    expect(ma.foe).toBe(encodeFighter(strong));
+   }, 15_000);
+
+  it('lets both go on waiting when one says no, without asking that pair again', async () => {
+    const a = answering(fighter(1, { power: 3, speed: 3, guard: 3, wits: 3 }, 'Bean'), true);
+    const b = answering(fighter(1, { power: 30, speed: 30, guard: 30, wits: 30 }, 'Dot'), false);
+    await Promise.all([a.offered, b.offered]);
+    await Promise.all([a.off, b.off]);
+    let asked = false;
+    a.dojo.onOffer = () => (asked = true);
+    await new Promise((r) => setTimeout(r, OFFER_AFTER_MS + 1500));
+    expect(asked).toBe(false);
+    a.dojo.close();
+    b.dojo.close();
+  }, 15_000);
 
   it('turns away an invalid battle code', async () => {
     const bad = new DojoSession(url, 'not-a-real-battle-code');

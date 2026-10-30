@@ -70,7 +70,8 @@ function vitest(args, env) {
 
 let status = 0;
 // The game's tests all come from one address, so the per-visitor limit is off for them.
-let relay = await start({ PETHATCH_MAX_PER_IP: '0' });
+// Uneven dojo offers come after 1.5 s here instead of 90 s, as in src/net/dojo.test.ts.
+let relay = await start({ PETHATCH_MAX_PER_IP: '0', PETHATCH_DOJO_OFFER_AFTER_MS: '1500' });
 try {
   // Over HTTP a message takes up to a poll step to arrive, so a whole battle takes a few seconds longer.
   status ||= vitest(['src/net', '--testTimeout=60000'], { PHP_RELAY_URL: url });

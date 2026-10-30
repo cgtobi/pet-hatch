@@ -17,6 +17,13 @@ export const DOJO = {
   minPoints: 8,
   /** The same two pets aren't matched again within this time. */
   rematchMs: 2 * 60_000,
+  /**
+   * With nobody close in strength, two pets that have both waited this long are offered to each other however
+   * far apart they are; both must say yes within answerMs. A pair that said no isn't offered again for declinedMs.
+   */
+  offerAfterMs: 90_000,
+  answerMs: 20_000,
+  declinedMs: 10 * 60_000,
   maxPlayers: 500,
 };
 
@@ -70,6 +77,40 @@ export function findPairs(waiting, now, recent) {
       candidates.push({ a, b, diff });
     }
   }
+  return takeClosest(candidates);
+}
+
+/**
+ * Uneven offers: among players that take offers, aren't in one already and have waited at least `afterMs`, the
+ * closest pairs, however far apart (normal matching already had its chance). Skips recent rematches and pairs
+ * that turned each other down lately.
+ * @param {{ id: string, rating: number, joinedAt: number, offers?: boolean, offer?: unknown }[]} waiting
+ * @param {number} now
+ * @param {Map<string, number>} recent  pair key → when they were last matched
+ * @param {Map<string, number>} declined  pair key → when one of them said no
+ */
+export function findOffers(waiting, now, recent, declined, afterMs = DOJO.offerAfterMs) {
+  const ready = waiting.filter((w) => w.offers && !w.offer && now - w.joinedAt >= afterMs);
+  const candidates = [];
+  for (let i = 0; i < ready.length; i++) {
+    for (let j = i + 1; j < ready.length; j++) {
+      const a = ready[i];
+      const b = ready[j];
+      if (a.id === b.id) continue;
+      const key = pairKey(a.id, b.id);
+      if (now - (recent.get(key) ?? -Infinity) < DOJO.rematchMs) continue;
+      if (now - (declined.get(key) ?? -Infinity) < DOJO.declinedMs) continue;
+      candidates.push({ a, b, diff: Math.abs(a.rating - b.rating) });
+    }
+  }
+  return takeClosest(candidates);
+}
+
+/**
+ * Closest first, each player in at most one pair.
+ * @template T @param {{ a: T, b: T, diff: number }[]} candidates @returns {[T, T][]}
+ */
+function takeClosest(candidates) {
   candidates.sort((x, y) => x.diff - y.diff);
   const used = new Set();
   const pairs = [];
@@ -77,7 +118,7 @@ export function findPairs(waiting, now, recent) {
     if (used.has(a) || used.has(b)) continue;
     used.add(a);
     used.add(b);
-    pairs.push([a, b]);
+    pairs.push(/** @type {[T, T]} */ ([a, b]));
   }
   return pairs;
 }

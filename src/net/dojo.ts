@@ -10,16 +10,33 @@ export class DojoSession {
   onPlayers: (others: number) => void = () => {};
   /** Matched: the room to battle in, this side's role, and the other pet's battle code (if the relay says it). */
   onMatch: (room: string, role: 'host' | 'guest', foe?: string) => void = () => {};
+  /**
+   * Nobody close in strength turned up, so the dojo asks whether to fight a pet far stronger or weaker anyway:
+   * its battle code and both ratings. Answer with answer(); onOfferOff follows if it doesn't happen.
+   */
+  onOffer: (offer: { foe: string; rating: number; foeRating: number }) => void = () => {};
+  /** The offer is off: one side said no, didn't answer in time, or left. */
+  onOfferOff: () => void = () => {};
   onFail: (code: LiveErrorCode) => void = () => {};
   private channel: Channel;
   private done = false;
 
   constructor(relayUrl: string, battleCode: string) {
-    this.channel = openChannel(relayUrl, 'dojo', { code: battleCode, id: dojoId() });
+    // offers=1: this game can answer uneven offers.
+    this.channel = openChannel(relayUrl, 'dojo', { code: battleCode, id: dojoId(), offers: '1' });
     let opened = false;
     this.channel.onopen = () => (opened = true);
     this.channel.onmessage = (text) => {
-      let m: { t?: string; players?: number; room?: string; role?: string; foe?: unknown; code?: LiveErrorCode };
+      let m: {
+        t?: string;
+        players?: number;
+        room?: string;
+        role?: string;
+        foe?: unknown;
+        rating?: unknown;
+        foeRating?: unknown;
+        code?: LiveErrorCode;
+      };
       try {
         m = JSON.parse(text);
       } catch {
@@ -29,7 +46,10 @@ export class DojoSession {
       else if (m.t === 'match' && m.room && (m.role === 'host' || m.role === 'guest')) {
         this.done = true;
         this.onMatch(m.room, m.role, typeof m.foe === 'string' ? m.foe : undefined);
-      } else if (m.t === 'error') this.finish(m.code ?? 'invalid');
+      } else if (m.t === 'offer' && typeof m.foe === 'string') {
+        this.onOffer({ foe: m.foe, rating: Number(m.rating) || 0, foeRating: Number(m.foeRating) || 0 });
+      } else if (m.t === 'offer-off') this.onOfferOff();
+      else if (m.t === 'error') this.finish(m.code ?? 'invalid');
     };
     this.channel.onclose = () => this.finish(opened ? 'left' : 'unreachable');
   }
@@ -38,6 +58,11 @@ export class DojoSession {
     if (this.done) return;
     this.done = true;
     this.onFail(code);
+  }
+
+  /** Yes or no to the uneven offer. */
+  answer(yes: boolean): void {
+    this.channel.send(JSON.stringify({ t: 'answer', yes }));
   }
 
   /** Leave the dojo. */

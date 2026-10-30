@@ -13,7 +13,7 @@ import { createServer } from 'node:http';
 import { extname, join, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { WebSocketServer } from 'ws';
-import { DOJO, findPairs, pairKey, ratingFromCode } from './dojo.mjs';
+import { DOJO, findOffers, findPairs, pairKey, ratingFromCode } from './dojo.mjs';
 
 /**
  * The relay's WebSocket path. Matched by suffix, so it also works under a path prefix (e.g. Home Assistant
@@ -61,7 +61,7 @@ const TYPES = {
 };
 
 /**
- * @param {{ staticDir?: string | null, log?: (msg: string) => void, maxPerVisitor?: number }} [options]
+ * @param {{ staticDir?: string | null, log?: (msg: string) => void, maxPerVisitor?: number, offerAfterMs?: number }} [options]
  */
 /**
  * Who is asking, for the per-visitor limit: the IP address, an IPv6 one cut to its /64 (a home or phone gets a
@@ -84,8 +84,8 @@ function maxPerVisitorFromEnv() {
   return env === undefined || env === '' ? MAX_PER_IP : Number(env) || 0;
 }
 
-/** Message types only the relay itself sends (errors, room and dojo news, matches). */
-const RELAY_TYPES = new Set(['error', 'room', 'dojo', 'match']);
+/** Message types only the relay itself sends (errors, room and dojo news, matches and offers). */
+const RELAY_TYPES = new Set(['error', 'room', 'dojo', 'match', 'offer', 'offer-off']);
 
 /**
  * Whether a player's message pretends to come from the relay, e.g. a fake error that would end the other
@@ -101,12 +101,19 @@ export function speaksForRelay(text) {
   }
 }
 
-export function createRelay({ staticDir = null, log = () => {}, maxPerVisitor = maxPerVisitorFromEnv() } = {}) {
+export function createRelay({
+  staticDir = null,
+  log = () => {},
+  maxPerVisitor = maxPerVisitorFromEnv(),
+  offerAfterMs = DOJO.offerAfterMs,
+} = {}) {
   /** @type {Map<string, { peers: Set<import('ws').WebSocket>, timer: NodeJS.Timeout | undefined }>} */
   const rooms = new Map();
   const root = staticDir ? resolve(staticDir) : null;
   /** Open connections per visitor. */
   const perVisitor = new Map();
+  /** Pairs that turned down an uneven offer: pair key → when. */
+  const declinedPairs = new Map();
   /** Wrong room codes per visitor: when the window started, and how many. */
   const misses = new Map();
   const missedTooOften = (visitor) => {
@@ -311,16 +318,81 @@ export function createRelay({ staticDir = null, log = () => {}, maxPerVisitor = 
     const id = (url.searchParams.get('id') ?? '').slice(0, 40);
     if (rating === null || !id) return reject(ws, 'bad-request');
     if (waiting.size >= DOJO.maxPlayers) return reject(ws, 'busy');
-    waiting.set(ws, { ws, id, rating, code: battleCode, joinedAt: Date.now() });
+    // Games that can answer uneven offers say so (offers=1); older ones are never asked.
+    const entry = { ws, id, rating, code: battleCode, joinedAt: Date.now(), offers: url.searchParams.get('offers') === '1', offer: null };
+    waiting.set(ws, entry);
     announceDojo();
     const stopPing = keepAlive(ws);
     const withinRate = rateLimiter();
-    // Players don't need to say anything while they wait; chatter only counts toward the rate limit.
-    ws.on('message', () => withinRate() || reject(ws, 'rate'));
+    // The only thing to say while waiting is the answer to an uneven offer; other chatter only counts toward the rate limit.
+    ws.on('message', (data) => {
+      if (!withinRate()) return reject(ws, 'rate');
+      let m;
+      try {
+        m = JSON.parse(data.toString());
+      } catch {
+        return;
+      }
+      if (m && m.t === 'answer') answerOffer(entry, m.yes === true);
+    });
     ws.on('close', () => {
       stopPing();
+      // Leaving in the middle of an offer: the other player simply goes on waiting (it's not a no).
+      if (entry.offer) cancelOffer(entry, false);
       if (waiting.delete(ws)) announceDojo();
     });
+  }
+
+  /**
+   * @typedef {{ ws: import('ws').WebSocket, id: string, rating: number, code: string, joinedAt: number, offers: boolean,
+   *   offer: { with: DojoEntry, until: number, yes: boolean } | null }} DojoEntry
+   */
+
+  /** @param {DojoEntry} entry @param {boolean} yes */
+  function answerOffer(entry, yes) {
+    const offer = entry.offer;
+    if (!offer) return;
+    if (!yes) return cancelOffer(entry, true);
+    offer.yes = true;
+    if (offer.with.offer?.yes) startMatch(entry, offer.with, Date.now());
+  }
+
+  /** The offer is off for both: one said no or didn't answer in time (declined), or one left. @param {DojoEntry} entry */
+  function cancelOffer(entry, declined) {
+    const other = entry.offer?.with;
+    for (const e of [entry, other]) {
+      if (!e) continue;
+      e.offer = null;
+      send(e.ws, { t: 'offer-off' });
+    }
+    if (declined && other) declinedPairs.set(pairKey(entry.id, other.id), Date.now());
+  }
+
+  /** Send two dojo players into a fresh room, as host and guest. @param {DojoEntry} a @param {DojoEntry} b */
+  function startMatch(a, b, now) {
+    const code = newRoomCode();
+    const room = { peers: new Set(), timer: undefined, reserved: true, hasHost: false };
+    rooms.set(code, room);
+    touch(code, room);
+    setTimeout(() => {
+      if (rooms.get(code) !== room || room.peers.size >= 2) return;
+      for (const p of room.peers) reject(p, 'idle');
+      clearTimeout(room.timer);
+      rooms.delete(code);
+    }, RESERVED_MS);
+    recent.set(pairKey(a.id, b.id), now);
+    for (const [entry, role, other] of [
+      [a, 'host', b],
+      [b, 'guest', a],
+    ]) {
+      entry.offer = null;
+      waiting.delete(entry.ws);
+      // The other pet's code, so the game can check it really battles the pet it was matched with.
+      send(entry.ws, { t: 'match', room: code, role, foe: other.code });
+      entry.ws.close(1000, 'matched');
+    }
+    log(`dojo: matched ratings ${a.rating} and ${b.rating} in room ${code}`);
+    announceDojo();
   }
 
   function newRoomCode() {
@@ -332,36 +404,34 @@ export function createRelay({ staticDir = null, log = () => {}, maxPerVisitor = 
   }
 
   /** Pair waiting players and send each pair into a fresh room, as host and guest. */
+  /**
+   * Pair waiting players close in strength (closest first); then offer the closest of those who've waited long
+   * enough to each other, however far apart (see dojo.mjs).
+   */
   function matchDojo() {
     const now = Date.now();
     for (const [key, at] of recent) if (now - at > DOJO.rematchMs) recent.delete(key);
+    for (const [key, at] of declinedPairs) if (now - at >= DOJO.declinedMs) declinedPairs.delete(key);
     for (const [visitor, m] of misses) if (now - m.since >= ROOM_MISS_WINDOW_MS) misses.delete(visitor);
-    if (waiting.size < 2 || rooms.size >= MAX_ROOMS) return;
-    const pairs = findPairs([...waiting.values()], now, recent);
-    for (const [a, b] of pairs) {
-      const code = newRoomCode();
-      const room = { peers: new Set(), timer: undefined, reserved: true, hasHost: false };
-      rooms.set(code, room);
-      touch(code, room);
-      setTimeout(() => {
-        if (rooms.get(code) !== room || room.peers.size >= 2) return;
-        for (const p of room.peers) reject(p, 'idle');
-        clearTimeout(room.timer);
-        rooms.delete(code);
-      }, RESERVED_MS);
-      recent.set(pairKey(a.id, b.id), now);
-      for (const [entry, role, other] of [
-        [a, 'host', b],
-        [b, 'guest', a],
-      ]) {
-        waiting.delete(entry.ws);
-        // The other pet's code, so the game can check it really battles the pet it was matched with.
-        send(entry.ws, { t: 'match', room: code, role, foe: other.code });
-        entry.ws.close(1000, 'matched');
-      }
-      log(`dojo: matched ratings ${a.rating} and ${b.rating} in room ${code}`);
+    // An offer nobody answered in time counts as a no.
+    for (const entry of waiting.values()) if (entry.offer && now > entry.offer.until) cancelOffer(entry, true);
+    const free = [...waiting.values()].filter((e) => !e.offer);
+    if (free.length < 2 || rooms.size >= MAX_ROOMS) return;
+    const paired = new Set();
+    for (const [a, b] of findPairs(free, now, recent)) {
+      startMatch(a, b, now);
+      paired.add(a).add(b);
     }
-    if (pairs.length) announceDojo();
+    const rest = free.filter((e) => !paired.has(e));
+    for (const [a, b] of findOffers(rest, now, recent, declinedPairs, offerAfterMs)) {
+      for (const [me, other] of [
+        [a, b],
+        [b, a],
+      ]) {
+        me.offer = { with: other, until: now + DOJO.answerMs, yes: false };
+        send(me.ws, { t: 'offer', rating: me.rating, foe: other.code, foeRating: other.rating });
+      }
+    }
   }
   const dojoTimer = setInterval(matchDojo, DOJO_TICK_MS);
 
@@ -385,7 +455,10 @@ export function createRelay({ staticDir = null, log = () => {}, maxPerVisitor = 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const fallback = resolve(import.meta.dirname, '..', 'dist');
   const staticDir = process.env.STATIC_DIR ?? (existsSync(fallback) ? fallback : null);
-  const relay = createRelay({ staticDir, log: (m) => console.log(m) });
+  // PETHATCH_DOJO_OFFER_AFTER_MS changes when uneven offers start (as for the PHP relay; handy for trying them out).
+  const offerEnv = process.env.PETHATCH_DOJO_OFFER_AFTER_MS;
+  const offerAfterMs = offerEnv ? Math.max(0, Number(offerEnv) || 0) : undefined;
+  const relay = createRelay({ staticDir, offerAfterMs, log: (m) => console.log(m) });
   const port = await relay.listen(Number(process.env.PORT) || 8787, process.env.HOST);
   console.log(`Pet Hatch relay on :${port}${PATH}${staticDir ? `, serving ${staticDir}` : ''}`);
 }
