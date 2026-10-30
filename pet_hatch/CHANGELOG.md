@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.8
+
+- Sunrise and sunset follow your bedtime: the sun comes up at wake-up time and goes down when the evening
+  starts, in a warm glow.
+- A real night sky: twinkling stars, a faint Milky Way, the moon in its actual phase and the odd shooting star.
+- The island's light no longer darkens the sky; on after dark it bathes the island in a warm glow, and
+  fireflies drift over it from dusk on.
+
 ## 0.3.7
 
 - Every stat at 100 earns a star, shown on the pet, on the Train sheet and in the family list.
