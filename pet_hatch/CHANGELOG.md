@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0
+
+- Alerts: where the game is hosted with PHP, players can turn on alerts in Settings, and their phone tells them
+  when the pet calls, the egg needs care or is ready to hatch, even with the game closed (never at night). On
+  iPhone and iPad, add the game to the Home Screen first.
+- Not in this app yet: the Home Assistant app's server doesn't send alerts, so the setting doesn't show here.
+
 ## 0.4.4
 
 - The debug options (skipping time, a faster clock) are gone from the released game.
