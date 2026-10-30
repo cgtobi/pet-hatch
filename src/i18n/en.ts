@@ -334,6 +334,7 @@ export const en = {
   'live.error.timeout': '{name} didn’t answer in time, so you win.',
   'live.error.disconnected': 'The connection dropped during the battle, so it counts as a loss.',
   'live.error.desync': 'The two phones disagreed about the battle, so it was called off.',
+  'live.error.outdated': 'Your games are different versions. Reload the game on both phones, then try again.',
   'live.error.other': 'The live battle ended unexpectedly.',
   'dojo.title': 'Dojo',
   'dojo.enter': 'Enter the dojo',

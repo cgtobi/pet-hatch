@@ -320,10 +320,17 @@ A public waiting room for live battles against strangers of similar strength.
 - **Lockstep:** the battle is deterministic, so both phones run it themselves and only exchange pet snapshots
   (battle codes), half a random seed each, and one move per turn (`src/net/live.ts`). The host is battle side a,
   the guest side b, on both phones.
-- **Fairness without a referee:** the seed halves and each move are committed as a salted hash first and revealed
-  only after the other side committed, so nobody can pick after seeing the other's choice or steer the dice. After
+- **Fairness without a referee:** the seed halves and each move are committed as a SHA-256 hash over a random
+  128-bit salt first and revealed only after the other side committed, so nobody can pick after seeing the other's
+  choice or steer the dice (`src/net/sha256.ts` is built in, since the browser's crypto API needs HTTPS). After
   every turn both phones compare a fingerprint of the battle state; a mismatch calls the battle off. A revealed
-  move must match its commitment and be one the pet actually knows.
+  move must match its commitment and be one the pet actually knows. The protocol has a version (2 since SHA-256);
+  games on different versions are told to reload instead of battling.
+- **Dojo matches are binding:** the relay tells each matched player the other pet's battle code, and the game only
+  battles a pet that says hello with exactly that code, so nobody can be matched as a weak pet and fight as a
+  strong one.
+- **Guessing room codes:** after 10 wrong codes (unknown as guest, taken as host) in 10 minutes, a visitor is
+  turned away for the rest of those 10 minutes, on both relays (off when `PETHATCH_MAX_PER_IP` is 0).
 - **Leaving:** giving up, closing the app or not answering for 3 minutes hands the win to the other player.
   Once the first turn is played, leaving also counts as a **loss** for the leaver (recorded before the page closes),
   and so does losing your own connection; a phone can tell the two apart, so only the player who stayed gets

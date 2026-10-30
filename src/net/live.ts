@@ -1,19 +1,21 @@
 import { movesFor, type Fighter, type MoveId, type SideKey } from '../sim/battle';
 import { decodeFighter, encodeFighter } from '../sim/battlecode';
 import { openChannel, type Channel } from './channel';
+import { sha256 } from './sha256';
 
 /**
  * Live battles over the relay. Both phones run the same deterministic battle (lockstep), so they only
  * exchange each pet's battle code, half a random seed each, and one move per turn:
  *
- *   hello  { fighter, commit }  – my pet, and a hash of my half of the seed
+ *   hello  { v, fighter, commit } – protocol version, my pet, and a hash of my half of the seed
  *   seed   { part, salt }       – revealed once both hellos are in, so neither side picks the seed
  *   commit { turn, h }          – hash of my move: I can't change it after seeing yours
  *   reveal { turn, move, salt } – sent only after the other commit arrived
  *   sync   { turn, h }          – fingerprint of the battle state after the turn, to catch desyncs
  *   bye                         – I gave up or left
  *
- * The host is always battle side a, the guest side b, on both phones.
+ * The host is always battle side a, the guest side b, on both phones. Commitments are SHA-256 over a random salt,
+ * so neither side can find a second move (or seed) with the same hash after seeing the other's.
  */
 
 export type LiveErrorCode =
@@ -32,6 +34,8 @@ export type LiveErrorCode =
   | 'disconnected'
   | 'desync'
   | 'invalid'
+  /** The other player's game speaks an older (or newer) version of this protocol. */
+  | 'outdated'
   | 'timeout';
 
 /** The errors the relay itself reports; anything else in an error message is treated as invalid. */
@@ -51,7 +55,8 @@ export interface LiveMatch {
 
 type Msg = { t: string; [key: string]: unknown };
 
-const VERSION = 1;
+/** 2: SHA-256 commitments. A game on another version can't battle this one. */
+const VERSION = 2;
 /** Letters and digits that can't be confused (no 0/O, 1/I). */
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const CODE_LENGTH = 5;
@@ -70,9 +75,15 @@ export function parseRoomCode(input: string): string | null {
   return /^[A-Z2-9]{4,8}$/.test(code) ? code : null;
 }
 
+/** A commitment: hides a move (or seed half) until it's revealed, and binds the player to it. */
+export const commit = (text: string) => sha256(text);
+
+/** Salts are what randomSalt() makes: a few dozen lowercase letters and digits, nothing else. */
+const isSalt = (salt: unknown): salt is string => typeof salt === 'string' && /^[0-9a-z]{8,64}$/.test(salt);
+
 /**
- * cyrb53: a fast 53-bit string hash. Not cryptographic, but with a random salt it keeps a move hidden
- * until it is revealed, which is all a friendly game needs (and works without HTTPS, unlike crypto.subtle).
+ * cyrb53: a fast 53-bit string hash, for the after-turn fingerprints that catch two phones drifting apart by
+ * mistake. Not for commitments: it isn't cryptographic.
  */
 export function hash(text: string): string {
   let h1 = 0xdeadbeef;
@@ -87,7 +98,8 @@ export function hash(text: string): string {
   return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
 }
 
-const randomSalt = () => Array.from(crypto.getRandomValues(new Uint32Array(4)), (n) => n.toString(36)).join('');
+/** 128 random bits as 28 lowercase letters and digits. */
+const randomSalt = () => Array.from(crypto.getRandomValues(new Uint32Array(4)), (n) => n.toString(36).padStart(7, '0')).join('');
 
 interface Waiter {
   match: (m: Msg) => boolean;
@@ -118,11 +130,16 @@ export class LiveSession {
   private opponent: Fighter | null = null;
   private syncs = new Map<number, { mine?: string; theirs?: string }>();
 
+  /**
+   * @param foe the opponent's battle code when it's already known (the dojo says whom it matched): the other
+   *   phone must then fight with exactly that pet, not register a weak one and bring a strong one.
+   */
   constructor(
     relayUrl: string,
     readonly code: string,
     readonly role: 'host' | 'guest',
     me: Fighter,
+    private foe?: string,
   ) {
     this.side = role === 'host' ? 'a' : 'b';
     // Use exactly what the other phone will decode, so both run the battle on identical numbers.
@@ -163,7 +180,7 @@ export class LiveSession {
           this.paired = true;
           if (!this.helloSent) {
             this.helloSent = true;
-            this.send({ t: 'hello', v: VERSION, fighter: encodeFighter(this.me), commit: hash(`${this.seedPart}:${this.seedSalt}`) });
+            this.send({ t: 'hello', v: VERSION, fighter: encodeFighter(this.me), commit: commit(`${this.seedPart}:${this.seedSalt}`) });
           }
         } else if (this.paired) this.fail('left');
         return;
@@ -214,15 +231,22 @@ export class LiveSession {
 
   private async handshake(): Promise<LiveMatch> {
     const hello = await this.next((m) => m.t === 'hello');
-    const opponent = hello.v === VERSION ? decodeFighter(String(hello.fighter)) : null;
-    if (!opponent) {
+    if (hello.v !== VERSION) {
+      this.fail('outdated');
+      throw this.failure;
+    }
+    const opponent = decodeFighter(String(hello.fighter));
+    const expected = this.foe === undefined ? null : decodeFighter(this.foe);
+    // Compared as the game encodes them, so a name tidied up by decoding doesn't count as a different pet.
+    if (!opponent || (expected && encodeFighter(expected) !== encodeFighter(opponent))) {
       this.fail('invalid');
       throw this.failure;
     }
     this.opponent = opponent;
     this.send({ t: 'seed', part: this.seedPart, salt: this.seedSalt });
     const seed = await this.next((m) => m.t === 'seed', TURN_TIMEOUT_MS);
-    if (hash(`${seed.part}:${seed.salt}`) !== hello.commit) {
+    const part = seed.part;
+    if (!Number.isInteger(part) || (part as number) < 0 || (part as number) > 0xffffffff || !isSalt(seed.salt) || commit(`${part}:${seed.salt}`) !== hello.commit) {
       this.fail('invalid');
       throw this.failure;
     }
@@ -233,13 +257,13 @@ export class LiveSession {
   /** Lock in my move for a turn and get the other player's, without either side seeing the other's first. */
   async exchange(turn: number, move: MoveId): Promise<MoveId> {
     const salt = randomSalt();
-    this.send({ t: 'commit', turn, h: hash(`${turn}:${move}:${salt}`) });
-    const commit = await this.next((m) => m.t === 'commit' && m.turn === turn, TURN_TIMEOUT_MS);
+    this.send({ t: 'commit', turn, h: commit(`${turn}:${move}:${salt}`) });
+    const committed = await this.next((m) => m.t === 'commit' && m.turn === turn, TURN_TIMEOUT_MS);
     this.send({ t: 'reveal', turn, move, salt });
     const reveal = await this.next((m) => m.t === 'reveal' && m.turn === turn, TURN_TIMEOUT_MS);
     const theirs = String(reveal.move) as MoveId;
     const allowed = this.opponent ? movesFor(this.opponent) : [];
-    if (hash(`${turn}:${theirs}:${reveal.salt}`) !== commit.h || !allowed.includes(theirs)) {
+    if (!isSalt(reveal.salt) || commit(`${turn}:${theirs}:${reveal.salt}`) !== committed.h || !allowed.includes(theirs)) {
       this.fail('invalid');
       throw this.failure;
     }

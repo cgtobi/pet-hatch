@@ -335,6 +335,7 @@ export const it: Dict = {
   'live.error.timeout': '{name} non ha risposto in tempo, quindi vinci tu.',
   'live.error.disconnected': 'La connessione si è interrotta durante la lotta, quindi conta come sconfitta.',
   'live.error.desync': 'I due telefoni non erano d’accordo sulla lotta, quindi è stata annullata.',
+  'live.error.outdated': 'I vostri giochi hanno versioni diverse. Ricaricate il gioco su entrambi i telefoni e riprovate.',
   'live.error.other': 'La lotta dal vivo si è interrotta inaspettatamente.',
   'dojo.title': 'Dojo',
   'dojo.enter': 'Entra nel dojo',

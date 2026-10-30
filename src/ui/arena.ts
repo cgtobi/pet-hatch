@@ -246,8 +246,8 @@ export class Arena {
   /** Why a live battle ended; without an opponent name (still in the lobby) "you win" messages don't apply. */
   private liveMessage(e: LiveError, foeName: string): string {
     const known = foeName
-      ? ['unreachable', 'no-room', 'full', 'left', 'gave-up', 'desync', 'timeout', 'disconnected']
-      : ['unreachable', 'no-room', 'full', 'desync'];
+      ? ['unreachable', 'no-room', 'full', 'left', 'gave-up', 'desync', 'timeout', 'disconnected', 'outdated']
+      : ['unreachable', 'no-room', 'full', 'desync', 'outdated'];
     return t(`live.error.${known.includes(e.code) ? e.code : 'other'}` as TextKey, { name: foeName });
   }
 
@@ -283,12 +283,12 @@ export class Arena {
       players.textContent = n === 0 ? t('dojo.empty') : n === 1 ? t('dojo.one') : t('dojo.players', { n });
     };
     dojo.onFail = fail;
-    dojo.onMatch = (room, role) => {
+    dojo.onMatch = (room, role, foe) => {
       if (run !== this.run) return;
       this.dojo = null;
       status.textContent = t('dojo.found');
       players.hidden = true;
-      const live = (this.live = new LiveSession(this.relay!, room, role, fighterFromPet(pet)));
+      const live = (this.live = new LiveSession(this.relay!, room, role, fighterFromPet(pet), foe));
       // If the other pet never shows up, both simply go back to waiting.
       const giveUp = setTimeout(() => run === this.run && this.enterDojo(), Arena.DOJO_MEET_MS);
       live.onFail = () => {

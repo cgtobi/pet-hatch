@@ -112,4 +112,12 @@ describe.skipIf(!url)('PHP relay protections', () => {
     const got = await post({ a: 'poll', id: guest.id, after: 0 });
     expect(got.msgs!.map(([, m]) => m)).toContain(sneaky);
   });
+
+  // Last: afterwards this visitor is turned away from rooms for ten minutes.
+  it('turns a visitor away for a while after too many wrong room codes', async () => {
+    const replies = [];
+    for (let i = 0; i < 11; i++) replies.push(errorOf(await join(room(), 'guest')));
+    expect(replies.slice(0, 10).every((code) => code === 'no-room')).toBe(true);
+    expect(replies[10]).toBe('busy');
+  });
 });

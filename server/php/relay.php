@@ -40,6 +40,12 @@ const MAX_INBOX_BYTES = 32 * 1024;
  * player arrive from the same address.
  */
 const MAX_PER_IP = 16;
+/**
+ * Wrong room codes one visitor may try (an unknown code as guest, a taken one as host) before being turned away
+ * for a while, so nobody can guess their way into a friend's battle. Off along with the per-visitor limit.
+ */
+const MAX_ROOM_MISSES = 10;
+const ROOM_MISS_WINDOW_MS = 10 * 60_000;
 /** A room nobody writes to for this long is closed (a forgotten invite, a stalled battle). */
 const ROOM_IDLE_MS = 15 * 60_000;
 /** A room the dojo set up for two matched players closes if they haven't both arrived by then. */
@@ -131,11 +137,34 @@ function visitor(array $s): string
     return visitor_hash($s['salt']);
 }
 
+function max_per_visitor(): int
+{
+    $env = getenv('PETHATCH_MAX_PER_IP');
+    return $env === false || $env === '' ? MAX_PER_IP : (int) $env;
+}
+
+/** Whether this visitor tried too many wrong room codes lately. */
+function missed_too_often(array $s, int $now): bool
+{
+    if (max_per_visitor() <= 0) return false;
+    $m = $s['misses'][visitor($s)] ?? null;
+    return $m && $now - $m[0] < ROOM_MISS_WINDOW_MS && $m[1] >= MAX_ROOM_MISSES;
+}
+
+/** Note a wrong room code, and turn it down. */
+function missed(array &$s, int $now, string $code): array
+{
+    $v = visitor($s);
+    $m = $s['misses'][$v] ?? [$now, 0];
+    if ($now - $m[0] >= ROOM_MISS_WINDOW_MS) $m = [$now, 0];
+    $s['misses'][$v] = [$m[0], $m[1] + 1];
+    return refused($code);
+}
+
 /** Whether this visitor may open another connection. */
 function visitor_has_room(array $s): bool
 {
-    $env = getenv('PETHATCH_MAX_PER_IP');
-    $max = $env === false || $env === '' ? MAX_PER_IP : (int) $env;
+    $max = max_per_visitor();
     if ($max <= 0) return true;
     $me = visitor($s);
     $open = 0;
@@ -283,6 +312,9 @@ function cleanup(array &$s, int $now): void
     foreach ($s['recent'] as $key => $at) {
         if ($now - $at > DOJO_REMATCH_MS) unset($s['recent'][$key]);
     }
+    foreach ($s['misses'] ?? [] as $v => [$since]) {
+        if ($now - $since >= ROOM_MISS_WINDOW_MS) unset($s['misses'][$v]);
+    }
     if ($now - ($s['matchedAt'] ?? 0) >= DOJO_MATCH_EVERY_MS) match_dojo($s, $now);
 }
 
@@ -290,17 +322,18 @@ function cleanup(array &$s, int $now): void
 
 function join_room(array &$s, int $now, string $code, string $role): array
 {
+    if (missed_too_often($s, $now)) return refused('busy');
     $room = $s['rooms'][$code] ?? null;
     if ($role === 'host') {
         // A room the dojo reserved is waiting for its host; any other existing room is taken.
-        if ($room && !($room['reserved'] && !$room['hasHost'])) return refused('taken');
+        if ($room && !($room['reserved'] && !$room['hasHost'])) return missed($s, $now, 'taken');
         if (!$room) {
             if (count($s['rooms']) >= MAX_ROOMS) return refused('busy');
             $room = new_room($now, false);
         }
         $room['hasHost'] = true;
     } else {
-        if (!$room) return refused('no-room');
+        if (!$room) return missed($s, $now, 'no-room');
         if (count($room['peers']) >= 2) return refused('full');
     }
     if (!visitor_has_room($s)) return refused('busy');
@@ -429,10 +462,10 @@ function announce_dojo(array &$s): void
     foreach ($ids as $id) push($s, $id, message(['t' => 'dojo', 'players' => count($ids) - 1]));
 }
 
-function join_dojo(array &$s, int $now, int $rating, string $player): array
+function join_dojo(array &$s, int $now, int $rating, string $player, string $code): array
 {
     if (count(waiting($s)) >= DOJO_MAX_PLAYERS || !visitor_has_room($s)) return refused('busy');
-    $id = new_conn($s, $now, ['kind' => 'dojo', 'waiting' => true, 'player' => $player, 'rating' => $rating, 'joinedAt' => $now]);
+    $id = new_conn($s, $now, ['kind' => 'dojo', 'waiting' => true, 'player' => $player, 'rating' => $rating, 'code' => $code, 'joinedAt' => $now]);
     announce_dojo($s);
     return deliver($s, $id, 0);
 }
@@ -464,8 +497,9 @@ function match_dojo(array &$s, int $now): void
         $code = new_room_code($s);
         $s['rooms'][$code] = new_room($now, true);
         $s['recent'][pair_key($s['conns'][$a]['player'], $s['conns'][$b]['player'])] = $now;
-        foreach ([[$a, 'host'], [$b, 'guest']] as [$id, $role]) {
-            push($s, $id, message(['t' => 'match', 'room' => $code, 'role' => $role]));
+        foreach ([[$a, 'host', $b], [$b, 'guest', $a]] as [$id, $role, $other]) {
+            // The other pet's code, so the game can check it really battles the pet it was matched with.
+            push($s, $id, message(['t' => 'match', 'room' => $code, 'role' => $role, 'foe' => $s['conns'][$other]['code'] ?? null]));
             $s['conns'][$id]['waiting'] = false;
             $s['conns'][$id]['closed'] = true;
         }
@@ -511,7 +545,8 @@ switch (field($req, 'a')) {
         $rating = rating_from_code($req['code'] ?? null);
         if ($rating === null || $id === '' || strlen($id) > 40) reply(refused('bad-request'));
         $player = $id;
-        $joined = with_state(fn (array &$s, int $now) => join_dojo($s, $now, $rating, $player));
+        $battleCode = $req['code'];
+        $joined = with_state(fn (array &$s, int $now) => join_dojo($s, $now, $rating, $player, $battleCode));
         // Only pets that actually got in count (not ones turned away because the dojo is full).
         if (isset($joined['id'])) count_dojo_pet($req['code']);
         reply($joined);

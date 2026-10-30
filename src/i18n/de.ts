@@ -335,6 +335,7 @@ export const de: Dict = {
   'live.error.timeout': '{name} hat nicht rechtzeitig geantwortet, also gewinnst du.',
   'live.error.disconnected': 'Die Verbindung ist während des Kampfs abgebrochen, deshalb zählt er als verloren.',
   'live.error.desync': 'Die beiden Handys waren sich über den Kampf uneinig, deshalb wurde er abgebrochen.',
+  'live.error.outdated': 'Eure Spiele haben verschiedene Versionen. Ladet das Spiel auf beiden Handys neu und versucht es dann noch einmal.',
   'live.error.other': 'Der Live-Kampf wurde unerwartet beendet.',
   'dojo.title': 'Dojo',
   'dojo.enter': 'Ins Dojo gehen',

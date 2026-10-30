@@ -41,6 +41,12 @@ const PING_MS = 30_000;
  * the same proxy.
  */
 const MAX_PER_IP = 16;
+/**
+ * Wrong room codes one visitor may try (an unknown code as guest, a taken one as host) before being turned away
+ * for a while, so nobody can guess their way into a friend's battle. Off along with the per-visitor limit.
+ */
+const MAX_ROOM_MISSES = 10;
+const ROOM_MISS_WINDOW_MS = 10 * 60_000;
 
 const TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -101,6 +107,18 @@ export function createRelay({ staticDir = null, log = () => {}, maxPerVisitor = 
   const root = staticDir ? resolve(staticDir) : null;
   /** Open connections per visitor. */
   const perVisitor = new Map();
+  /** Wrong room codes per visitor: when the window started, and how many. */
+  const misses = new Map();
+  const missedTooOften = (visitor) => {
+    const m = misses.get(visitor);
+    return maxPerVisitor > 0 && !!m && Date.now() - m.since < ROOM_MISS_WINDOW_MS && m.count >= MAX_ROOM_MISSES;
+  };
+  const missed = (ws, visitor, code) => {
+    const now = Date.now();
+    const m = misses.get(visitor);
+    misses.set(visitor, m && now - m.since < ROOM_MISS_WINDOW_MS ? { since: m.since, count: m.count + 1 } : { since: now, count: 1 });
+    reject(ws, code);
+  };
 
   /** @param {import('node:http').IncomingMessage} req @param {import('node:http').ServerResponse} res */
   const serve = async (req, res) => {
@@ -184,7 +202,7 @@ export function createRelay({ staticDir = null, log = () => {}, maxPerVisitor = 
         if (left > 0) perVisitor.set(visitor, left);
         else perVisitor.delete(visitor);
       });
-      enter(ws, url);
+      enter(ws, url, visitor);
     });
   });
 
@@ -230,14 +248,15 @@ export function createRelay({ staticDir = null, log = () => {}, maxPerVisitor = 
     };
   }
 
-  function enterRoom(ws, url) {
+  function enterRoom(ws, url, visitor) {
     const code = (url.searchParams.get('room') ?? '').toUpperCase();
     const role = url.searchParams.get('role');
     if (!ROOM_CODE.test(code) || (role !== 'host' && role !== 'guest')) return reject(ws, 'bad-request');
+    if (missedTooOften(visitor)) return reject(ws, 'busy');
     let room = rooms.get(code);
     if (role === 'host') {
       // A room the dojo reserved is waiting for its host; any other existing room is taken.
-      if (room && !(room.reserved && !room.hasHost)) return reject(ws, 'taken');
+      if (room && !(room.reserved && !room.hasHost)) return missed(ws, visitor, 'taken');
       if (!room) {
         if (rooms.size >= MAX_ROOMS) return reject(ws, 'busy');
         room = { peers: new Set(), timer: undefined };
@@ -245,7 +264,7 @@ export function createRelay({ staticDir = null, log = () => {}, maxPerVisitor = 
       }
       room.hasHost = true;
     } else {
-      if (!room) return reject(ws, 'no-room');
+      if (!room) return missed(ws, visitor, 'no-room');
       if (room.peers.size >= 2) return reject(ws, 'full');
     }
     room.peers.add(ws);
@@ -287,11 +306,12 @@ export function createRelay({ staticDir = null, log = () => {}, maxPerVisitor = 
   };
 
   function enterDojo(ws, url) {
-    const rating = ratingFromCode(url.searchParams.get('code'));
+    const battleCode = url.searchParams.get('code');
+    const rating = ratingFromCode(battleCode);
     const id = (url.searchParams.get('id') ?? '').slice(0, 40);
     if (rating === null || !id) return reject(ws, 'bad-request');
     if (waiting.size >= DOJO.maxPlayers) return reject(ws, 'busy');
-    waiting.set(ws, { ws, id, rating, joinedAt: Date.now() });
+    waiting.set(ws, { ws, id, rating, code: battleCode, joinedAt: Date.now() });
     announceDojo();
     const stopPing = keepAlive(ws);
     const withinRate = rateLimiter();
@@ -315,6 +335,7 @@ export function createRelay({ staticDir = null, log = () => {}, maxPerVisitor = 
   function matchDojo() {
     const now = Date.now();
     for (const [key, at] of recent) if (now - at > DOJO.rematchMs) recent.delete(key);
+    for (const [visitor, m] of misses) if (now - m.since >= ROOM_MISS_WINDOW_MS) misses.delete(visitor);
     if (waiting.size < 2 || rooms.size >= MAX_ROOMS) return;
     const pairs = findPairs([...waiting.values()], now, recent);
     for (const [a, b] of pairs) {
@@ -329,12 +350,13 @@ export function createRelay({ staticDir = null, log = () => {}, maxPerVisitor = 
         rooms.delete(code);
       }, RESERVED_MS);
       recent.set(pairKey(a.id, b.id), now);
-      for (const [entry, role] of [
-        [a, 'host'],
-        [b, 'guest'],
+      for (const [entry, role, other] of [
+        [a, 'host', b],
+        [b, 'guest', a],
       ]) {
         waiting.delete(entry.ws);
-        send(entry.ws, { t: 'match', room: code, role });
+        // The other pet's code, so the game can check it really battles the pet it was matched with.
+        send(entry.ws, { t: 'match', room: code, role, foe: other.code });
         entry.ws.close(1000, 'matched');
       }
       log(`dojo: matched ratings ${a.rating} and ${b.rating} in room ${code}`);

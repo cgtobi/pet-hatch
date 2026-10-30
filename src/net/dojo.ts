@@ -8,7 +8,8 @@ import type { LiveErrorCode } from './live';
  */
 export class DojoSession {
   onPlayers: (others: number) => void = () => {};
-  onMatch: (room: string, role: 'host' | 'guest') => void = () => {};
+  /** Matched: the room to battle in, this side's role, and the other pet's battle code (if the relay says it). */
+  onMatch: (room: string, role: 'host' | 'guest', foe?: string) => void = () => {};
   onFail: (code: LiveErrorCode) => void = () => {};
   private channel: Channel;
   private done = false;
@@ -18,7 +19,7 @@ export class DojoSession {
     let opened = false;
     this.channel.onopen = () => (opened = true);
     this.channel.onmessage = (text) => {
-      let m: { t?: string; players?: number; room?: string; role?: string; code?: LiveErrorCode };
+      let m: { t?: string; players?: number; room?: string; role?: string; foe?: unknown; code?: LiveErrorCode };
       try {
         m = JSON.parse(text);
       } catch {
@@ -27,7 +28,7 @@ export class DojoSession {
       if (m.t === 'dojo') this.onPlayers(Number(m.players) || 0);
       else if (m.t === 'match' && m.room && (m.role === 'host' || m.role === 'guest')) {
         this.done = true;
-        this.onMatch(m.room, m.role);
+        this.onMatch(m.room, m.role, typeof m.foe === 'string' ? m.foe : undefined);
       } else if (m.t === 'error') this.finish(m.code ?? 'invalid');
     };
     this.channel.onclose = () => this.finish(opened ? 'left' : 'unreachable');

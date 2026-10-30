@@ -7,7 +7,7 @@ import { battleRating, type Fighter } from '../sim/battle';
 import { encodeFighter } from '../sim/battlecode';
 import { STAT_CAPS } from '../sim/training';
 import { DojoSession } from './dojo';
-import { LiveSession } from './live';
+import { LiveError, LiveSession } from './live';
 
 function fighter(stage: number, stats: Fighter['stats'], name = 'Pip'): Fighter {
   const form = stage === 1 ? 'child.bright' : stage === 2 ? 'teen.physical' : 'adult.power';
@@ -84,28 +84,53 @@ describe.each(relays)('dojo over the %s relay', (_, relayUrl) => {
     const dojo = new DojoSession(url, encodeFighter(f));
     const players: number[] = [];
     dojo.onPlayers = (n) => players.push(n);
-    const match = new Promise<{ room: string; role: 'host' | 'guest' }>((done, fail) => {
-      dojo.onMatch = (room, role) => done({ room, role });
+    const match = new Promise<{ room: string; role: 'host' | 'guest'; foe?: string }>((done, fail) => {
+      dojo.onMatch = (room, role, foe) => done({ room, role, foe });
       dojo.onFail = (code) => fail(new Error(code));
     });
     return { dojo, players, match };
   };
 
-  it('matches two similar pets into a room where their live battle starts', async () => {
-    const a = enter(fighter(3, { power: 50, speed: 40, guard: 45, wits: 30 }, 'Pip'));
-    const b = enter(fighter(3, { power: 45, speed: 45, guard: 50, wits: 30 }, 'Mochi'));
+  /** Two similar pets enter the dojo; resolves with each one's match, guest first. */
+  async function matchedPair(pip: Fighter, mochi: Fighter) {
+    const a = enter(pip);
+    const b = enter(mochi);
     const [ma, mb] = await Promise.all([a.match, b.match]);
     expect(ma.room).toBe(mb.room);
     expect(new Set([ma.role, mb.role])).toEqual(new Set(['host', 'guest']));
+    // Each side hears the other pet's code, so it can check it battles that very pet.
+    expect(ma.foe).toBe(encodeFighter(mochi));
+    expect(mb.foe).toBe(encodeFighter(pip));
+    return ma.role === 'guest' ? { guest: [ma, pip] as const, host: [mb, mochi] as const } : { guest: [mb, mochi] as const, host: [ma, pip] as const };
+  }
+
+  it('matches two similar pets into a room where their live battle starts', async () => {
+    const { guest: [gm, gf], host: [hm, hf] } = await matchedPair(
+      fighter(3, { power: 50, speed: 40, guard: 45, wits: 30 }, 'Pip'),
+      fighter(3, { power: 45, speed: 45, guard: 50, wits: 30 }, 'Mochi'),
+    );
     // The guest may arrive first: the dojo reserved the room for both.
-    const [guestMatch, hostMatch] = ma.role === 'guest' ? [ma, mb] : [mb, ma];
-    const guest = new LiveSession(url, guestMatch.room, 'guest', fighter(3, { power: 45, speed: 45, guard: 50, wits: 30 }));
+    const guest = new LiveSession(url, gm.room, 'guest', gf, gm.foe);
     await new Promise((r) => setTimeout(r, 50));
-    const host = new LiveSession(url, hostMatch.room, 'host', fighter(3, { power: 50, speed: 40, guard: 45, wits: 30 }));
+    const host = new LiveSession(url, hm.room, 'host', hf, hm.foe);
     const [x, y] = await Promise.all([host.ready, guest.ready]);
     expect(x.seed).toBe(y.seed);
     host.close();
     guest.close();
+  });
+
+  it('stops a pet that was matched as a weak one from fighting as a strong one', async () => {
+    const { guest: [gm, gf], host: [hm] } = await matchedPair(
+      fighter(3, { power: 30, speed: 30, guard: 30, wits: 30 }, 'Pip'),
+      fighter(3, { power: 31, speed: 30, guard: 30, wits: 30 }, 'Mochi'),
+    );
+    const guest = new LiveSession(url, gm.room, 'guest', gf, gm.foe);
+    await new Promise((r) => setTimeout(r, 50));
+    // The host registered a weak pet, but brings a strong one.
+    const host = new LiveSession(url, hm.room, 'host', fighter(3, { power: 100, speed: 100, guard: 100, wits: 100 }, 'Mochi'));
+    await expect(guest.ready).rejects.toBeInstanceOf(LiveError);
+    expect(guest.failed?.code).toBe('invalid');
+    host.close();
   });
 
   it('keeps pets of very different strength waiting, and leaving updates the count', async () => {

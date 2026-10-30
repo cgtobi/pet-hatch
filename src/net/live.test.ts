@@ -4,7 +4,7 @@ import { WebSocket } from 'ws';
 import { createRelay, visitorOf, type Relay } from '../../server/relay.mjs';
 import { battleState, createBattle, MAX_TURNS, MOVES, movesFor, playTurn, type Fighter, type MoveId } from '../sim/battle';
 import type { Channel } from './channel';
-import { hash, LiveError, LiveSession, newRoomCode, parseRoomCode } from './live';
+import { commit, LiveError, LiveSession, newRoomCode, parseRoomCode } from './live';
 
 let relay: Relay;
 let nodeUrl: string;
@@ -180,8 +180,8 @@ describe.each(relays)('live battle over the %s relay', (_, relayUrl) => {
     // A tampered guest: commits to one move, then reveals another.
     const ws = (guest as unknown as { channel: Channel }).channel;
     const exchange = host.exchange(0, 'tackle');
-    ws.send(JSON.stringify({ t: 'commit', turn: 0, h: hash('0:tackle:salt') }));
-    ws.send(JSON.stringify({ t: 'reveal', turn: 0, move: 'crush', salt: 'salt' }));
+    ws.send(JSON.stringify({ t: 'commit', turn: 0, h: commit('0:tackle:saltsaltsalt') }));
+    ws.send(JSON.stringify({ t: 'reveal', turn: 0, move: 'crush', salt: 'saltsaltsalt' }));
     await expect(exchange).rejects.toBeInstanceOf(LiveError);
     expect(host.failed?.code).toBe('invalid');
     guest.close();
@@ -266,6 +266,39 @@ describe('relay limits', () => {
     } finally {
       await limited.close();
     }
+  });
+
+  it('turns a visitor away for a while after too many wrong room codes', async () => {
+    const strict = createRelay();
+    const port = await strict.listen(0, '127.0.0.1');
+    const firstMessage = (room: string) =>
+      new Promise<{ t: string; code?: string }>((done) => {
+        const ws = new WebSocket(`ws://127.0.0.1:${port}/relay?room=${room}&role=guest`);
+        ws.once('message', (data) => {
+          done(JSON.parse(data.toString()));
+          ws.close();
+        });
+      });
+    try {
+      for (let i = 0; i < 10; i++) expect((await firstMessage(newRoomCode())).code).toBe('no-room');
+      expect((await firstMessage(newRoomCode())).code).toBe('busy');
+    } finally {
+      await strict.close();
+    }
+  });
+
+  it('tells the other player to update when the games speak different versions', async () => {
+    const code = newRoomCode();
+    const host = new LiveSession(nodeUrl, code, 'host', fighter({}));
+    await inRoom(host);
+    // A game from before SHA-256 commitments says hello with version 1.
+    const old = new WebSocket(`${nodeUrl}?room=${code}&role=guest`);
+    old.on('message', (data) => {
+      const m = JSON.parse(data.toString());
+      if (m.t === 'room' && m.peers === 2) old.send(JSON.stringify({ t: 'hello', v: 1, fighter: 'x', commit: 'y' }));
+    });
+    expect(await failureOf(host)).toBe('outdated');
+    old.close();
   });
 
   it('counts an IPv6 visitor by its /64 network', () => {
