@@ -35,6 +35,12 @@ const VERTICAL_FOV = 34;
 /** World-space half extents the camera keeps in view. */
 const HALF_WIDTH = 3.7;
 const HALF_HEIGHT = 2.8;
+/**
+ * How quickly the camera eases to a new framing (zoom, pan and look point), per second: opening a sheet, a
+ * battle or turning the phone glides there in about half a second instead of jumping.
+ */
+const FRAMING_RATE = 9;
+const STILL = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /** What lights the island besides the sky. */
 export interface Lighting {
@@ -47,7 +53,12 @@ export interface Lighting {
 export interface Insets {
   top: number;
   bottom: number;
+  /** A sheet is open over the island: step back a little so the whole island shows in the smaller space. */
+  sheet?: boolean;
 }
+
+/** How much wider the view is while a sheet is open (the camera eases back as the sheet rises). */
+const SHEET_ZOOM_OUT = 1.18;
 
 /** Owns the renderer, camera, lights and all scene objects. */
 export class World {
@@ -73,7 +84,11 @@ export class World {
   private yawVel = 0;
   /** When the player last dragged the island (ms), so a battle only re-centres the view after they let go. */
   private lastOrbit = 0;
+  /** The framing resize() asks for, and the one on screen, which eases towards it. */
   private distance = 20;
+  private shift = 0;
+  private shown: { distance: number; shift: number; target: THREE.Vector3 } | null = null;
+  private size = { w: 0, h: 0 };
   private insets: Insets = { top: 0, bottom: 0 };
 
   constructor(
@@ -113,11 +128,22 @@ export class World {
     this.camera.aspect = w / h;
     const freeH = Math.max(h * 0.35, h - this.insets.top - this.insets.bottom);
     const tanV = Math.tan(THREE.MathUtils.degToRad(VERTICAL_FOV / 2));
-    const fitWidth = HALF_WIDTH / (tanV * this.camera.aspect);
+    // Battles keep their close framing; the training and battle menus step back.
+    const zoomOut = this.insets.sheet && !this.foe ? SHEET_ZOOM_OUT : 1;
+    const fitWidth = (HALF_WIDTH * zoomOut) / (tanV * this.camera.aspect);
     const fitHeight = (this.foe ? BATTLE_HALF_HEIGHT : HALF_HEIGHT) / (tanV * (freeH / h));
     this.distance = Math.max(fitWidth, fitHeight, 9);
     const freeCenter = this.insets.top + freeH / 2;
-    this.camera.setViewOffset(w, h, 0, h / 2 - freeCenter, w, h);
+    this.shift = h / 2 - freeCenter;
+    this.size = { w, h };
+    // The aspect applies at once; zoom and pan ease there in render().
+    this.applyShift(this.shown?.shift ?? this.shift);
+  }
+
+  /** Pan the view vertically so the island sits in the free space between the HUD and the dock or sheet. */
+  private applyShift(shift: number): void {
+    const { w, h } = this.size;
+    if (w && h) this.camera.setViewOffset(w, h, 0, shift, w, h);
     this.camera.updateProjectionMatrix();
   }
 
@@ -254,8 +280,21 @@ export class World {
       this.yawVel = 0;
       this.yaw -= this.yaw * Math.min(1, dt * 2);
     }
-    const d = this.distance;
-    const target = this.foe ? BATTLE_TARGET : TARGET;
+    // Ease zoom, pan and look point towards what the layout asks for.
+    const goal = this.foe ? BATTLE_TARGET : TARGET;
+    if (!this.shown) this.shown = { distance: this.distance, shift: this.shift, target: goal.clone() };
+    const shown = this.shown;
+    const k = STILL ? 1 : 1 - Math.exp(-dt * FRAMING_RATE);
+    shown.distance += (this.distance - shown.distance) * k;
+    shown.target.lerp(goal, k);
+    // Within half a pixel, settle exactly, so the projection stops being rebuilt every frame.
+    const shift = Math.abs(this.shift - shown.shift) < 0.5 ? this.shift : shown.shift + (this.shift - shown.shift) * k;
+    if (shift !== shown.shift) {
+      shown.shift = shift;
+      this.applyShift(shift);
+    }
+    const d = shown.distance;
+    const target = shown.target;
     this.camera.position.set(
       target.x + Math.sin(this.yaw) * Math.cos(PITCH) * d,
       target.y + Math.sin(PITCH) * d,

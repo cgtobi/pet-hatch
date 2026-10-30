@@ -138,7 +138,9 @@ After any ending, a new egg starts.
 
 ### Training and stats ✅
 
-Four stats, each trained by its own 15–30 s minigame from the **Train** sheet (opens from the dock):
+Four stats, each trained by its own 15–30 s minigame from the **Train** sheet (opens from the dock). Opening it,
+the status card and dock fade away while the camera glides back and up over about half a second, so the whole
+island stays in view above the sheet; closing it glides back. (Every change of framing eases the same way.)
 
 | Stat | Minigame | How it plays |
 |---|---|---|

@@ -7,7 +7,8 @@ export const esc = (s: string) => s.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(
 
 /**
  * The bottom sheet shared by Training and Battle. It hides the status card and dock while open
- * (the island moves up to stay visible), and offers tabs between the two menus.
+ * (they fade out while the camera glides back and up to keep the island in view), and offers tabs between the
+ * two menus.
  */
 export class ActivitySheet {
   readonly root = document.getElementById('activity')!;

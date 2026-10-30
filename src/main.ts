@@ -841,7 +841,7 @@ function updateHud() {
   }
 
   const insets = hud.insets();
-  const key = `${Math.round(insets.top)}|${Math.round(insets.bottom)}`;
+  const key = `${Math.round(insets.top)}|${Math.round(insets.bottom)}|${insets.sheet ?? false}`;
   if (key !== insetKey) {
     insetKey = key;
     world.setInsets(insets);

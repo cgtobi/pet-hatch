@@ -903,9 +903,35 @@ textarea {
 
 /* ---------- training ---------- */
 
+/* The sheet takes over: the status card slides up and the dock down, fading out while the camera eases. */
+#status,
+#dock {
+  transition:
+    opacity 0.3s ease,
+    transform 0.35s ease;
+}
+
 body.sheet-open #status,
 body.sheet-open #dock,
 body.sheet-open #hint {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 0.25s ease,
+    transform 0.3s ease,
+    visibility 0s 0.3s;
+}
+
+body.sheet-open #status {
+  transform: translate(-50%, -16px);
+}
+
+body.sheet-open #dock {
+  transform: translate(-50%, 16px);
+}
+
+body.sheet-open #update {
   display: none;
 }
 

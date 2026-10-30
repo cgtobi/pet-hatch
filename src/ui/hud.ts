@@ -304,14 +304,16 @@ export class Hud {
   }
 
   /** Screen space covered by the status card (top) and dock (bottom), for framing the 3D view. */
-  insets(): { top: number; bottom: number } {
+  insets(): { top: number; bottom: number; sheet?: boolean } {
     const status = $('status').getBoundingClientRect();
     const dock = this.dock.getBoundingClientRect();
     const h = window.innerHeight;
+    // The training/battle sheet replaces the status card and dock (they fade out); keep the pet visible above
+    // it. Measured from its layout position, so its rise-in animation doesn't move the island along with it.
+    const root = document.querySelector<HTMLElement>('#activity:not([hidden])');
+    const sheet = root?.querySelector<HTMLElement>('.sheet');
+    if (root && sheet) return { top: 16, bottom: h - (root.getBoundingClientRect().top + sheet.offsetTop) + 8, sheet: true };
     const top = status.height ? status.bottom + 8 : 16;
-    // The training/battle sheet replaces the status card and dock; keep the pet visible above it.
-    const sheet = document.querySelector('#activity:not([hidden]) .sheet');
-    if (sheet) return { top, bottom: h - sheet.getBoundingClientRect().top + 8 };
     return { top, bottom: dock.height ? h - dock.top + 56 : 56 };
   }
 }
