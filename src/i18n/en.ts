@@ -371,7 +371,7 @@ export const en = {
     'Baby (1 day) → Child (3 days) → Teen (5 days) → Adult (3 weeks, sometimes a few days more) → Elder (1 week or a little more).\nIt changes form when it becomes a child, a teen and an adult.\nAfter its elder days it sets off on an adventure and leaves you a new egg. The next generation inherits a head start in its best stat, and in every other stat at 100.',
   'help.train.title': 'Training',
   'help.train.body':
-    'From the child stage on, Train offers four minigames: Power, Speed, Guard and Wits.\nEach session uses {energy}% energy. A better score earns more points, and points come slower the higher a stat gets.\nEach stat has a limit per life stage: {child} as a child, {teen} as a teen, {adult} as an adult.\nEach type learns one stat faster: Ember Power, Tide Speed, Bloom Guard, Astral Wits.\nA stat at 100 earns a star.',
+    'From the child stage on, Train offers five minigames: Power, Speed, Guard, Wits and Endurance.\nEach session uses {energy}% energy. A better score earns more points, and points come slower the higher a stat gets.\nEach stat has a limit per life stage: {child} as a child, {teen} as a teen, {adult} as an adult.\nEach type learns one stat faster: Ember Power, Tide Speed, Bloom Guard, Astral Wits.\nA stat at 100 earns a star.\nEndurance doesn’t count in battles and earns no star, but gives more energy: up to +50, so your pet can train, play and battle longer.',
   'help.evolve.title': 'Evolution',
   'help.evolve.body':
     'Child form: decided by how well you looked after the baby.\nTeen form: Power and Speed training make a sporty teen, Guard and Wits a clever one.\nAdult form: shaped by its best stat. Elders keep their adult form.',

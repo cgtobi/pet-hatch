@@ -5,6 +5,8 @@ import type { ElementType, PetState, Settings, Stat } from './types';
 export const STATS: Stat[] = ['power', 'speed', 'guard', 'wits'];
 /** What a training session can raise: the four battle stats, or endurance. */
 export type TrainStat = Stat | 'endurance';
+/** The rows of the Train sheet, in order. */
+export const TRAIN_STATS: TrainStat[] = [...STATS, 'endurance'];
 /** Each point of endurance adds this much to the most energy a pet can have (+50 at 100). */
 const ENDURANCE_ENERGY = 0.5;
 /** Highest value each stat can reach, by life stage index (babies are too young to train). */

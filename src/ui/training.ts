@@ -4,9 +4,9 @@ import { LIFE_STAGES } from '../sim/pet';
 import {
   grade,
   MAX_STAT,
-  STATS,
   statCap,
   TRAIN_ENERGY,
+  TRAIN_STATS,
   trainValue,
   type TrainCheck,
   type TrainResult,
@@ -25,8 +25,6 @@ export interface TrainingHandlers {
   hit(): void;
   miss(): void;
   finish(stat: TrainStat, score: number): TrainResult;
-  /** Endurance training is still behind a feature flag (?endu=1). */
-  endurance(): boolean;
 }
 
 const TONES: Record<TrainStat, string> = { power: 'ember', speed: 'amber', guard: 'tide', wits: 'violet', endurance: 'bloom' };
@@ -62,8 +60,7 @@ export class Training {
     const cap = statCap(pet);
     const stage = Math.min(pet.stage, LIFE_STAGES.length - 1);
     const sub = `${speciesName(pet.type, pet.form)} · ${t(`life.${LIFE_STAGES[stage]}`)}`;
-    const trainable: TrainStat[] = this.h.endurance() ? [...STATS, 'endurance'] : STATS;
-    const rows = trainable.map((stat) => {
+    const rows = TRAIN_STATS.map((stat) => {
       const v = trainValue(pet, stat);
       const maxed = cap > 0 && v >= cap;
       const disabled = check !== 'ok' || maxed;

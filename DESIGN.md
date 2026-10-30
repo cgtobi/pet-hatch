@@ -27,7 +27,6 @@ Status of each part: ✅ built, 🔜 planned.
   30% with it left on, and no care mistakes count while you sleep. The **evening** is the 4 hours before it
   (`dayPart()` in `src/sim/clock.ts`).
 - ✅ **Debug:** `?debug` shows Settings › Debug (+1 h, +6 h, Ready now); `?speed=600` runs game time 600×.
-- **Feature flags** (`src/flags.ts`): `?endu=1` turns on endurance training on this device (`?endu=0` turns it off).
 
 ## Egg phase
 
@@ -144,7 +143,7 @@ After any ending, a new egg starts.
 
 ### Training and stats ✅
 
-Four stats, each trained by its own 15–30 s minigame from the **Train** sheet (opens from the dock). Opening it,
+Four battle stats and Endurance, each trained by its own 15–30 s minigame from the **Train** sheet (opens from the dock). Opening it,
 the status card and dock fade away while the camera glides back and up over about half a second, so the whole
 island stays in view above the sheet; closing it glides back. (Every change of framing eases the same way.)
 
@@ -154,6 +153,7 @@ island stays in view above the sheet; closing it glides back. (Every change of f
 | Speed | Star catch | Tap stars before they fade; 20 s, they come faster and fade sooner. |
 | Guard | Block | Tap the side an attack comes from just before it lands; 12 attacks. Swinging at nothing leaves that side open briefly, so mashing fails. |
 | Wits | Recall | Repeat a growing sequence of four pads (3 → 8 long); one mistake ends it. |
+| Endurance | Jump rope | Jump as the rope reaches the ground; it turns faster and faster (see below). |
 
 - A session costs 20% energy and a little food; a score of 0–100% earns 1–6 points. Each type learns one stat
   25% faster (Ember Power, Tide Speed, Bloom Guard, Astral Wits); scruffy children learn 20% slower, elders 50%.
@@ -161,11 +161,9 @@ island stays in view above the sheet; closing it glides back. (Every change of f
   At a 70% score a stat takes about 8 sessions to reach the child cap, 10 more for the teen cap and 25 more for
   100 (6, 8 and 18 for the favourite stat), so maxing all four takes most of the adult stage.
 - **Caps per life stage:** babies can't train; Child 30, Teen 60, Adult and Elder 100.
-- **Endurance** (behind a feature flag, `?endu=1` to switch on and remember, `?endu=0` to switch off): a fifth
-  row on the Train sheet, trained by **Jump rope**. It follows the same caps and slowdown but isn't a battle stat
+- **Endurance:** a fifth row on the Train sheet, trained by **Jump rope**. It follows the same caps and slowdown but isn't a battle stat
   (no star, no part in battles, evolution or inheritance). Each point adds 0.5 to the most energy the pet can have
-  (150 at 100), so it can train, play and fight longer; the energy bar shows energy against that maximum. The
-  effect applies whenever a pet has endurance, flag or not.
+  (150 at 100), so it can train, play and fight longer; the energy bar shows energy against that maximum.
   - Jump rope: tap to jump as the rope reaches the ground. Two practice turns, then 28 counted jumps while a turn
     speeds up from 0.95 s to 0.42 s. A jump within ±0.14 s (less once fast) clears the rope, full marks for the
     inner half of that window; a jump keeps the pet in the air for a moment, so mashing misses the next turn.

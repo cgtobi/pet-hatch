@@ -52,7 +52,6 @@ import { speciesName } from './sim/evolution';
 import { randomSeed } from './sim/rng';
 import { exportSave, importSave, loadGame, saveGame } from './sim/save';
 import { canTrain, finishTraining, masteredStats, maxEnergy, startTraining, type TrainStat } from './sim/training';
-import { FLAGS } from './flags';
 import type { ElementType, GameState, NeglectMode, PetState, Stat } from './sim/types';
 import { Hud, type DockAction, type LightButton } from './ui/hud';
 import { openSettings, type InstallState } from './ui/settings';
@@ -151,7 +150,6 @@ new Training(sheet, {
     haptic('tap');
   },
   miss: () => sfx.miss(),
-  endurance: () => FLAGS.endurance,
   finish: (stat: TrainStat, score: number) => {
     const pet = state.pet!;
     const r = finishTraining(pet, stat, score);
