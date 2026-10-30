@@ -270,4 +270,15 @@ describe('battle codes', () => {
     expect(decodeFighter('hello world')).toBeNull();
     expect(decodeFighter(encodeFighter(fighter({ stage: 1, form: 'child.bright', stats: { power: 90, speed: 0, guard: 0, wits: 0 } })))).toBeNull();
   });
+
+  it('drops invisible characters from names and refuses names longer than the game writes', () => {
+    expect(decodeFighter(encodeFighter(fighter({ name: '\u202eMochi\u200b\u0007' })))?.name).toBe('Mochi');
+    // A hand-made code with a 60-byte name and a correct checksum.
+    const body = [...Buffer.from(encodeFighter(fighter({ name: 'x' })), 'base64url')].slice(0, 10);
+    body.push(...new TextEncoder().encode('y'.repeat(60)));
+    let h = 0x811c9dc5;
+    for (const b of body) h = Math.imul(h ^ b, 0x01000193);
+    const code = Buffer.from([...body, (h ^ (h >>> 8) ^ (h >>> 16) ^ (h >>> 24)) & 0xff]).toString('base64url');
+    expect(decodeFighter(code)).toBeNull();
+  });
 });

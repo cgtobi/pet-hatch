@@ -47,7 +47,7 @@ import {
 } from './sim/pet';
 import { BATTLE_ENERGY, fighterFromPet, finishBattle, MOVES, wildFoe, type SideKey } from './sim/battle';
 import { findRelay } from './net/relayConfig';
-import { CHALLENGE_PARAM, encodeFighter } from './sim/battlecode';
+import { CHALLENGE_PARAM, cleanName, encodeFighter } from './sim/battlecode';
 import { speciesName } from './sim/evolution';
 import { randomSeed } from './sim/rng';
 import { exportSave, importSave, loadGame, saveGame } from './sim/save';
@@ -619,7 +619,7 @@ function burstAndReveal(pet: PetState, alone: boolean) {
       body,
       t('reveal.button'),
       (name) => {
-        if (name) pet.name = name;
+        if (cleanName(name)) pet.name = cleanName(name);
         pet.revealSeen = true;
         saveGame(state);
         updateHud();
@@ -763,9 +763,9 @@ function musicFor(now: number): MusicMode {
   if (world.foe) return 'battle';
   const asleep = isAsleep(now, state.settings);
   if (asleep && roomDark(now)) return 'off';
-  const hour = localHour(now);
   const pet = livePet();
-  return asleep || pet?.napping || pet?.dozing || hour >= 19 || hour < 7 ? 'night' : 'day';
+  // The lullaby plays in the evening and at night, which follow the player's bedtime setting.
+  return asleep || pet?.napping || pet?.dozing || dayPart(now, state.settings) !== 'day' ? 'night' : 'day';
 }
 
 function formatAge(hours: number): string {

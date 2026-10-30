@@ -25,6 +25,14 @@ const TEENS = [null, 'teen.physical', 'teen.technical'] as const;
 const MAX_NAME_BYTES = 56;
 export const CHALLENGE_PARAM = 'challenge';
 
+/**
+ * A pet name as shown to others: without control or invisible formatting characters (e.g. ones that flip the
+ * text direction and could disguise a name or a battle log line), trimmed.
+ */
+export function cleanName(name: string): string {
+  return name.replace(/[\p{Cc}\p{Cf}]/gu, '').trim();
+}
+
 function checksum(bytes: Uint8Array): number {
   // FNV-1a, folded to one byte: enough to catch typos and truncated pastes.
   let h = 0x811c9dc5;
@@ -83,9 +91,11 @@ export function decodeFighter(input: string): Fighter | null {
   if (!form.startsWith(expected)) return null;
   const stats = Object.fromEntries(STATS.map((s, i) => [s, body[3 + i]])) as Fighter['stats'];
   if (STATS.some((s) => stats[s] > STAT_CAPS[stage]) || body[7] > 100) return null;
+  // The game never writes longer names, so a longer one isn't from the game.
+  if (body.length - 10 > MAX_NAME_BYTES) return null;
   let name: string;
   try {
-    name = new TextDecoder('utf-8', { fatal: true }).decode(body.subarray(10)).trim();
+    name = cleanName(new TextDecoder('utf-8', { fatal: true }).decode(body.subarray(10)));
   } catch {
     return null;
   }

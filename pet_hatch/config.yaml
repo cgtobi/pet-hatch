@@ -9,6 +9,8 @@ arch:
   - amd64
 startup: application
 boot: auto
+# Restart the app if it stops answering.
+watchdog: http://[HOST]:[PORT:8787]/health
 init: false
 # Open it from the Home Assistant sidebar (for logged-in users)…
 ingress: true

@@ -34,6 +34,9 @@ export type LiveErrorCode =
   | 'invalid'
   | 'timeout';
 
+/** The errors the relay itself reports; anything else in an error message is treated as invalid. */
+const RELAY_ERRORS: LiveErrorCode[] = ['no-room', 'full', 'taken', 'busy', 'idle', 'rate', 'bad-request'];
+
 export class LiveError extends Error {
   constructor(readonly code: LiveErrorCode) {
     super(`Live battle failed: ${code}`);
@@ -151,7 +154,8 @@ export class LiveSession {
   private receive(m: Msg): void {
     switch (m.t) {
       case 'error':
-        return this.fail((m.code as LiveErrorCode) ?? 'invalid');
+        // Only the relay's own codes: never let a message claim the other side left or this one disconnected.
+        return this.fail(RELAY_ERRORS.includes(m.code as LiveErrorCode) ? (m.code as LiveErrorCode) : 'invalid');
       case 'room': {
         const peers = Number(m.peers);
         this.onPeers(peers);

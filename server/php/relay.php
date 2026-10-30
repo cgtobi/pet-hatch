@@ -11,7 +11,8 @@
  *   poll  { id, after }   – messages newer than `after`, waiting up to POLL_WAIT_MS for some
  *   leave { id, msgs? }   – last messages, then leave
  * Replies: { id?, msgs: [[seq, text], …], closed?, gone? }. A connection that stops polling counts as
- * gone, as if its socket had closed. Messages are forwarded as they are; the relay knows nothing about battles.
+ * gone, as if its socket had closed. Messages are forwarded as they are (except any that pretend to come from the
+ * relay itself, which are dropped); the relay knows nothing about battles.
  *
  * The game finds it through a relay.json next to index.html: { "url": "relay.php", "transport": "http" }.
  * Needs PHP 8.1 or newer.
@@ -228,6 +229,15 @@ function within_rate(array &$s, string $id, int $now, int $count): bool
 }
 
 /** Forward a client's messages to the other player in its room (the dojo has nobody to forward to). */
+/** Message types only the relay itself sends (errors, room and dojo news, matches). */
+const RELAY_TYPES = ['error', 'room', 'dojo', 'match'];
+
+function speaks_for_relay(string $text): bool
+{
+    $m = json_decode($text, true);
+    return is_array($m) && in_array($m['t'] ?? null, RELAY_TYPES, true);
+}
+
 function forward(array &$s, string $id, mixed $msgs, int $now): void
 {
     if (!is_array($msgs) || count($msgs) > MAX_BATCH) {
@@ -244,6 +254,8 @@ function forward(array &$s, string $id, mixed $msgs, int $now): void
         end_conn($s, $id, 'rate');
         return;
     }
+    // A player may not speak for the relay (e.g. a fake error that would end the other player's battle as a loss).
+    $msgs = array_values(array_filter($msgs, fn(string $text) => !speaks_for_relay($text)));
     $c = $s['conns'][$id];
     if ($c['kind'] !== 'room' || !$msgs || !isset($s['rooms'][$c['room']])) return;
     $s['rooms'][$c['room']]['touched'] = $now;

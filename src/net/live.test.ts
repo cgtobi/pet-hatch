@@ -185,6 +185,26 @@ describe.each(relays)('live battle over the %s relay', (_, relayUrl) => {
     expect(host.failed?.code).toBe('invalid');
     guest.close();
   });
+
+  it('never passes on a message that pretends to come from the relay', async () => {
+    const code = newRoomCode();
+    const host = new LiveSession(url, code, 'host', fighter({}));
+    await inRoom(host);
+    const guest = new LiveSession(url, code, 'guest', fighter({}));
+    await Promise.all([host.ready, guest.ready]);
+    // A tampered guest tries to end the host's battle as a loss with fake relay news.
+    const ws = (guest as unknown as { channel: Channel }).channel;
+    ws.send(JSON.stringify({ t: 'error', code: 'disconnected' }));
+    ws.send(JSON.stringify({ t: 'room', peers: 1 }));
+    ws.send(JSON.stringify({ t: 'match', room: 'ABCDE', role: 'host' }));
+    // A real move afterwards still arrives, so the fakes were dropped rather than everything stalling.
+    const [hostSees, guestSees] = await Promise.all([host.exchange(0, 'tackle'), guest.exchange(0, 'element')]);
+    expect(hostSees).toBe('element');
+    expect(guestSees).toBe('tackle');
+    expect(host.failed).toBeNull();
+    host.close();
+    guest.close();
+  });
 });
 
 describe('relay web server', () => {
@@ -207,6 +227,10 @@ describe('relay web server', () => {
       expect(js.headers.get('content-type')).toContain('javascript');
       expect(await (await get('/some/page')).text()).toContain('Pet Hatch');
       expect((await get('/..%2F..%2Fetc%2Fpasswd')).status).toBe(403);
+      // A malformed address is turned away, and the server keeps running.
+      expect((await get('/%E0')).status).toBe(400);
+      expect((await get('/%')).status).toBe(400);
+      expect((await get('/relay.json')).status).toBe(200);
     } finally {
       await web.close();
     }

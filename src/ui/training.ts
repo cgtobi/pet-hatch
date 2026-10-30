@@ -61,7 +61,8 @@ export class Training {
     const stage = Math.min(pet.stage, LIFE_STAGES.length - 1);
     const sub = `${speciesName(pet.type, pet.form)} · ${t(`life.${LIFE_STAGES[stage]}`)}`;
     const rows = TRAIN_STATS.map((stat) => {
-      const v = trainValue(pet, stat);
+      // Always a number on screen, whatever a save might hold.
+      const v = Math.round(Number(trainValue(pet, stat)));
       const maxed = cap > 0 && v >= cap;
       const disabled = check !== 'ok' || maxed;
       return `<button type="button" class="train-row" data-stat="${stat}" ${disabled ? 'disabled' : ''}>

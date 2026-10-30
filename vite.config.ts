@@ -66,12 +66,17 @@ self.addEventListener('fetch', (event) => {
   // The update check always asks the server.
   if (url.pathname.endsWith('/version.json')) return;
   if (request.mode === 'navigate') {
-    // Pages: fresh from the network when online, cached copy when offline.
+    // Pages: fresh from the network when online, cached copy when offline. Only the game page itself, and only
+    // a good answer, replaces the copy: never an error page or another page on the same server.
+    const page = new URL('./', self.registration.scope).pathname;
+    const isGame = url.pathname === page || url.pathname === page + 'index.html';
     event.respondWith(
       fetch(request)
         .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE).then((cache) => cache.put('./', copy));
+          if (isGame && response.ok && response.type === 'basic') {
+            const copy = response.clone();
+            caches.open(CACHE).then((cache) => cache.put('./', copy));
+          }
           return response;
         })
         .catch(() => caches.match('./')),

@@ -22,7 +22,9 @@ Status of each part: ✅ built, 🔜 planned.
      players, Settings toggle; a snapshot per pet once a day and on every change, plus its ending. Only asked where
      a `stats.json` sits next to the game.
   Install needs HTTPS (or `localhost`).
-- ✅ Saves live in `localStorage`. Settings › Backup copies/loads a save code to move between devices.
+- ✅ Saves live in `localStorage`. Settings › Backup copies/loads a save code to move between devices. An imported
+  code is checked field by field (types, ranges, known forms and languages, name lengths) and refused otherwise,
+  since a code can come from anyone; a save with an unknown language falls back to the device's.
 - ✅ Six languages: English, German, French, Spanish, Italian, Dutch (`src/i18n/`, one file each). The game
   follows the device language and can be switched in Settings. A test checks every translation has every key,
   the same placeholders and help lines, and dock labels short enough for the six-button bar.
@@ -301,7 +303,9 @@ A public waiting room for live battles against strangers of similar strength.
 - **What:** two friends fight in real time, each choosing their own moves on their own phone. Only shown when the
   deployment has a relay (see README); everything else works without one.
 - **Relay** (`server/relay.mjs`, Node + `ws`): pairs two players by a 5-character room code (no 0/O/1/I) and
-  forwards messages. It knows nothing about battles and stores nothing. Limits: 2 players per room, 4 KB per
+  forwards messages, except any that pretend to come from the relay itself (an `error`, `room`, `dojo` or `match`
+  from a player is dropped, so nobody can fake the other side leaving; the game also only accepts the relay's own
+  error codes). It knows nothing about battles and stores nothing. Limits: 2 players per room, 4 KB per
   message, 60 messages per 10 s, rooms close after 15 minutes of silence, dead connections are pinged out. It also
   serves `dist/` and `/relay.json`, so one process can host the whole game.
 - **PHP relay** (`server/php/relay.php`): the same rooms, limits and dojo for plain PHP web hosting, over HTTP

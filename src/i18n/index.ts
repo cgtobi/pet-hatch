@@ -28,11 +28,12 @@ const dictionaries: Record<Lang, Dict> = { en, de, fr, es, it, nl };
 let current: Lang = 'en';
 
 export function resolveLang(setting: LangSetting): Lang {
-  if (setting !== 'auto') return setting;
+  // An unknown language (an old or edited save) follows the device instead of breaking every text.
+  if (setting !== 'auto' && Object.hasOwn(dictionaries, setting)) return setting;
   const preferred = navigator.languages?.length ? navigator.languages : [navigator.language];
   for (const tag of preferred) {
     const base = tag.toLowerCase().split('-')[0];
-    if (base in dictionaries) return base as Lang;
+    if (Object.hasOwn(dictionaries, base)) return base as Lang;
   }
   return 'en';
 }

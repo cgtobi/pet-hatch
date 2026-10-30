@@ -51,12 +51,30 @@ const TYPES = {
 /**
  * @param {{ staticDir?: string | null, log?: (msg: string) => void }} [options]
  */
+/** Message types only the relay itself sends (errors, room and dojo news, matches). */
+const RELAY_TYPES = new Set(['error', 'room', 'dojo', 'match']);
+
+/**
+ * Whether a player's message pretends to come from the relay, e.g. a fake error that would end the other
+ * player's battle as a loss. Those are dropped instead of forwarded.
+ * @param {string} text
+ */
+export function speaksForRelay(text) {
+  try {
+    const m = JSON.parse(text);
+    return typeof m === 'object' && m !== null && RELAY_TYPES.has(m.t);
+  } catch {
+    return false;
+  }
+}
+
 export function createRelay({ staticDir = null, log = () => {} } = {}) {
   /** @type {Map<string, { peers: Set<import('ws').WebSocket>, timer: NodeJS.Timeout | undefined }>} */
   const rooms = new Map();
   const root = staticDir ? resolve(staticDir) : null;
 
-  const server = createServer(async (req, res) => {
+  /** @param {import('node:http').IncomingMessage} req @param {import('node:http').ServerResponse} res */
+  const serve = async (req, res) => {
     const url = new URL(req.url ?? '/', 'http://localhost');
     if (url.pathname.endsWith('/relay.json')) {
       res.writeHead(200, { 'content-type': TYPES['.json'], 'cache-control': 'no-store' });
@@ -74,7 +92,15 @@ export function createRelay({ staticDir = null, log = () => {} } = {}) {
       return;
     }
     // Static files from dist/, never outside it; unknown paths fall back to the game page.
-    let file = resolve(join(root, decodeURIComponent(url.pathname)));
+    let path;
+    try {
+      path = decodeURIComponent(url.pathname);
+    } catch {
+      // A malformed %-escape: refuse it here, or the error would take the whole server down.
+      res.writeHead(400).end();
+      return;
+    }
+    let file = resolve(join(root, path));
     if (file !== root && !file.startsWith(root + sep)) {
       res.writeHead(403).end();
       return;
@@ -95,12 +121,25 @@ export function createRelay({ staticDir = null, log = () => {} } = {}) {
     } catch {
       res.writeHead(404).end();
     }
-  });
+  };
+  // Whatever a request throws (a URL that won't parse, say) answers 400 instead of stopping the server.
+  const server = createServer((req, res) =>
+    serve(req, res).catch(() => {
+      if (!res.headersSent) res.writeHead(400);
+      res.end();
+    }),
+  );
 
   const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_MESSAGE });
 
   server.on('upgrade', (req, socket, head) => {
-    const url = new URL(req.url ?? '/', 'http://localhost');
+    let url;
+    try {
+      url = new URL(req.url ?? '/', 'http://localhost');
+    } catch {
+      socket.destroy();
+      return;
+    }
     const enter = url.pathname.endsWith(PATH) ? enterRoom : url.pathname.endsWith(DOJO_PATH) ? enterDojo : null;
     if (!enter) {
       socket.destroy();
@@ -181,6 +220,7 @@ export function createRelay({ staticDir = null, log = () => {} } = {}) {
       if (!withinRate()) return reject(ws, 'rate');
       touch(code, room);
       const text = data.toString();
+      if (speaksForRelay(text)) return;
       for (const p of room.peers) if (p !== ws && p.readyState === p.OPEN) p.send(text);
     });
 

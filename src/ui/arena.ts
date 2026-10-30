@@ -593,7 +593,7 @@ export class Arena {
         <p>${esc(body)}</p>
         ${gain}
         ${xp}
-        <p class="muted">${t('battle.record', { w: pet.battles.wins, l: pet.battles.losses })}</p>
+        <p class="muted">${esc(t('battle.record', { w: pet.battles.wins, l: pet.battles.losses }))}</p>
         <div class="train-actions">
           ${dojoAgain || (share ? `<button type="button" class="secondary bt-share-result">${t('battle.shareResult')}</button>` : '<span></span>')}
           <button type="button" class="primary train-done">${t('train.done')}</button>
