@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.3
+
+- Dojo: waiting is shorter. The search for a similar pet widens steadily after 10 seconds, and if nobody close in
+  strength turns up, a stronger or weaker pet is offered after 40 seconds (was 90).
+
 ## 0.4.2
 
 - Dojo: when no pet of similar strength turns up for a while, you may be offered a stronger or weaker one. The
