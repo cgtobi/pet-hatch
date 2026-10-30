@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.1
+
+- Under the hood: the game's code is reorganised and better tested. Nothing changes in play.
+
 ## 0.4.0
 
 - Fairer live battles: moves are locked in with a stronger seal, so a modified game can't pick its move after
