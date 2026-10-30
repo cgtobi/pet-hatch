@@ -6,7 +6,7 @@ import '@fontsource/nunito/latin-800.css';
 import './style.css';
 
 import { haptic, setHapticsEnabled, setMusicEnabled, setMusicMode, setSoundEnabled, sfx, suspendAudio, unlockAudio, type MusicMode } from './feedback';
-import { setLang, t, type TextKey } from './i18n';
+import { listOf, setLang, t, type TextKey } from './i18n';
 import { attachGestures } from './input/gestures';
 import { World } from './scene/world';
 import { dayPart, HOUR, isAsleep, localHour } from './sim/clock';
@@ -22,7 +22,7 @@ import {
   warmEgg,
   type CareResult,
 } from './sim/egg';
-import { advance, gameNow, hatch, isReadyToHatch, layNewEgg, newGame } from './sim/game';
+import { advance, gameNow, hatch, heritageOf, isReadyToHatch, layNewEgg, newGame } from './sim/game';
 import {
   ageHours,
   CALL_THRESHOLD,
@@ -47,10 +47,10 @@ import {
 import { BATTLE_ENERGY, fighterFromPet, finishBattle, MOVES, wildFoe, type SideKey } from './sim/battle';
 import { findRelay } from './net/relayConfig';
 import { CHALLENGE_PARAM, encodeFighter } from './sim/battlecode';
-import { speciesName, topStat } from './sim/evolution';
+import { speciesName } from './sim/evolution';
 import { randomSeed } from './sim/rng';
 import { exportSave, importSave, loadGame, saveGame } from './sim/save';
-import { canTrain, finishTraining, startTraining } from './sim/training';
+import { canTrain, finishTraining, masteredStats, startTraining } from './sim/training';
 import type { ElementType, GameState, PetState, Stat } from './sim/types';
 import { Hud, type DockAction, type LightButton } from './ui/hud';
 import { openSettings, type InstallState } from './ui/settings';
@@ -601,7 +601,12 @@ function burstAndReveal(pet: PetState, alone: boolean) {
     const body =
       (alone ? `${t('reveal.alone')} ` : '') +
       t(`reveal.body.${pet.type}`) +
-      (h ? ` ${t('reveal.heritage', { parent: h.parentName, stat: t(`stat.${h.stat}`), n: h.bonus })}` : '');
+      (h
+        ? ` ${t('reveal.heritage', {
+            parent: h.parentName,
+            stats: listOf(Object.entries(h.stats).map(([s, n]) => `${t(`stat.${s as Stat}`)} +${n}`)),
+          })}`
+        : '');
     hud.showOverlay(
       t('reveal.title', { type }),
       body,
@@ -665,7 +670,12 @@ function showEnding(pet: PetState) {
       hud.showOverlay(
         t(`end.${key}.title` as TextKey, name),
         t(`end.${key}.body` as TextKey) +
-          (key === 'retired' ? ` ${t('end.retired.heritage', { name: pet.name, stat: t(`stat.${topStat(pet)}`) })}` : ''),
+          (key === 'retired'
+            ? ` ${t('end.retired.heritage', {
+                name: pet.name,
+                stats: listOf(Object.keys(heritageOf(pet).stats).map((s) => t(`stat.${s as Stat}`))),
+              })}`
+            : ''),
         t(key === 'retired' ? 'end.retired.button' : 'failed.button'),
         startNewEgg,
       ),
@@ -791,10 +801,12 @@ function updateHud() {
     hud.setMode('pet');
     const species = speciesName(pet.type, pet.shownForm);
     const age = t('pet.age', { age: formatAge(ageHours(pet, now)) });
+    const stars = masteredStats(pet).length;
     hud.setHeader(pet.name, `${species} · ${age} · ${t(`pet.feel.${feel}` as TextKey)}`, [
       { text: t(`type.${pet.type}`), tone: pet.type },
       { text: t(`life.${LIFE_STAGES[stage]}`), tone: 'neutral' },
       ...(pet.generation > 1 ? [{ text: t('gen', { n: pet.generation }), tone: 'neutral' as const }] : []),
+      ...(stars ? [{ text: '★'.repeat(stars), tone: 'gold' as const }] : []),
     ]);
     hud.setNeeds({
       hunger: pet.hunger / 100,

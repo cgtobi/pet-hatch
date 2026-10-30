@@ -43,6 +43,11 @@ export function setLang(setting: LangSetting): Lang {
   return current;
 }
 
+/** "A, B and C" in the current language. */
+export function listOf(items: string[]): string {
+  return new Intl.ListFormat(current, { type: 'conjunction' }).format(items);
+}
+
 export function t(key: TextKey, params: Record<string, string | number> = {}): string {
   const text = dictionaries[current][key] ?? en[key];
   return text.replace(/\{(\w+)\}/g, (_, p: string) => String(params[p] ?? `{${p}}`));

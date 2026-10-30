@@ -2,6 +2,7 @@
   --ink: #2e2a3a;
   --ink-2: #3a3446;
   --muted: #6b6478;
+  --star: #e0a100;
   --card: rgba(255, 255, 255, 0.92);
   --track: #ebe4f1;
   --line: #eee8f2;
@@ -119,7 +120,8 @@ button:focus:not(:focus-visible) {
 
 .chips {
   display: flex;
-  gap: 6px;
+  flex-wrap: wrap;
+  gap: 4px 6px;
 }
 
 .chip {
@@ -149,6 +151,11 @@ button:focus:not(:focus-visible) {
 .chip.neutral {
   background: #f3eef7;
   color: #4a4258;
+}
+.chip.gold {
+  background: #fff1c2;
+  color: #a16a00;
+  letter-spacing: 1px;
 }
 
 .status-buttons {
@@ -768,6 +775,16 @@ textarea {
   flex-direction: column;
   gap: 2px;
   min-width: 0;
+}
+
+.family-text .stars {
+  margin-left: 4px;
+  color: var(--star);
+  letter-spacing: 1px;
+}
+
+.train-val .star {
+  color: var(--star);
 }
 
 .family-text small {

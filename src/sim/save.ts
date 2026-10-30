@@ -1,7 +1,7 @@
 import { migrateEggCare } from './egg';
 import { DEFAULT_SETTINGS } from './game';
 import { migratePet } from './pet';
-import type { GameState } from './types';
+import type { GameState, Heritage, Stat } from './types';
 
 const KEY = 'pethatch.save';
 
@@ -60,6 +60,13 @@ function parseSave(json: string): GameState | null {
   s.settings = { ...DEFAULT_SETTINGS, ...s.settings };
   s.family ??= [];
   s.egg.heritage ??= null;
+  // Before mastered stats, an egg inherited one stat.
+  const h = s.egg.heritage as (Heritage & { stat?: Stat; bonus?: number }) | null;
+  if (h && !h.stats) {
+    h.stats = { [h.stat!]: h.bonus };
+    delete h.stat;
+    delete h.bonus;
+  }
   migrateEggCare(s.egg);
   if (s.pet) s.pet = migratePet(s.pet);
   return s;

@@ -150,6 +150,9 @@ Four stats, each trained by its own 15–30 s minigame from the **Train** sheet 
   At a 70% score a stat takes about 8 sessions to reach the child cap, 10 more for the teen cap and 25 more for
   100 (6, 8 and 18 for the favourite stat), so maxing all four takes most of the adult stage.
 - **Caps per life stage:** babies can't train; Child 30, Teen 60, Adult and Elder 100.
+- **Stars:** each stat at 100 earns a star: a gold ★ chip in the pet's header (one star per stat), "★ Max" on
+  the Train sheet, and the stars stay with the pet in the family list. More stars also mean a bigger head start
+  for the next generation (see *Family*).
 - Training needs the pet awake, healthy, with ≥ 20% energy and not starving.
 - **Disobedience:** below 40 discipline the pet may refuse (up to 30% at 0) and throw a tantrum instead, which
   scolding fixes. The roll is fixed per minute, so retrying straight away doesn't help.
@@ -250,11 +253,12 @@ A public waiting room for live battles against strangers of similar strength.
 ### Family ✅
 
 - A pet that **retires** (the happy ending) leaves an egg that inherits a head start: about a tenth of the
-  parent's best stat (3–8 points) in that stat. The egg is called "Pip's egg", and the new pet carries a
+  parent's best stat (3–8 points) in that stat, plus 5 points in every other stat it had at 100 (at most
+  8 + 5 + 5 + 5 with four stars). The egg is called "Pip's egg", and the new pet carries a
   **generation** chip (Gen 2, Gen 3, …). The reveal tells you what it inherited.
 - A pet that ran away or died, or a manual restart, passes nothing on; the next egg is a fresh first generation.
 - Settings › **Family** lists every past pet, newest first: generation, name, species, how its story ended, how
-  long it lived and its battle wins.
+  long it lived, its battle wins and its stars.
 
 ## Sound and touch
 

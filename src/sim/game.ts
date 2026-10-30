@@ -3,6 +3,7 @@ import { createEgg, eggType, HATCH_WAIT_H, tickEgg } from './egg';
 import { topStat } from './evolution';
 import { createPet, tickPet } from './pet';
 import { randomSeed } from './rng';
+import { masteredStats } from './training';
 import type { GameState, Heritage, PetState, Settings } from './types';
 
 /** Fixed simulation step; catch-up replays missed time in these slices. */
@@ -77,16 +78,18 @@ export function hatch(state: GameState, at: number, alone: boolean): PetState {
   return pet;
 }
 
-/** What a retiring pet passes on: a head start of about a tenth of its best stat (3–8 points). */
+/** Every stat at 100 besides the best one passes on this many points too. */
+export const MASTERED_BONUS = 5;
+
+/**
+ * What a retiring pet passes on: a head start of about a tenth of its best stat (3–8 points), plus
+ * MASTERED_BONUS for every other stat at 100. The best stat comes first.
+ */
 export function heritageOf(pet: PetState): Heritage {
-  const stat = topStat(pet);
-  return {
-    parentName: pet.name,
-    parentType: pet.type,
-    stat,
-    bonus: Math.min(8, Math.max(3, Math.round(pet.stats[stat] * 0.1))),
-    generation: pet.generation + 1,
-  };
+  const best = topStat(pet);
+  const stats: Heritage['stats'] = { [best]: Math.min(8, Math.max(3, Math.round(pet.stats[best] * 0.1))) };
+  for (const s of masteredStats(pet)) stats[s] ??= MASTERED_BONUS;
+  return { parentName: pet.name, parentType: pet.type, stats, generation: pet.generation + 1 };
 }
 
 /**
@@ -104,6 +107,7 @@ export function layNewEgg(state: GameState, now: number, seed = randomSeed()): v
       generation: pet.generation,
       ending: pet.status === 'alive' ? 'released' : pet.status,
       wins: pet.battles.wins,
+      stars: masteredStats(pet).length,
       hatchedAt: pet.hatchedAt,
       endedAt: now,
     });

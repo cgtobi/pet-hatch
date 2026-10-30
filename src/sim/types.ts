@@ -21,9 +21,8 @@ export interface Settings {
 export interface Heritage {
   parentName: string;
   parentType: ElementType;
-  /** The parent's best stat; the child starts with a few points in it. */
-  stat: Stat;
-  bonus: number;
+  /** Head start per stat: a few points in the parent's best stat, and more for every other stat it had at 100. */
+  stats: Partial<Record<Stat, number>>;
   generation: number;
 }
 
@@ -36,6 +35,8 @@ export interface Ancestor {
   /** How its story ended; 'released' means a new egg was started while it was still around. */
   ending: 'retired' | 'ranAway' | 'died' | 'released';
   wins: number;
+  /** Stats it had at 100, shown as stars (missing in older saves). */
+  stars?: number;
   hatchedAt: number;
   endedAt: number;
 }

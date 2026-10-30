@@ -62,7 +62,8 @@ const PET_DOCK: DockDef[] = [
 
 export interface Chip {
   text: string;
-  tone: 'ember' | 'tide' | 'bloom' | 'astral' | 'neutral';
+  /** Gold: a star per stat at 100. */
+  tone: 'ember' | 'tide' | 'bloom' | 'astral' | 'neutral' | 'gold';
 }
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;

@@ -1,7 +1,7 @@
 import { t, type TextKey } from '../i18n';
 import { speciesName } from '../sim/evolution';
 import { LIFE_STAGES } from '../sim/pet';
-import { grade, STATS, statCap, TRAIN_ENERGY, type TrainCheck, type TrainResult } from '../sim/training';
+import { grade, MAX_STAT, STATS, statCap, TRAIN_ENERGY, type TrainCheck, type TrainResult } from '../sim/training';
 import type { PetState, Stat } from '../sim/types';
 import { icon } from './icons';
 import { GAMES, STAT_ICONS, type GameText, type Minigame } from './minigames';
@@ -56,7 +56,7 @@ export class Training {
         <span class="train-row-main">
           <span class="train-row-top">
             <b>${t(`stat.${stat}`)}</b><span class="muted">${t(`game.${stat}`)}</span>
-            <span class="train-val">${maxed ? t('train.max') : `${v} / ${cap}`}</span>
+            <span class="train-val">${maxed ? `${v >= MAX_STAT ? '<span class="star">★</span> ' : ''}${t('train.max')}` : `${v} / ${cap}`}</span>
           </span>
           <span class="track"><span class="fill ${TONES[stat]}-fill" style="width:${cap ? (v / cap) * 100 : 0}%"></span></span>
         </span>
@@ -131,7 +131,10 @@ export class Training {
     const name = t(`stat.${stat}`);
     const again = this.h.check() === 'ok' && !r.capped;
     const gain = r.gain > 0 ? `<p class="train-gain ${TONES[stat]}">${t('train.gain', { stat: name, n: r.gain })}</p>` : '';
-    const capped = r.capped ? `<p class="train-goal">${t('train.capped', { stat: name })}</p>` : '';
+    const pet = this.h.pet();
+    const capped = r.capped
+      ? `<p class="train-goal">${t(pet.stats[stat] >= MAX_STAT ? 'train.star' : 'train.capped', { stat: name })}</p>`
+      : '';
     this.sheet.innerHTML = `<div class="train-result">
         <span class="bubble ${TONES[stat]}-btn">${icon(STAT_ICONS[stat], 34)}</span>
         <h2>${t(`train.grade.${grade(score)}`)}</h2>

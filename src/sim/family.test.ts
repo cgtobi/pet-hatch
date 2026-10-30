@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { HOUR } from './clock';
-import { advance, DEFAULT_SETTINGS, hatch, heritageOf, layNewEgg, newGame } from './game';
+import { advance, DEFAULT_SETTINGS, hatch, heritageOf, layNewEgg, MASTERED_BONUS, newGame } from './game';
 import { importSave, exportSave } from './save';
 import type { GameState, PetState } from './types';
 
@@ -19,7 +19,7 @@ describe('inheritance', () => {
     const s = withPet();
     s.pet.status = 'retired';
     layNewEgg(s, T0 + 900 * HOUR, 12);
-    expect(s.egg.heritage).toEqual({ parentName: 'Pip', parentType: s.family[0].type, stat: 'speed', bonus: 7, generation: 2 });
+    expect(s.egg.heritage).toEqual({ parentName: 'Pip', parentType: s.family[0].type, stats: { speed: 7 }, generation: 2 });
     const child = hatch(s, T0 + 930 * HOUR, false);
     expect(child.stats.speed).toBe(7);
     expect(child.stats.power).toBe(0);
@@ -29,9 +29,21 @@ describe('inheritance', () => {
   it('gives at least 3 and at most 8 points', () => {
     const s = withPet();
     s.pet.stats = { power: 0, speed: 0, guard: 0, wits: 0 };
-    expect(heritageOf(s.pet).bonus).toBe(3);
+    expect(Object.values(heritageOf(s.pet).stats)).toEqual([3]);
     s.pet.stats.wits = 100;
-    expect(heritageOf(s.pet).bonus).toBe(8);
+    expect(heritageOf(s.pet).stats).toEqual({ wits: 8 });
+  });
+
+  it('passes more on for every other stat at 100, and remembers them as stars', () => {
+    const s = withPet();
+    s.pet.type = 'tide'; // ties go to the favorite stat, Speed
+    s.pet.stats = { power: 100, speed: 100, guard: 100, wits: 64 };
+    expect(heritageOf(s.pet).stats).toEqual({ speed: 8, power: MASTERED_BONUS, guard: MASTERED_BONUS });
+    s.pet.status = 'retired';
+    layNewEgg(s, T0 + 900 * HOUR, 12);
+    expect(s.family[0].stars).toBe(3);
+    const child = hatch(s, T0 + 930 * HOUR, false);
+    expect(child.stats).toEqual({ power: MASTERED_BONUS, speed: 8, guard: MASTERED_BONUS, wits: 0 });
   });
 
   it('passes nothing on after running away, dying or a manual restart', () => {
@@ -69,5 +81,14 @@ describe('inheritance', () => {
     const loaded = importSave(exportSave(s as GameState));
     expect(loaded.family).toEqual([]);
     expect(loaded.egg.heritage).toBeNull();
+  });
+
+  it('reads an older egg that inherited a single stat', () => {
+    const s = withPet();
+    s.pet.status = 'retired';
+    layNewEgg(s, T0 + 900 * HOUR, 12);
+    s.egg.heritage = { ...s.egg.heritage!, stats: undefined!, stat: 'guard', bonus: 6 } as GameState['egg']['heritage'];
+    const loaded = importSave(exportSave(s));
+    expect(loaded.egg.heritage).toEqual({ parentName: 'Pip', parentType: s.family[0].type, stats: { guard: 6 }, generation: 2 });
   });
 });

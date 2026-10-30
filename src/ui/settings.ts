@@ -180,8 +180,13 @@ export function openSettings(
           el(
             'span',
             { className: 'family-text' },
-            el('b', {}, a.name),
-            ` · ${speciesName(a.type, a.form)}`,
+            el(
+              'span',
+              {},
+              el('b', {}, a.name),
+              ...(a.stars ? [el('span', { className: 'stars', title: t('family.stars', { n: a.stars }) }, '★'.repeat(a.stars))] : []),
+              ` · ${speciesName(a.type, a.form)}`,
+            ),
             el('small', {}, `${t(`family.${a.ending}`)} · ${t('family.days', { d: days })} · ${t('family.wins', { n: a.wins })}`),
           ),
         ),

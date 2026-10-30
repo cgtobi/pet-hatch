@@ -5,6 +5,8 @@ import type { ElementType, PetState, Settings, Stat } from './types';
 export const STATS: Stat[] = ['power', 'speed', 'guard', 'wits'];
 /** Highest value each stat can reach, by life stage index (babies are too young to train). */
 export const STAT_CAPS = [0, 30, 60, 100, 100];
+/** The highest a stat can ever get; each stat there earns the pet a star. */
+export const MAX_STAT = 100;
 /** Each type learns its favorite stat a little faster. */
 export const FAVORITE: Record<ElementType, Stat> = { ember: 'power', tide: 'speed', bloom: 'guard', astral: 'wits' };
 export const TRAIN_ENERGY = 20;
@@ -46,6 +48,11 @@ export function startTraining(pet: PetState, now: number): 'ok' | 'refused' {
   if (r >= refusalChance(pet)) return 'ok';
   pet.call = { kind: 'fake', at: now };
   return 'refused';
+}
+
+/** The stats at MAX_STAT, one star each. */
+export function masteredStats(pet: PetState): Stat[] {
+  return STATS.filter((s) => pet.stats[s] >= MAX_STAT);
 }
 
 export function statCap(pet: PetState): number {
