@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.9
+
+- When a newer version is out, the open game says so and offers a reload. It checks when you come back to it
+  and once an hour.
+
 ## 0.3.8
 
 - Sunrise and sunset follow your bedtime: the sun comes up at wake-up time and goes down when the evening
