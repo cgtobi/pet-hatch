@@ -19,6 +19,10 @@ export interface Fighter {
   teen: 'teen.physical' | 'teen.technical' | null;
   seed: number;
   wild: boolean;
+  /** A wild creature's rank (missing: 'match'), which sets its strength, tactics and reward. */
+  rank?: WildRank;
+  /** A wild creature's traits. */
+  traits?: WildTrait[];
 }
 
 export type MoveId = 'tackle' | 'element' | 'rush' | 'focus' | 'crush' | 'flurry' | 'shell' | 'trick';
@@ -98,7 +102,8 @@ export function battleRating(f: Pick<Fighter, 'stage' | 'stats'>): number {
 }
 
 export function maxHp(f: Fighter): number {
-  return 60 + 15 * Math.min(f.stage, 3) + f.stats.guard;
+  const hp = 60 + 15 * Math.min(f.stage, 3) + f.stats.guard;
+  return f.traits?.includes('tough') ? Math.round(hp * TOUGH_HP) : hp;
 }
 
 export function fighterFromPet(pet: PetState): Fighter {
@@ -116,19 +121,109 @@ export function fighterFromPet(pet: PetState): Fighter {
   };
 }
 
-/** A wild creature roughly as strong as your pet (a little weaker or stronger), at the same life stage. */
-export function wildFoe(pet: Pick<PetState, 'stage' | 'stats'>, seed: number): Fighter {
+// ---------- wild creatures ----------
+
+/**
+ * How strong a wild creature is. Its stats are built from the pet's own (times `strength`), so every rank stays a
+ * fair fight at any stage; strong ones and champions may go past the stage's stat cap (`capOver`), bring traits,
+ * pick their moves better (`randomMove`: the chance of a random attack instead of the best one) and pay more.
+ * Tuned by simulation: with sensible moves a pet wins about 60–90% against runts, 60–75% against matches,
+ * 30–45% against strong creatures and 10–20% against champions.
+ */
+export type WildRank = 'runt' | 'match' | 'strong' | 'champion';
+export const WILD_RANKS: Record<
+  WildRank,
+  { strength: [number, number]; capOver: number; traits: number; randomMove: number; reward: number; xp: number; lossMood: number }
+> = {
+  runt: { strength: [0.7, 0.85], capOver: 1, traits: 0, randomMove: 0.4, reward: 1, xp: 1, lossMood: 8 },
+  match: { strength: [0.9, 1.1], capOver: 1, traits: 0, randomMove: 0.25, reward: 2, xp: 1, lossMood: 8 },
+  strong: { strength: [1, 1.15], capOver: 1.15, traits: 1, randomMove: 0.15, reward: 3, xp: 1.5, lossMood: 4 },
+  champion: { strength: [1.1, 1.25], capOver: 1.25, traits: 2, randomMove: 0.05, reward: 5, xp: 2, lossMood: 4 },
+};
+const RANKS: WildRank[] = ['runt', 'match', 'strong', 'champion'];
+/** How often each rank turns up, by life stage (child … elder): later stages meet tougher creatures. */
+const RANK_WEIGHTS: Record<number, [number, number, number, number]> = {
+  1: [35, 55, 10, 0],
+  2: [20, 55, 20, 5],
+  3: [10, 45, 33, 12],
+  4: [10, 40, 35, 15],
+};
+
+/**
+ * Heat: a pet's run of form against wild creatures, +1 a win, −2 a loss, within these bounds. A hot pet meets
+ * strong creatures and champions more often (champions about 1.6 times as often at the top), a struggling one
+ * about twice as many runts.
+ */
+export const HEAT_MIN = -3;
+export const HEAT_MAX = 5;
+
+/** Tough: more health. Swift: a little faster than the pet. Fierce: more critical hits. Rival: the element that beats the pet's. */
+export type WildTrait = 'tough' | 'swift' | 'fierce' | 'rival';
+const TRAITS: WildTrait[] = ['tough', 'swift', 'fierce', 'rival'];
+const TOUGH_HP = 1.2;
+const SWIFT_LEAD = 5;
+const FIERCE_WITS = 25;
+/** The element that beats each one. */
+const COUNTER: Partial<Record<ElementType, ElementType>> = { ember: 'tide', tide: 'bloom', bloom: 'ember' };
+
+/** A wild encounter stays the same for this long (and until the next fight), so backing off doesn't reroll it. */
+const ENCOUNTER_MS = 15 * 60_000;
+
+/** The seed for the creature the pet would meet now. */
+export function encounterSeed(pet: Pick<PetState, 'seed' | 'battles'>, now: number): number {
+  const fights = pet.battles.wins + pet.battles.losses;
+  return Math.floor(mulberry32(pet.seed ^ Math.floor(now / ENCOUNTER_MS) ^ Math.imul(fights + 1, 0x9e3779b1))() * 2 ** 32);
+}
+
+function rankFor(stage: number, heat: number, r: () => number): WildRank {
+  const [runt, match, strong, champion] = RANK_WEIGHTS[clamp(stage, 1, 4)];
+  const weights = [
+    runt * Math.max(0.2, 1 - 0.15 * heat),
+    match,
+    strong * Math.max(0.2, 1 + 0.25 * heat),
+    champion * Math.max(0, 1 + 0.25 * heat),
+  ];
+  let x = r() * weights.reduce((a, b) => a + b, 0);
+  for (let i = 0; i < RANKS.length; i++) if ((x -= weights[i]) < 0) return RANKS[i];
+  return 'match';
+}
+
+/**
+ * A wild creature for this pet: a rank drawn by its life stage and heat, then stats built from the pet's own,
+ * at the same life stage (an elder meets adults).
+ */
+export function wildFoe(
+  pet: Pick<PetState, 'stage' | 'stats' | 'type'> & { wildHeat?: number },
+  seed: number,
+): Fighter {
   const r = mulberry32(seed);
-  const type: ElementType = r() < 0.06 ? 'astral' : (['ember', 'tide', 'bloom'] as const)[Math.floor(r() * 3)];
+  const rank = rankFor(pet.stage, pet.wildHeat ?? 0, r);
+  const spec = WILD_RANKS[rank];
+  const traits: WildTrait[] = [];
+  // An astral pet has no element that beats it.
+  const possible = TRAITS.filter((tr) => tr !== 'rival' || COUNTER[pet.type]);
+  while (traits.length < spec.traits) {
+    const trait = possible[Math.floor(r() * possible.length)];
+    if (!traits.includes(trait)) traits.push(trait);
+  }
+  const type: ElementType = traits.includes('rival')
+    ? COUNTER[pet.type]!
+    : r() < 0.06
+      ? 'astral'
+      : (['ember', 'tide', 'bloom'] as const)[Math.floor(r() * 3)];
   const stage = clamp(pet.stage, 1, 3);
   const own = STATS.reduce((sum, s) => sum + pet.stats[s], 0);
-  // Even an untrained pet meets foes with a few points, so early battles aren't all zeros.
-  const total = Math.max(own, [0, 10, 40, 100][stage]) * (0.75 + r() * 0.4);
+  const [lo, hi] = spec.strength;
+  // Even an untrained pet meets creatures with a few points, so early battles aren't all zeros.
+  const total = Math.max(own, [0, 10, 40, 100][stage]) * (lo + r() * (hi - lo));
   const weights = STATS.map(() => 0.3 + r());
   const sum = weights.reduce((a, b) => a + b, 0);
+  const cap = Math.round(STAT_CAPS[stage] * spec.capOver);
   const stats = Object.fromEntries(
-    STATS.map((s, i) => [s, clamp(Math.round((total * weights[i]) / sum), 0, STAT_CAPS[stage])]),
+    STATS.map((s, i) => [s, clamp(Math.round((total * weights[i]) / sum), 0, cap)]),
   ) as Record<Stat, number>;
+  if (traits.includes('swift')) stats.speed = Math.max(stats.speed, pet.stats.speed + SWIFT_LEAD);
+  if (traits.includes('fierce')) stats.wits += FIERCE_WITS;
   const physical = stats.power + stats.speed >= stats.guard + stats.wits;
   const best = STATS.reduce((a, b) => (stats[b] > stats[a] ? b : a));
   const form: FormId =
@@ -151,6 +246,8 @@ export function wildFoe(pet: Pick<PetState, 'stage' | 'stats'>, seed: number): F
     teen: stage >= 2 ? (physical ? 'teen.physical' : 'teen.technical') : null,
     seed,
     wild: true,
+    rank,
+    traits,
   };
 }
 
@@ -209,7 +306,10 @@ export function disobeyChance(f: Fighter): number {
   return MAX_DISOBEY * clamp(1 - f.discipline / OBEY_DISCIPLINE, 0, 1);
 }
 
-/** The computer's choice: heal when low, set up a daze or focus now and then, else the hardest-hitting move. */
+/**
+ * The computer's choice: heal when low, set up a daze or focus now and then, else the hardest-hitting move (a wild
+ * creature's rank decides how often it picks any attack instead).
+ */
 export function aiMove(b: Battle, key: SideKey): MoveId {
   const s = b[key];
   const t = b[other(key)];
@@ -219,7 +319,8 @@ export function aiMove(b: Battle, key: SideKey): MoveId {
   if (s.moves.includes('trick') && !t.dazed && r() < 0.3) return 'trick';
   if (s.moves.includes('focus') && !s.focus && s.hp > s.maxHp * 0.6 && r() < 0.2) return 'focus';
   const attacks = s.moves.filter((m) => MOVES[m].power > 0);
-  if (r() < 0.25) return attacks[Math.floor(r() * attacks.length)];
+  // Now and then any attack, not the best: clumsy runts more often, champions hardly ever.
+  if (r() < WILD_RANKS[s.f.rank ?? 'match'].randomMove) return attacks[Math.floor(r() * attacks.length)];
   const value = (m: MoveId) => {
     const mv = MOVES[m];
     return mv.power * (mv.accuracy / 100) * (mv.hits ?? 1) * (mv.typed ? typeFactor(s.f.type, t.f.type) : 1);
@@ -364,6 +465,8 @@ export interface BattleReward {
   teacher: string | null;
   /** Won against a much stronger pet (see UPSET_SHARE): the stat gain was doubled. */
   upset: boolean;
+  /** The wild creature's rank, which set the reward (null for pets). */
+  rank: WildRank | null;
 }
 
 const total = (stats: Record<Stat, number>) => STATS.reduce((sum, s) => sum + stats[s], 0);
@@ -398,31 +501,40 @@ export function lessonFrom(pet: PetState, foe: Fighter): Stat {
  */
 export function finishBattle(pet: PetState, outcome: Outcome, seed: number, summary: BattleSummary): BattleReward {
   const rand = mulberry32(seed);
-  const reward: BattleReward = { stat: null, gain: 0, xp: 0, learned: null, teacher: null, upset: false };
+  const rank = summary.foe.wild ? (summary.foe.rank ?? 'match') : null;
+  const spec = WILD_RANKS[rank ?? 'match'];
+  const reward: BattleReward = { stat: null, gain: 0, xp: 0, learned: null, teacher: null, upset: false, rank };
   pet.energy = clamp(pet.energy - BATTLE_ENERGY, 0, maxEnergy(pet));
   pet.hunger = clamp(pet.hunger - BATTLE_HUNGER, 0, 100);
   const cap = STAT_CAPS[Math.min(pet.stage, STAT_CAPS.length - 1)];
   const open = () => STATS.filter((s) => pet.stats[s] < cap);
 
-  reward.xp = battleXp(pet, outcome, summary);
+  reward.xp = Math.round(battleXp(pet, outcome, summary) * spec.xp);
+  // Against wild creatures, the run of form: a win +1, a loss −2 (running away changes nothing).
+  if (rank && outcome !== 'fled') {
+    pet.wildHeat = clamp((pet.wildHeat ?? 0) + (outcome === 'won' ? 1 : -2), HEAT_MIN, HEAT_MAX);
+  }
   if (outcome === 'fled') {
     pet.mood = clamp(pet.mood - 3, 0, 100);
   } else if (outcome === 'lost') {
     pet.battles.losses++;
-    pet.mood = clamp(pet.mood - 8, 0, 100);
+    // Losing to a strong creature or a champion is no shame.
+    pet.mood = clamp(pet.mood - spec.lossMood, 0, 100);
     if (reward.xp > 0) {
       pet.lessons.push({ stat: lessonFrom(pet, summary.foe), from: summary.foe.name });
       pet.lessons = pet.lessons.slice(-MAX_LESSONS);
     }
   } else {
     pet.battles.wins++;
+    if (rank === 'champion') pet.battles.champions = (pet.battles.champions ?? 0) + 1;
     pet.mood = clamp(pet.mood + 10, 0, 100);
     reward.upset = !summary.foe.wild && battleRating(summary.foe) >= UPSET_SHARE * battleRating(pet);
     const choices = open();
     if (choices.length) {
       const stat = choices[Math.floor(rand() * choices.length)];
       reward.stat = stat;
-      reward.gain = Math.min(WIN_REWARD * (reward.upset ? 2 : 1), cap - pet.stats[stat]);
+      const points = rank ? spec.reward : WIN_REWARD * (reward.upset ? 2 : 1);
+      reward.gain = Math.min(points, cap - pet.stats[stat]);
       pet.stats[stat] += reward.gain;
     }
   }

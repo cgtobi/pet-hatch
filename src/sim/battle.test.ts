@@ -17,12 +17,17 @@ import {
   typeFactor,
   WEAK,
   wildFoe,
+  encounterSeed,
+  HEAT_MAX,
+  HEAT_MIN,
+  WILD_RANKS,
   type Fighter,
+  type WildRank,
 } from './battle';
 import { decodeFighter, encodeFighter } from './battlecode';
 import { DEFAULT_SETTINGS, hatch, newGame } from './game';
 import { migratePet } from './pet';
-import { STAT_CAPS, STATS } from './training';
+import { STAT_CAPS } from './training';
 
 function fighter(over: Partial<Fighter> = {}): Fighter {
   return {
@@ -126,16 +131,90 @@ describe('battle rules', () => {
 });
 
 describe('wild creatures', () => {
-  it('match the pet’s stage and stay within its caps', () => {
-    for (let seed = 1; seed <= 50; seed++) {
+  const even = { power: 20, speed: 20, guard: 20, wits: 20 };
+  /** Spread-out seeds, as encounterSeed() makes them (counting 1, 2, 3 … gives first rolls too much alike). */
+  const seedOf = (i: number) => encounterSeed({ seed: i, battles: { wins: 0, losses: 0 } }, 0);
+  const ranks = (stage: number, heat: number, n = 2000) => {
+    const counts: Record<WildRank, number> = { runt: 0, match: 0, strong: 0, champion: 0 };
+    for (let i = 1; i <= n; i++) counts[wildFoe({ stage, stats: even, type: 'ember', wildHeat: heat }, seedOf(i)).rank!]++;
+    return counts;
+  };
+
+  it('match the pet’s stage, and only strong ones and champions go past its caps', () => {
+    for (let seed = 1; seed <= 200; seed++) {
       for (const stage of [1, 2, 3, 4]) {
-        const foe = wildFoe({ stage, stats: { power: 20, speed: 20, guard: 20, wits: 20 } }, seed);
+        const foe = wildFoe({ stage, stats: { power: 60, speed: 60, guard: 60, wits: 60 }, type: 'tide' }, seed);
         expect(foe.stage).toBe(Math.min(stage, 3));
         expect(foe.wild).toBe(true);
-        for (const s of STATS) expect(foe.stats[s]).toBeLessThanOrEqual(STAT_CAPS[foe.stage]);
+        expect(foe.traits).toHaveLength(WILD_RANKS[foe.rank!].traits);
+        const cap = Math.round(STAT_CAPS[foe.stage] * WILD_RANKS[foe.rank!].capOver);
+        // Swift and fierce add on top of the cap.
+        for (const s of ['power', 'guard'] as const) expect(foe.stats[s]).toBeLessThanOrEqual(cap);
         expect(movesFor(foe).length).toBe(Math.min(stage, 3) + 1);
       }
     }
+  });
+
+  it('get tougher with the life stage: no champions for a child, some for an adult', () => {
+    const child = ranks(1, 0);
+    const adult = ranks(3, 0);
+    expect(child.champion).toBe(0);
+    expect(child.runt).toBeGreaterThan(adult.runt * 2);
+    expect(adult.champion / 2000).toBeGreaterThan(0.08);
+    expect(adult.champion / 2000).toBeLessThan(0.16);
+    expect(adult.strong).toBeGreaterThan(child.strong * 2);
+  });
+
+  it('follow the pet’s run of form: more champions when it wins, more runts when it loses', () => {
+    const hot = ranks(3, HEAT_MAX);
+    const cold = ranks(3, HEAT_MIN);
+    const usual = ranks(3, 0);
+    expect(hot.champion).toBeGreaterThan(usual.champion * 1.4);
+    expect(hot.strong).toBeGreaterThan(usual.strong * 1.2);
+    expect(cold.champion).toBeLessThan(usual.champion * 0.5);
+    expect(cold.runt).toBeGreaterThan(usual.runt * 1.3);
+  });
+
+  it('are stronger by rank, and their traits do what they say', () => {
+    // Power and guard, which no trait changes.
+    const foes = Array.from({ length: 4000 }, (_, i) => wildFoe({ stage: 3, stats: even, type: 'ember', wildHeat: 5 }, seedOf(i + 1)));
+    const average: Partial<Record<WildRank, number>> = {};
+    for (const rank of ['runt', 'match', 'strong', 'champion'] as const) {
+      const mine = foes.filter((f) => f.rank === rank);
+      average[rank] = mine.reduce((sum, f) => sum + f.stats.power + f.stats.guard, 0) / mine.length;
+    }
+    expect(average.runt!).toBeLessThan(average.match!);
+    expect(average.match!).toBeLessThan(average.strong!);
+    expect(average.strong!).toBeLessThan(average.champion!);
+
+    for (let i = 1; i <= 400; i++) {
+      const seed = seedOf(i);
+      const foe = wildFoe({ stage: 3, stats: even, type: 'ember', wildHeat: 5 }, seed);
+      if (foe.traits!.includes('rival')) expect(foe.type).toBe('tide');
+      if (foe.traits!.includes('swift')) expect(foe.stats.speed).toBeGreaterThan(even.speed);
+      const plain = maxHp({ ...foe, traits: [] });
+      expect(maxHp(foe)).toBe(foe.traits!.includes('tough') ? Math.round(plain * 1.2) : plain);
+      // Nothing beats an astral pet's element.
+      expect(wildFoe({ stage: 3, stats: even, type: 'astral', wildHeat: 5 }, seed).traits).not.toContain('rival');
+    }
+  });
+
+  it('pick their moves better by rank', () => {
+    const randomPicks = (rank: WildRank) => {
+      const b = createBattle(fighter(), fighter({ wild: true, rank, type: 'ember' }), 3);
+      b.b.moves = ['tackle', 'crush'];
+      return Array.from({ length: 400 }, () => aiMove(b, 'b')).filter((m) => m === 'tackle').length;
+    };
+    expect(randomPicks('champion')).toBeLessThan(randomPicks('match'));
+    expect(randomPicks('match')).toBeLessThan(randomPicks('runt'));
+  });
+
+  it('wait for the pet: backing off and exploring again meets the same one, a fight brings a new one', () => {
+    const pet = { seed: 77, battles: { wins: 3, losses: 1 } };
+    const now = 1_000_000_000_000;
+    expect(encounterSeed(pet, now)).toBe(encounterSeed(pet, now + 60_000));
+    expect(encounterSeed(pet, now)).not.toBe(encounterSeed({ ...pet, battles: { wins: 4, losses: 1 } }, now));
+    expect(encounterSeed(pet, now)).not.toBe(encounterSeed(pet, now + 60 * 60_000));
   });
 });
 
@@ -184,6 +263,35 @@ describe('battle results', () => {
     const wild = finishBattle(pet(), 'won', 5, fought({ foe: { ...strong, wild: true } }));
     expect(wild.upset).toBe(false);
     expect(wild.gain).toBe(2);
+  });
+
+  it('pays wild wins by rank, counts champions and follows the run of form', () => {
+    const wild = (rank: WildRank) => fought({ foe: fighter({ wild: true, rank, stage: 2, form: 'teen.physical', stats: { power: 20, speed: 20, guard: 20, wits: 20 } }) });
+    const gains: Partial<Record<WildRank, number>> = {};
+    for (const rank of ['runt', 'match', 'strong', 'champion'] as const) gains[rank] = finishBattle(pet(), 'won', 5, wild(rank)).gain;
+    expect(gains).toEqual({ runt: 1, match: 2, strong: 3, champion: 5 });
+
+    const p = pet();
+    const r = finishBattle(p, 'won', 5, wild('champion'));
+    expect(r.rank).toBe('champion');
+    expect(p.battles.champions).toBe(1);
+    expect(p.wildHeat).toBe(1);
+    expect(r.xp).toBe(2 * finishBattle(pet(), 'won', 5, wild('match')).xp);
+
+    // A loss to a champion costs less mood and cools the pet down; running away changes nothing.
+    const q = pet();
+    finishBattle(q, 'lost', 5, wild('champion'));
+    expect(q.mood).toBe(46);
+    expect(q.wildHeat).toBe(-2);
+    finishBattle(q, 'fled', 5, wild('match'));
+    expect(q.wildHeat).toBe(-2);
+    for (let i = 0; i < 5; i++) finishBattle(q, 'lost', 5, wild('match'));
+    expect(q.wildHeat).toBe(HEAT_MIN);
+
+    // Pets aren't ranked: no heat, the usual reward.
+    const s = pet();
+    expect(finishBattle(s, 'won', 5, fought()).gain).toBe(2);
+    expect(s.wildHeat).toBeUndefined();
   });
 
   it('gives a loser a little experience and remembers what beat it', () => {

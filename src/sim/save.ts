@@ -81,7 +81,8 @@ export function isSound(s: GameState): boolean {
     isInt(o.sleepEnd, 0, 23) &&
     [o.sound, o.music, o.haptics].every((b) => typeof b === 'boolean') &&
     isOneOf(o.language, ['auto', ...LANGUAGES]) &&
-    (o.shareStats === undefined || typeof o.shareStats === 'boolean');
+    (o.shareStats === undefined || typeof o.shareStats === 'boolean') &&
+    (o.alerts === undefined || typeof o.alerts === 'boolean');
   const game = isNum(s.simTime) && isNum(s.clockOffset) && (s.phase === 'egg' || pet !== null);
   const family = isList(s.family, 10_000, (a: GameState['family'][number]) =>
     isName(a.name) &&
@@ -117,6 +118,8 @@ export function isSound(s: GameState): boolean {
       isNum(pet.endurance, 0, 100) &&
       isInt(pet.battles?.wins, 0, 1e6) &&
       isInt(pet.battles?.losses, 0, 1e6) &&
+      (pet.battles.champions === undefined || isInt(pet.battles.champions, 0, 1e6)) &&
+      (pet.wildHeat === undefined || isInt(pet.wildHeat, -10, 10)) &&
       isInt(pet.generation, 1, 1e6) &&
       isInt(pet.trainings, 0, 1e7) &&
       isNum(pet.battleXp, 0, 1000) &&

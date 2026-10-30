@@ -8,6 +8,7 @@ import {
   fighterFromPet,
   MAX_TURNS,
   MOVES,
+  WILD_RANKS,
   XP_PER_POINT,
   movesFor,
   playTurn,
@@ -31,8 +32,9 @@ import { esc, type ActivitySheet } from './sheet';
 export interface ArenaHandlers {
   pet(): PetState;
   check(): TrainCheck;
-  /** A seed for the next wild creature and battle dice. */
+  /** A seed for battle dice. */
   seed(): number;
+  /** The wild creature the pet would meet now (the same one until it fights, or for a while). */
   wildFoe(): Fighter;
   /** This pet's battle code and challenge link. */
   myCode(): { code: string; link: string };
@@ -118,6 +120,45 @@ export class Arena {
     this.fromDojo = false;
   }
 
+  /** Wins and losses, and champions beaten once there are any. */
+  private record(pet: PetState): string {
+    const record = t('battle.record', { w: pet.battles.wins, l: pet.battles.losses });
+    const champions = pet.battles.champions ?? 0;
+    return champions ? `${record} · ${t('wild.champions', { n: champions })}` : record;
+  }
+
+  /**
+   * What the pet found before it fights: the creature, how strong it looks, its traits and what a win pays.
+   * Backing off costs nothing; the same creature is still there if the pet looks again soon.
+   */
+  private scout(foe: Fighter): void {
+    this.leave();
+    const pet = this.h.pet();
+    const rank = foe.rank ?? 'match';
+    const traits = (foe.traits ?? [])
+      .map((trait) => `<li><b>${t(`wild.trait.${trait}`)}</b> ${esc(t(`wild.trait.${trait}.info`, { name: pet.name }))}</li>`)
+      .join('');
+    this.sheet.innerHTML = `${this.s.head({ title: t('battle.wildTitle'), sub: this.record(pet) })}
+      <div class="bt-scout ${rank}">
+        <div class="bt-name">
+          <b>${esc(this.foeName(foe))}</b>
+          <span class="chip ${foe.type}">${t(`type.${foe.type}`)}</span>
+          <span class="chip rank ${rank}">${t(`wild.rank.${rank}`)}</span>
+        </div>
+        <p>${esc(t(`wild.look.${rank}`, { name: pet.name }))}</p>
+        ${traits ? `<ul class="bt-traits">${traits}</ul>` : ''}
+        <p class="muted">${t('wild.reward', { n: WILD_RANKS[rank].reward })}</p>
+      </div>
+      <div class="train-actions">
+        <button type="button" class="secondary bt-back-off">${t('wild.backOff')}</button>
+        <button type="button" class="primary bt-go" ${this.h.check() === 'ok' ? '' : 'disabled'}>${t('battle.fight')}</button>
+      </div>`;
+    this.s.bindHead(() => this.menu());
+    this.sheet.querySelector('.bt-back-off')!.addEventListener('click', () => this.menu());
+    this.sheet.querySelector('.bt-go')!.addEventListener('click', () => void this.fight(foe));
+    this.s.layout();
+  }
+
   private xpBar(xp: number, label = t('battle.xp')): string {
     return `<div class="bt-xp-row">
       <span class="muted">${esc(label)}</span>
@@ -138,7 +179,7 @@ export class Arena {
     const pet = this.h.pet();
     const check = this.h.check();
     const species = speciesName(pet.type, pet.form);
-    const sub = `${species} · ${t('battle.record', { w: pet.battles.wins, l: pet.battles.losses })}`;
+    const sub = `${species} · ${this.record(pet)}`;
     const fighter = fighterFromPet(pet);
     const moves =
       pet.stage >= 1
@@ -184,7 +225,7 @@ export class Arena {
       <p class="train-note ${ok ? '' : 'bad'}">${esc(note)}</p>`;
     this.prefill = '';
     this.s.bindHead();
-    this.sheet.querySelector('.bt-explore')!.addEventListener('click', () => void this.fight(this.h.wildFoe()));
+    this.sheet.querySelector('.bt-explore')!.addEventListener('click', () => this.scout(this.h.wildFoe()));
     this.sheet.querySelector('.bt-enter-dojo')?.addEventListener('click', () => this.enterDojo());
     this.sheet.querySelector('.bt-host')?.addEventListener('click', () => this.lobby('host', newRoomCode()));
     this.sheet.querySelector('.bt-share')?.addEventListener('click', () => {
@@ -375,6 +416,7 @@ export class Arena {
       <div class="bt-name">
         <b>${esc(label)}</b>
         <span class="chip ${f.type}">${t(`type.${f.type}`)}</span>
+        ${f.wild && f.rank && f.rank !== 'match' ? `<span class="chip rank ${f.rank}">${t(`wild.rank.${f.rank}`)}</span>` : ''}
         ${f.wild || f.name === speciesName(f.type, f.form) ? '' : `<span class="muted">${esc(speciesName(f.type, f.form))}</span>`}
         <span class="bt-hpnum">${side.hp} / ${side.maxHp}</span>
       </div>
@@ -611,6 +653,7 @@ export class Arena {
           : t('battle.fledBody'));
     const gain =
       (reward.upset ? `<p class="train-goal">${t('battle.upset')}</p>` : '') +
+      (outcome === 'won' && reward.rank === 'champion' ? `<p class="train-goal">${t('wild.championWon')}</p>` : '') +
       (reward.stat ? `<p class="train-gain ${pet.type}">${t('train.gain', { stat: t(`stat.${reward.stat}`), n: reward.gain })}</p>` : '');
     // Experience: what this battle added, the bar, and a stat point when the bar filled.
     const capped = !reward.learned && pet.battleXp >= XP_PER_POINT;
@@ -635,7 +678,7 @@ export class Arena {
         <p>${esc(body)}</p>
         ${gain}
         ${xp}
-        <p class="muted">${esc(t('battle.record', { w: pet.battles.wins, l: pet.battles.losses }))}</p>
+        <p class="muted">${esc(this.record(pet))}</p>
         <div class="train-actions">
           ${dojoAgain || (share ? `<button type="button" class="secondary bt-share-result">${t('battle.shareResult')}</button>` : '<span></span>')}
           <button type="button" class="primary train-done">${t('train.done')}</button>

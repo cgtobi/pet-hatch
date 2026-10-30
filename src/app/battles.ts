@@ -3,7 +3,7 @@
  */
 import { haptic, sfx } from '../feedback';
 import { t } from '../i18n';
-import { BATTLE_ENERGY, fighterFromPet, finishBattle, MOVES, wildFoe, type SideKey } from '../sim/battle';
+import { BATTLE_ENERGY, encounterSeed, fighterFromPet, finishBattle, MOVES, wildFoe, type SideKey } from '../sim/battle';
 import { CHALLENGE_PARAM, encodeFighter } from '../sim/battlecode';
 import { randomSeed } from '../sim/rng';
 import { canTrain, finishTraining, startTraining, type TrainStat } from '../sim/training';
@@ -71,7 +71,7 @@ export function setUpBattles(g: Game): Arena {
       return pet ? canTrain(pet, g.now(), g.state.settings, BATTLE_ENERGY) : 'asleep';
     },
     seed: () => randomSeed(),
-    wildFoe: () => wildFoe(g.state.pet!, randomSeed()),
+    wildFoe: () => wildFoe(g.state.pet!, encounterSeed(g.state.pet!, g.now())),
     myCode: () => {
       const code = encodeFighter(fighterFromPet(g.state.pet!));
       const url = new URL(location.href);

@@ -172,7 +172,10 @@ export interface PetState {
   trainings: number;
   /** Every form taken so far, in order (the teen form decides one of the adult's moves). */
   path: FormId[];
-  battles: { wins: number; losses: number };
+  /** Battles won and lost; champions: wild champions beaten (missing in older saves). */
+  battles: { wins: number; losses: number; champions?: number };
+  /** Run of form against wild creatures (see HEAT_MIN, HEAT_MAX in battle.ts); missing: 0. */
+  wildHeat?: number;
   /** Battle experience toward the next stat point (0 … XP_PER_POINT). */
   battleXp: number;
   /** Stats opponents taught it by beating it, oldest first; a full experience bar trains one of them. */

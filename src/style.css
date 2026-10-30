@@ -157,6 +157,23 @@ button:focus:not(:focus-visible) {
   color: #a16a00;
   letter-spacing: 1px;
 }
+/* Wild creature ranks. */
+.chip.rank.runt {
+  background: #eef3ea;
+  color: #4d6b3c;
+}
+.chip.rank.match {
+  background: #f3eef7;
+  color: #4a4258;
+}
+.chip.rank.strong {
+  background: var(--amber-bg);
+  color: var(--amber-ink);
+}
+.chip.rank.champion {
+  background: #fde3dc;
+  color: #a3301c;
+}
 
 .status-buttons {
   display: flex;
@@ -1698,6 +1715,39 @@ body.sheet-open #update {
 }
 
 /* ---------- battle ---------- */
+
+/* A wild creature before the fight: what it is, how strong it looks, its traits and the reward. */
+.bt-scout {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: #f6f2fa;
+}
+
+.bt-scout.strong {
+  background: #fff8e6;
+}
+
+.bt-scout.champion {
+  background: #fff0ec;
+  box-shadow: inset 0 0 0 2px #f6b7a8;
+}
+
+.bt-scout p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.bt-traits {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+}
 
 .bt-side {
   display: flex;

@@ -239,12 +239,29 @@ line up, and a bottom sheet shows HP bars, a log line and the move buttons. 1v1,
   its own choosing. This applies to a friend's pet too, so their discipline matters when you battle their code.
 - **Opponent AI:** heals when low, sometimes sets up a daze or focus, otherwise picks the hardest-hitting move (with
   some randomness).
-- **Wild creatures** match your pet's life stage and are about as strong as it (75–115% of its stat total, with a
-  floor so untrained pets still meet real foes). Any type, Astral rarely. Simulated: a pet of average stats wins
-  about 50–65% of wild battles in 3–6 turns.
+- **Wild creatures** match your pet's life stage and are built from its own stats (with a floor so untrained pets
+  still meet real foes), in four **ranks** (`WILD_RANKS` in `src/sim/battle.ts`):
+
+  | Rank | Strength | Past the stage cap | Traits | Random attacks | Win pays |
+  | --- | --- | --- | --- | --- | --- |
+  | Runt | 70–85% | – | – | 40% | +1 |
+  | Even match | 90–110% | – | – | 25% | +2 |
+  | Strong | 100–115% | up to +15% | 1 | 15% | +3, 1.5× experience |
+  | Champion | 110–125% | up to +25% | 2 | 5% | +5, 2× experience, counted |
+
+  Traits: **Tough** (+20% health), **Swift** (a little faster than the pet), **Fierce** (more critical hits),
+  **Rival** (the element that beats the pet's; never against an astral pet). Ranks come by life stage (child
+  35/55/10/0%, teen 20/55/20/5%, adult 10/45/33/12%, elder 10/40/35/15%) and the pet's **heat**, its run of form:
+  +1 a win, −2 a loss, from −3 to +5. A hot pet meets strong creatures and champions more often (champions about
+  1.6× at the top), a cold one about twice as many runts. Before the fight the creature, its rank, traits and
+  reward show, and backing off is free; the same creature waits for 15 minutes or until the next fight, so it
+  can't be rerolled. Losing to a strong creature or a champion costs only 4 mood. Simulated with sensible moves:
+  runts 60–90% won, even matches 50–78%, strong 30–45%, champions 10–22%; overall about 55–67% with heat, down
+  from 60–80% for teens and adults.
 - **Cost and reward:** a battle uses 25% energy and a little food (it needs ≥ 25% energy, awake, healthy, fed).
-  A win gives +10 mood and +2 to a random stat below the cap (+4 for an **upset**: beating another pet whose
-  battle rating is at least 35% higher; wild creatures don't count); a loss costs 8 mood. Running away costs 3 mood.
+  A win gives +10 mood and +2 to a random stat below the cap (wild creatures: by rank, see above; +4 for an
+  **upset**: beating another pet whose battle rating is at least 35% higher); a loss costs 8 mood (4 against a
+  strong creature or a champion). Running away costs 3 mood.
   Wins and losses are recorded.
 - **Battle experience:** every real fight fills a bar (10 points = +1 stat), shown in the Battle tab and on the
   result screen. A win earns 4 and a loss 2, scaled quietly by effort (0.5–1.5×): a loser earns more the closer
