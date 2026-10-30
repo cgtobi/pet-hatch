@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.2
+
+- Dojo: when no pet of similar strength turns up for a while, you may be offered a stronger or weaker one. The
+  fight only starts if both players agree within 20 seconds; turning it down sends both back to waiting.
+- Beating a much stronger pet (35% or more) is an upset and gives double the stat points.
+
 ## 0.4.1
 
 - Under the hood: the game's code is reorganised and better tested. Nothing changes in play.
