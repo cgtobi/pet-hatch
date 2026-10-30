@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.12
+
+- Settings shows only the difficulty you chose for this egg, and Language has moved below Start a new egg.
+
 ## 0.3.11
 
 - How forgiving the game is (Cozy, Gentle, Classic) is now chosen when an egg starts and stays until the next
