@@ -3,14 +3,17 @@ import type { Leaning } from '../sim/egg';
 import { icon, type IconName } from './icons';
 
 export type HudMode = 'egg' | 'pet' | 'none';
-export type EggAction = 'mist' | 'sing' | 'turn' | 'lights';
+export type EggAction = 'mist' | 'sing' | 'turn';
 export type PetAction = 'feed' | 'clean' | 'play' | 'train' | 'medicine' | 'scold';
 export type DockAction = EggAction | PetAction;
+/** What the round button beside More does: Nap or Wake up by day, the light in the evening and at night. */
+export type LightButton = 'nap' | 'wake' | 'light';
 export type NeedKey = 'warmth' | 'humidity' | 'bond' | 'turn' | 'hunger' | 'mood' | 'energy' | 'hygiene';
 
 export interface HudHandlers {
   onWarm(active: boolean): void;
   onAction(action: DockAction): void;
+  onLightButton(): void;
   onMore(): void;
 }
 
@@ -46,7 +49,6 @@ const EGG_DOCK: DockDef[] = [
   { id: 'mist', icon: 'drop', tone: 'tide-btn' },
   { id: 'sing', icon: 'note', tone: 'bloom-btn' },
   { id: 'turn', icon: 'turn', tone: 'amber-btn' },
-  { id: 'lights', icon: 'moon', tone: 'violet-btn' },
 ];
 
 const PET_DOCK: DockDef[] = [
@@ -80,6 +82,7 @@ export class Hud {
   private overlay = $('overlay');
   private more = $<HTMLButtonElement>('btn-more');
   private lights = $<HTMLButtonElement>('btn-lights');
+  private lightKind: LightButton | null = null;
   private input = $<HTMLInputElement>('overlay-input');
   private dockButtons = new Map<string, HTMLButtonElement>();
   private needEls = new Map<NeedKey, { root: HTMLElement; fill: HTMLElement; label: HTMLElement }>();
@@ -90,8 +93,7 @@ export class Hud {
   constructor(handlers: HudHandlers) {
     this.more.innerHTML = icon('dots', 22);
     this.more.addEventListener('click', () => handlers.onMore());
-    this.lights.innerHTML = icon('moon', 22);
-    this.lights.addEventListener('click', () => handlers.onAction('lights'));
+    this.lights.addEventListener('click', () => handlers.onLightButton());
     const closeOverlay = () => {
       const close = this.overlayClose;
       const value = this.input.value.trim();
@@ -149,7 +151,7 @@ export class Hud {
   /** Re-render every fixed label in the current language. */
   applyLanguage(): void {
     this.more.setAttribute('aria-label', t('aria.more'));
-    this.lights.setAttribute('aria-label', t('action.lights'));
+    if (this.lightKind) this.lights.setAttribute('aria-label', t(`action.${this.lightKind}`));
     $('scene').setAttribute('aria-label', t('aria.scene'));
     $('status').setAttribute('aria-label', t('aria.status'));
     this.dock.setAttribute('aria-label', t('aria.dock'));
@@ -241,12 +243,26 @@ export class Hud {
     this.hint.classList.toggle('urgent', urgent);
   }
 
-  /** Red dots on dock buttons that need attention, and the lights toggle state. */
-  setDockState(alerts: Partial<Record<DockAction, boolean>>, lightsOn: boolean): void {
+  /** Red dots on dock buttons that need attention. */
+  setDockState(alerts: Partial<Record<DockAction, boolean>>): void {
     for (const [id, b] of this.dockButtons) b.classList.toggle('alert', !!alerts[id as DockAction]);
-    this.dockButtons.get('lights')!.classList.toggle('on', !lightsOn);
-    this.lights.classList.toggle('on', !lightsOn);
-    this.lights.setAttribute('aria-pressed', String(!lightsOn));
+  }
+
+  /**
+   * The round button beside More. `lit`: the light is on (pressed look); `ready`: a tired pet could nap now
+   * (it glows); `dim`: Nap would do nothing yet.
+   */
+  setLightButton(kind: LightButton, state: { lit?: boolean; ready?: boolean; dim?: boolean } = {}): void {
+    if (kind !== this.lightKind) {
+      this.lightKind = kind;
+      this.lights.innerHTML = icon(kind === 'nap' ? 'moon' : kind === 'wake' ? 'sun' : 'bulb', 22);
+      this.lights.setAttribute('aria-label', t(`action.${kind}`));
+    }
+    this.lights.classList.toggle('on', !!state.lit);
+    this.lights.classList.toggle('ready', !!state.ready);
+    this.lights.classList.toggle('dim', !!state.dim);
+    if (kind === 'light') this.lights.setAttribute('aria-pressed', String(!!state.lit));
+    else this.lights.removeAttribute('aria-pressed');
   }
 
   toast(text: string): void {

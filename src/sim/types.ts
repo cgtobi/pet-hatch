@@ -66,6 +66,7 @@ export interface EggState {
   /** Tracks which needs are currently empty, so each lapse counts as one care mistake. */
   lapsed: { warmth: boolean; humidity: boolean; bond: boolean; turn: boolean };
   readyAt: number | null;
+  /** The light on the island (kept with the egg, but it serves the pet): off makes evenings and nights dark. */
   lightsOn: boolean;
   failed: boolean;
   heritage: Heritage | null;
@@ -122,12 +123,20 @@ export interface PetState {
   sick: boolean;
   /** Asleep during the day: an exhaustion nap, or a power nap the player started. */
   napping: boolean;
-  /** A power nap the player started by turning the lights off (null otherwise). */
+  /** A power nap the player started with the Nap button (null otherwise). */
   powerNap: { since: number } | null;
+  /** Dozing in the evening because the light is off; switching it on wakes the pet. */
+  dozing: boolean;
+  /** Hours slept in the dark so far tonight; enough of them make a good morning. */
+  darkSleepH: number;
+  /** Woken at night by the player: awake until this game time, then asleep again (null otherwise). */
+  upLate: { until: number } | null;
+  /** How often the player woke it this night; reset every morning. */
+  nightWakes: number;
   /** The player swept the old eggshell away (otherwise it weathers away over SHELL_DAYS). */
   shellSwept: boolean;
-  /** How the last power nap ended on its own, for the game to announce once. */
-  wake: 'rested' | 'need' | null;
+  /** How the pet last woke on its own (from a power nap, or in the morning), for the game to announce once. */
+  wake: 'rested' | 'need' | 'morning' | 'backToSleep' | null;
   /** Medicine doses still needed to cure the current sickness. */
   sickDoses: number;
   droppings: Dropping[];
@@ -140,8 +149,6 @@ export interface PetState {
   neglectHours: number;
   /** Care mistakes per life stage, for evolution. Index matches LIFE_STAGES. */
   mistakes: number[];
-  /** Night (by date key) on which the lights were left on too long; one mistake per night. */
-  lightsMistakeNight: string | null;
   /** Total care mistakes, egg included. */
   careMistakes: number;
   /** Life stage index the simulation has processed (evolution happens when it moves on). */
@@ -176,4 +183,6 @@ export interface GameState {
   settings: Settings;
   /** Earlier pets, oldest first. */
   family: Ancestor[];
+  /** One-time tips the player no longer needs (missing in older saves). */
+  learned?: { nightWake?: boolean; lightTip?: boolean };
 }

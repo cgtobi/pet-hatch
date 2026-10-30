@@ -20,8 +20,9 @@ Status of each part: ✅ built, 🔜 planned.
 
 - ✅ **Real time.** The simulation stores the time it last ran to; on load it replays the missed time in
   one-minute steps (capped at 14 days). One jump and many small steps give the same result (tested).
-- ✅ **Sleep window** (default 22:00–07:00, set in Settings). Needs drain at 10% with the lights off,
-  30% with them left on, and no care mistakes count while you sleep.
+- ✅ **Sleep window** (default 22:00–07:00, set in Settings). Needs drain at 10% with the light off,
+  30% with it left on, and no care mistakes count while you sleep. The **evening** is the 4 hours before it
+  (`dayPart()` in `src/sim/clock.ts`).
 - ✅ **Debug:** `?debug` shows Settings › Debug (+1 h, +6 h, Ready now); `?speed=600` runs game time 600×.
 
 ## Egg phase
@@ -42,7 +43,8 @@ The exact hatch time is **hidden** and **random**:
 | Mist | swipe up | Mist | Humidity (4 h) | Tide |
 | Comfort | stroke back and forth, or tap | Sing | Bond (5 h) | Bloom |
 | Turn | swipe sideways | Turn | due every 4 h | health only |
-| Lights | – | Lights | – | lets it rest at night |
+
+The egg simply rests at night; the light only matters once the pet has hatched.
 
 - **Element at hatch** comes from care points per element:
   - Care that raises a meter counts **weighted by how fast that need drains** (warmth drains 34/h, humidity 25/h,
@@ -82,18 +84,34 @@ You name the baby when it hatches (a name is suggested).
 |---|---|---|
 | Food | 25 → 12 | **Feed** (+35; refused when nearly full or asleep) |
 | Mood | 18 → 10 (×1.5 while sick) | **Play** (+20 mood, −12 energy) or tap the pet (+2) |
-| Energy | −5 awake; +25 asleep in the dark, +10 with lights on | Sleep, **Lights** off at night |
+| Energy | −5 awake; +25 asleep in the dark, +10 with the light on or dozing | Sleep, **Nap** by day |
 | Clean | One dropping 1.5–3 h after each meal (max 5) | **Clean** |
 
 - **Naps:** a pet that runs out of energy during the day naps on its own until it has 70% again.
   Energy never triggers a call, because the player can't fix it directly.
-- **Power naps:** below 40% energy, turning the **Lights** off during the day puts the pet down for a nap.
+- **The round button beside More** changes with the time of day: **Nap** (then **Wake up**) by day, **Light** in
+  the evening and at night. The light means nothing during the day.
+- **Power naps:** below 40% energy, **Nap** puts the pet down for a nap. The button glows when the pet could nap
+  and is dimmed when it wouldn't (not tired, hungry or sick: it stays up, no penalty).
   - It regains 25 energy per hour while food and mood drain at half speed (no shortcut around care); calls pause.
   - It wakes on its own at 90% ("woke up refreshed", +5 mood), or early when hunger drops below 20% or it gets
-    sick (it then calls). Either way the lights come back on. Bedtime turns the nap into night sleep.
-  - Lights back on within 20 minutes wakes it grumpy (−5 mood). At 40% or more it isn't sleepy: −3 mood and it
-    stays awake; a hungry or sick pet can't settle down. Training, battles, feeding and play wait while it sleeps.
-  - During the egg phase, daytime lights still have no effect.
+    sick (it then calls). Training, battles, feeding and play wait while it sleeps.
+  - **Wake up** within 20 minutes makes it grumpy (−5 mood).
+- **Evening** (from 4 h before bedtime): it gets dark (the light switches off by itself) and the pet **dozes**:
+  light rest (+10 energy per hour, needs at half speed), and feeding, play, training and battles wait.
+  - Switching the **Light** on wakes it gently (no grumpiness) and keeps it up until bedtime; off again, it dozes.
+  - A hungry (below 20%) or sick pet can't doze: it stays awake and calls.
+  - Not around in the evening? Nothing bad happens; it simply dozes until bedtime.
+- **Bedtime:** the pet sleeps either way. Light off: full rest; after at least 4 hours in the dark it wakes happy
+  (+8 mood, "slept well in the dark"). Light left on: worse sleep (+10 energy per hour, needs at 30%), but no
+  care mistake. Morning switches the light back on.
+- **Waking it at night:** with the light on, **Feed**, **Play** or **Train** wakes the pet (light plus action is
+  deliberate enough, so there is no question first); with it off they let it sleep. How to wake it is explained
+  once (a hint with the light on, a tip with it off), then never again.
+  - It is grumpy: −10 mood, −15 the second time that night, −20 after that; from the second time on each wake-up
+    is a care mistake (not in Cozy). While up it refuses training more often (+25%).
+  - It stays up for an hour (needs and energy as by day, calls on), then falls asleep again; light off sends it
+    back to bed at once. A woken night loses the good morning, and the lost rest shows in the next day's energy.
 - **Sickness:** droppings piling up, starving and misery make sickness likely (per-hour chance); **Medicine** cures it in
   two doses. Medicine when not sick upsets it. Cozy mode has no sickness.
 - **Health** recovers while fed and happy, and drops while sick.
@@ -102,8 +120,8 @@ You name the baby when it hatches (a name is suggested).
   wrong. **Scold** fixes a tantrum (+20 discipline). Scolding a pet with a real need, or for nothing, upsets it.
   The hint line helps tell the two apart: "…but nothing seems wrong".
 - **Care mistakes** (stored per life stage, for evolution in milestone 3): an ignored call (30 min), a dropping
-  left 1 awake hour, lights left on 30 min into bedtime (once per night). A diligent owner makes almost none (tested).
-- **Night:** calls pause, droppings don't age, and needs drain at 10% (lights off) or 30% (lights on).
+  left 1 awake hour, waking the pet a second time in one night. A diligent owner makes almost none (tested).
+- **Night:** calls pause, droppings don't age, and needs drain at 10% (light off) or 30% (light on).
 
 ### Endings ✅
 
@@ -241,7 +259,7 @@ A public waiting room for live battles against strangers of similar strength.
   through a compressor and a soft generated reverb.
 - **Music** is generative: a music-box melody wandering over a pentatonic scale with pad chords. Daytime is
   C major at 84 bpm; evenings and bedtime switch to a slower, lower lullaby; battles get a faster minor tune with
-  a bass pulse; it falls silent when the lights are off for the night. Audio pauses while the app is hidden.
+  a bass pulse; it falls silent when the light is off for the night. Audio pauses while the app is hidden.
 - **Haptics** use named patterns (tick, tap, press, hit, crit, success, celebrate, hatch…) instead of raw
   durations. iPhones can't vibrate from the web, so the setting only appears where vibration works.
 - Settings: **Sound effects**, **Music** and **Vibration** are separate switches.

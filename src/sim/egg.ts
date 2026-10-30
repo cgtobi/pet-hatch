@@ -18,9 +18,8 @@ const BALANCED_SHARE = 0.38;
 const ASTRAL_PAMPER = 40;
 const ASTRAL_HEALTH = 80;
 const ASTRAL_MAX_MISTAKES = 2;
-/** Decay multiplier while the player sleeps, lights off vs. left on. */
-const SLEEP_DECAY_DARK = 0.1;
-const SLEEP_DECAY_LIT = 0.3;
+/** Decay multiplier while the player sleeps (the egg rests in the dark; the light is for the pet). */
+const SLEEP_DECAY = 0.1;
 export const TURN_INTERVAL_H = 4;
 const MIN_TURN_GAP_H = 0.5;
 /** Health loss per awake hour for each unmet need. */
@@ -89,7 +88,7 @@ export function hoursUntilTurn(egg: EggState, now: number): number {
 export function tickEgg(egg: EggState, t: number, dtH: number, settings: Settings): void {
   if (egg.failed) return;
   const asleep = isAsleep(t, settings);
-  const decayMul = asleep ? (egg.lightsOn ? SLEEP_DECAY_LIT : SLEEP_DECAY_DARK) : 1;
+  const decayMul = asleep ? SLEEP_DECAY : 1;
 
   for (const need of ['warmth', 'humidity', 'bond'] as const) {
     egg.pamperBudget[need] = Math.min(PAMPER_PER_HOUR, egg.pamperBudget[need] + PAMPER_PER_HOUR * dtH);

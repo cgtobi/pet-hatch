@@ -13,6 +13,8 @@ const MIN_HUNGER = 15;
 /** Below this discipline the pet may throw a tantrum instead of training. */
 const OBEY_DISCIPLINE = 40;
 const MAX_REFUSAL = 0.3;
+/** A pet woken at night is grumpy and refuses this much more often. */
+const UP_LATE_REFUSAL = 0.25;
 
 export type TrainCheck = 'ok' | 'baby' | 'asleep' | 'sick' | 'tired' | 'hungry';
 
@@ -21,16 +23,16 @@ const clamp = (v: number, lo = 0, hi = 100) => Math.min(hi, Math.max(lo, v));
 /** Whether the pet is in a state to train (or battle, with its own energy need), and why not. */
 export function canTrain(pet: PetState, now: number, settings: Settings, minEnergy = TRAIN_ENERGY): TrainCheck {
   if (pet.stage < 1) return 'baby';
-  if (pet.napping || isAsleep(now, settings)) return 'asleep';
+  if (pet.napping || pet.dozing || (isAsleep(now, settings) && !pet.upLate)) return 'asleep';
   if (pet.sick) return 'sick';
   if (pet.energy < minEnergy) return 'tired';
   if (pet.hunger < MIN_HUNGER) return 'hungry';
   return 'ok';
 }
 
-/** Chance that a poorly disciplined pet refuses to train and throws a tantrum instead. */
+/** Chance that a poorly disciplined (or woken-up, grumpy) pet refuses to train and throws a tantrum instead. */
 export function refusalChance(pet: PetState): number {
-  return MAX_REFUSAL * clamp(1 - pet.discipline / OBEY_DISCIPLINE, 0, 1);
+  return MAX_REFUSAL * clamp(1 - pet.discipline / OBEY_DISCIPLINE, 0, 1) + (pet.upLate ? UP_LATE_REFUSAL : 0);
 }
 
 /**

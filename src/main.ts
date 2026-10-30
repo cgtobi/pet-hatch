@@ -9,7 +9,7 @@ import { haptic, setHapticsEnabled, setMusicEnabled, setMusicMode, setSoundEnabl
 import { setLang, t, type TextKey } from './i18n';
 import { attachGestures } from './input/gestures';
 import { World } from './scene/world';
-import { HOUR, isAsleep, localHour } from './sim/clock';
+import { dayPart, HOUR, isAsleep, localHour } from './sim/clock';
 import {
   careLeaning,
   comfortEgg,
@@ -25,6 +25,7 @@ import {
 import { advance, gameNow, hatch, isReadyToHatch, layNewEgg, newGame } from './sim/game';
 import {
   ageHours,
+  CALL_THRESHOLD,
   cleanUp,
   feedPet,
   giveMedicine,
@@ -33,10 +34,13 @@ import {
   LIFE_STAGES,
   lifeStageIndex,
   endPowerNap,
+  lightSwitched,
   pat,
   playWith,
+  POWER_NAP_BELOW,
   scold,
   startPowerNap,
+  wakeAtNight,
   SHELL_DAYS,
   STAGE_HOURS,
 } from './sim/pet';
@@ -48,7 +52,7 @@ import { randomSeed } from './sim/rng';
 import { exportSave, importSave, loadGame, saveGame } from './sim/save';
 import { canTrain, finishTraining, startTraining } from './sim/training';
 import type { ElementType, GameState, PetState, Stat } from './sim/types';
-import { Hud, type DockAction } from './ui/hud';
+import { Hud, type DockAction, type LightButton } from './ui/hud';
 import { openSettings, type InstallState } from './ui/settings';
 import { Arena } from './ui/arena';
 import { ActivitySheet } from './ui/sheet';
@@ -104,6 +108,10 @@ const hud = new Hud({
     unlockAudio();
     if (state.phase === 'egg') eggAction(action);
     else petAction(action);
+  },
+  onLightButton: () => {
+    unlockAudio();
+    lightButton();
   },
   onMore: () => showSettings(),
 });
@@ -267,34 +275,82 @@ async function shareText(text: string, link: string) {
 const eggActive = () => state.phase === 'egg' && !state.egg.failed;
 const livePet = (): PetState | null => (state.phase === 'hatched' && state.pet?.status === 'alive' ? state.pet : null);
 
-function toggleLights() {
-  state.egg.lightsOn = !state.egg.lightsOn;
-  sfx.toggle();
+/** What the round button beside More does right now. */
+function lightButtonKind(pet: PetState, now: number): LightButton {
+  if (dayPart(now, state.settings) !== 'day') return 'light';
+  return pet.powerNap ? 'wake' : 'nap';
+}
+
+/** Nap or Wake up by day; in the evening and at night, the light. */
+function lightButton() {
   const pet = livePet();
+  if (!pet) return;
   const now = gameNow(state);
-  let key: TextKey = state.egg.lightsOn ? 'toast.lightsOn' : 'toast.lightsOff';
-  // During the day, the lights put a tired pet down for a power nap, and wake it again.
-  if (pet && !isAsleep(now, state.settings)) {
-    if (!state.egg.lightsOn) {
-      const r = startPowerNap(pet, now, state.settings);
-      if (r === 'ok') {
-        key = 'toast.napStart';
-        world.effects.emit('zzz', world.pet?.center() ?? world.egg.center(), 2);
-      } else if (r === 'notSleepy') {
-        key = 'toast.notSleepy';
-        world.pet?.hop();
-      } else if (r === 'needsCare') key = 'toast.napNeeds';
-    } else {
-      const r = endPowerNap(pet, now);
-      if (r === 'grumpy') {
-        key = 'toast.wokeGrumpy';
-        world.pet?.cower();
-      } else if (r === 'woke') key = 'toast.wokeEarly';
+  const at = () => world.pet?.center() ?? world.egg.center();
+  let key: TextKey;
+  const kind = lightButtonKind(pet, now);
+  if (kind === 'wake') {
+    const r = endPowerNap(pet, now);
+    key = r === 'grumpy' ? 'toast.wokeGrumpy' : 'toast.wokeEarly';
+    if (r === 'grumpy') world.pet?.cower();
+    sfx.toggle();
+  } else if (kind === 'nap') {
+    const r = startPowerNap(pet, now, state.settings);
+    key = r === 'ok' ? 'toast.napStart' : r === 'needsCare' ? 'toast.napNeeds' : r === 'napping' ? 'toast.asleep' : 'toast.notSleepy';
+    if (r === 'ok') world.effects.emit('zzz', at(), 2);
+    else if (r === 'notSleepy') world.pet?.hop();
+    sfx.tap();
+  } else {
+    const lit = (state.egg.lightsOn = !state.egg.lightsOn);
+    sfx.toggle();
+    const r = lightSwitched(pet, now, state.settings, lit);
+    if (dayPart(now, state.settings) === 'night') key = lit ? 'toast.lightsOnNight' : 'toast.lightsOff';
+    else {
+      key =
+        r === 'dozed'
+          ? 'toast.dozedOff'
+          : r === 'perked'
+            ? 'toast.perkedUp'
+            : r === 'restless'
+              ? 'toast.napNeeds'
+              : lit
+                ? 'toast.lightsOn'
+                : 'toast.lightsOffEvening';
+      if (r === 'dozed') world.effects.emit('zzz', at(), 2);
+      else if (r === 'perked') world.pet?.hop();
     }
   }
-  hud.toast(t(key, { name: pet?.name ?? '' }));
+  hud.toast(t(key, { name: pet.name }));
   saveGame(state);
   updateHud();
+}
+
+/**
+ * At night, Feed, Play and Train wake the pet when the light is on (grumpy, see wakeAtNight); with it off they
+ * let it sleep. Returns whether the pet is up for the action, and whether this just woke it.
+ */
+function nightWake(pet: PetState, now: number): 'up' | 'woke' | 'asleep' {
+  if (!isAsleep(now, state.settings) || pet.upLate) return 'up';
+  const name = { name: pet.name };
+  if (!state.egg.lightsOn) {
+    // How to wake it is shown once; after that it simply sleeps.
+    hud.toast(t(state.learned?.lightTip ? 'toast.asleep' : 'toast.asleepLightTip', name));
+    state.learned = { ...state.learned, lightTip: true };
+    sfx.nope();
+    return 'asleep';
+  }
+  const r = wakeAtNight(pet, now, state.settings);
+  state.learned = { ...state.learned, nightWake: true, lightTip: true };
+  hud.toast(t(r === 'mistake' ? 'toast.wokeAgain' : 'toast.wokeGrumpy', name));
+  world.pet?.cower();
+  return 'woke';
+}
+
+/** Evenings and nights are dark with the light off; the egg simply rests in the dark at night. */
+function roomDark(now: number): boolean {
+  const part = dayPart(now, state.settings);
+  if (state.phase === 'egg') return part === 'night';
+  return part !== 'day' && !state.egg.lightsOn;
 }
 
 // ---------- egg care ----------
@@ -303,7 +359,6 @@ function eggAction(action: DockAction) {
   if (action === 'mist') mist();
   else if (action === 'sing') sing();
   else if (action === 'turn') turn(Math.random() < 0.5 ? 1 : -1);
-  else if (action === 'lights') toggleLights();
 }
 
 function setWarming(active: boolean) {
@@ -413,23 +468,24 @@ function petAction(action: DockAction) {
   const name = { name: pet.name };
   const at = () => view?.center() ?? world.egg.center();
 
+  // At night these wake the pet if the light is on; the wake-up message then wins over the action's own.
+  const night = action === 'feed' || action === 'play' || action === 'train' ? nightWake(pet, now) : 'up';
   switch (action) {
-    case 'lights':
-      toggleLights();
-      return;
     case 'train':
       sfx.tap();
+      if (night === 'woke') saveGame(state);
       sheet.open('train');
       return;
     case 'feed': {
+      if (night === 'asleep') break;
       const r = feedPet(pet, now, state.settings);
       if (r === 'ok') {
         view?.eat();
         sfx.eat();
         haptic('tap');
         setTimeout(() => world.effects.emit('heart', at(), 2), 1300);
-        hud.toast(t('toast.fed'));
-      } else {
+        if (night !== 'woke') hud.toast(t('toast.fed'));
+      } else if (night !== 'woke') {
         sfx.nope();
         hud.toast(t(r === 'full' ? 'toast.notHungry' : 'toast.asleep', name));
       }
@@ -450,14 +506,15 @@ function petAction(action: DockAction) {
       break;
     }
     case 'play': {
+      if (night === 'asleep') break;
       const r = playWith(pet, now, state.settings);
       if (r === 'ok') {
         view?.dance();
         sfx.play();
         haptic('success');
         for (let i = 0; i < 4; i++) setTimeout(() => world.effects.emit(i % 2 ? 'note' : 'heart', at(), 1), i * 300);
-        hud.toast(t('toast.played'));
-      } else {
+        if (night !== 'woke') hud.toast(t('toast.played'));
+      } else if (night !== 'woke') {
         sfx.nope();
         hud.toast(t(r === 'tired' ? 'toast.tired' : 'toast.asleep', name));
       }
@@ -627,7 +684,7 @@ function startNewEgg() {
 function eggHint(now: number): [string, boolean] {
   const egg = state.egg;
   if (rushLeft !== null) return [rushLeft < RUSH_TAPS ? t('hint.rush', { n: rushLeft }) : t('hint.ready'), false];
-  if (isAsleep(now, state.settings)) return [t(egg.lightsOn ? 'hint.lightsNight' : 'hint.sleep'), false];
+  if (isAsleep(now, state.settings)) return [t('hint.sleep'), false];
   if (egg.warmth < 20) return [t('hint.cold'), true];
   if (isTurnOverdue(egg, now)) return [t('hint.turnNow'), true];
   if (egg.humidity < 20) return [t('hint.dry'), true];
@@ -639,15 +696,22 @@ function eggHint(now: number): [string, boolean] {
 
 function petHint(pet: PetState, now: number): [string, boolean] {
   const name = { name: pet.name };
-  if (isAsleep(now, state.settings)) return [t(state.egg.lightsOn ? 'hint.lightsNight' : 'hint.sleep'), false];
+  if (pet.upLate) return [t('hint.pet.upLate', name), false];
+  if (isAsleep(now, state.settings)) {
+    if (!state.egg.lightsOn) return [t('hint.sleep'), false];
+    // With the light on, how to wake it is explained until the player has done it once.
+    return [t(state.learned?.nightWake ? 'hint.lightsNight' : 'hint.pet.nightWakeTip', name), false];
+  }
   if (pet.powerNap) return [t('hint.pet.powerNap', name), false];
   if (pet.napping) return [t('hint.pet.napping', name), false];
+  if (pet.dozing) return [t('hint.pet.dozing', name), false];
   if (pet.sick) return [t('hint.pet.sick', name), true];
   if (pet.call?.kind === 'fake') return [t('hint.pet.callFake', name), true];
   if (pet.hunger < 30) return [t('hint.pet.hungry', name), pet.hunger < 20];
   if (pet.droppings.length) return [t('hint.pet.dirty'), pet.droppings.length > 1];
   if (pet.mood < 30) return [t('hint.pet.bored', name), pet.mood < 20];
   if (pet.call) return [t('hint.pet.callNeed', name), true];
+  if (pet.energy < POWER_NAP_BELOW && dayPart(now, state.settings) === 'day') return [t('hint.pet.napReady', name), false];
   if (pet.energy < 20) return [t('hint.pet.tired', name), false];
   if (pet.energy >= 80 && canTrain(pet, now, state.settings) === 'ok') return [t('hint.pet.train', name), false];
   return [t(petTapped ? 'hint.pet.fine' : 'hint.pet.tap', name), false];
@@ -657,9 +721,10 @@ function petHint(pet: PetState, now: number): [string, boolean] {
 function musicFor(now: number): MusicMode {
   if (world.foe) return 'battle';
   const asleep = isAsleep(now, state.settings);
-  if (asleep && !state.egg.lightsOn) return 'off';
+  if (asleep && roomDark(now)) return 'off';
   const hour = localHour(now);
-  return asleep || livePet()?.napping || hour >= 19 || hour < 7 ? 'night' : 'day';
+  const pet = livePet();
+  return asleep || pet?.napping || pet?.dozing || hour >= 19 || hour < 7 ? 'night' : 'day';
 }
 
 function formatAge(hours: number): string {
@@ -684,7 +749,7 @@ function updateHud() {
   if (state.phase === 'egg') {
     const stage = hatchStage(egg);
     const day = Math.floor((now - egg.laidAt) / (24 * HOUR)) + 1;
-    const asleep = isAsleep(now, state.settings) && !egg.lightsOn;
+    const asleep = isAsleep(now, state.settings);
     hud.setMode(egg.failed ? 'none' : 'egg');
     const h = egg.heritage;
     hud.setHeader(
@@ -702,7 +767,7 @@ function updateHud() {
     hud.setLeaning(careLeaning(egg));
     const [text, urgent] = eggHint(now);
     hud.setHint(egg.failed ? '' : text, urgent);
-    hud.setDockState({ turn: hoursUntilTurn(egg, now) < 0.5 }, egg.lightsOn);
+    hud.setDockState({ turn: hoursUntilTurn(egg, now) < 0.5 });
     world.egg.draw({ crack: crackLevel(), leaning: careLeaning(egg), failed: egg.failed });
   } else if (state.pet && !endShown) {
     const pet = state.pet;
@@ -710,11 +775,15 @@ function updateHud() {
     const sleeping = isSleeping(pet, now, state.settings);
     const feel = pet.sick
       ? 'sick'
-      : isAsleep(now, state.settings)
-        ? 'sleeping'
+      : pet.upLate
+        ? 'upLate'
+        : isAsleep(now, state.settings)
+          ? 'sleeping'
         : pet.napping
           ? 'napping'
-          : pet.mood >= 60
+          : pet.dozing
+            ? 'dozing'
+            : pet.mood >= 60
             ? 'happy'
             : pet.mood >= 30
               ? 'ok'
@@ -744,9 +813,14 @@ function updateHud() {
         clean: pet.droppings.length > 0,
         play: pet.mood < 30 && !sleeping,
         medicine: pet.sick,
-      },
-      state.egg.lightsOn,
-    );
+      });
+    const kind = lightButtonKind(pet, now);
+    const canNap = pet.energy < POWER_NAP_BELOW && !pet.napping && !pet.sick && pet.hunger >= CALL_THRESHOLD;
+    hud.setLightButton(kind, {
+      lit: kind === 'light' && state.egg.lightsOn,
+      ready: kind === 'nap' && canNap,
+      dim: kind === 'nap' && !canNap,
+    });
   }
 
   const insets = hud.insets();
@@ -935,7 +1009,7 @@ function frame(ms: number) {
     }
     lastStage = stage;
 
-    const sleepy = isAsleep(now, state.settings) && !egg.lightsOn;
+    const sleepy = isAsleep(now, state.settings);
     const w = WOBBLE[stage];
     wobbleTimer -= dt;
     if (w.every > 0 && wobbleTimer <= 0) {
@@ -959,9 +1033,17 @@ function frame(ms: number) {
       const sleeping = isSleeping(pet, now, state.settings);
       world.pet.setLook({ sleeping, sick: pet.sick, calling: pet.call !== null && !sheet.isOpen, mood: pet.mood });
       if (pet.wake) {
-        // A power nap ended on its own (the simulation already switched the lights back on).
-        hud.toast(t(pet.wake === 'rested' ? 'toast.wokeRested' : 'toast.wokeNeed', { name: pet.name }));
-        if (pet.wake === 'rested') world.pet.hop();
+        // A power nap ended on its own, or a night in the dark made a good morning.
+        const key =
+          pet.wake === 'rested'
+            ? 'toast.wokeRested'
+            : pet.wake === 'morning'
+              ? 'toast.wokeMorning'
+              : pet.wake === 'backToSleep'
+                ? 'toast.backToSleep'
+                : 'toast.wokeNeed';
+        hud.toast(t(key, { name: pet.name }));
+        if (pet.wake === 'rested' || pet.wake === 'morning') world.pet.hop();
         sfx.toggle();
         pet.wake = null;
         saveGame(state);
@@ -972,7 +1054,7 @@ function frame(ms: number) {
   }
 
   world.egg.update(dt, { warmth: egg.warmth, ready: rushLeft !== null });
-  world.render(dt, time, localHour(now), !egg.lightsOn);
+  world.render(dt, time, localHour(now), roomDark(now));
 
   hudTimer -= dt;
   if (hudTimer <= 0) {

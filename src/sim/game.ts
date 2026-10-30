@@ -1,4 +1,4 @@
-import { HOUR, MINUTE } from './clock';
+import { dayPart, HOUR, MINUTE } from './clock';
 import { createEgg, eggType, HATCH_WAIT_H, tickEgg } from './egg';
 import { topStat } from './evolution';
 import { createPet, tickPet } from './pet';
@@ -48,11 +48,13 @@ export function advance(state: GameState, to: number): void {
   if (to - state.simTime > MAX_CATCH_UP) state.simTime = to - MAX_CATCH_UP;
   while (state.simTime < to) {
     const dt = Math.min(STEP, to - state.simTime);
+    const before = dayPart(state.simTime, state.settings);
     state.simTime += dt;
+    const after = dayPart(state.simTime, state.settings);
+    // Evening makes it dark (the player switches the light on to keep the pet up); morning makes it light again.
+    if (after !== before && after !== 'night') state.egg.lightsOn = after === 'day';
     if (state.phase === 'hatched' && state.pet) {
-      const napEnd = tickPet(state.pet, state.simTime, dt / HOUR, state.settings, state.egg.lightsOn);
-      // A power nap that ends on its own switches the lights back on (bedtime keeps them off).
-      if (napEnd === 'rested' || napEnd === 'need') state.egg.lightsOn = true;
+      tickPet(state.pet, state.simTime, dt / HOUR, state.settings, state.egg.lightsOn);
     } else if (state.phase === 'egg') {
       tickEgg(state.egg, state.simTime, dt / HOUR, state.settings);
       const { readyAt } = state.egg;
@@ -110,5 +112,6 @@ export function layNewEgg(state: GameState, now: number, seed = randomSeed()): v
   fresh.clockOffset = state.clockOffset;
   fresh.egg.lightsOn = state.egg.lightsOn;
   fresh.family = family;
+  fresh.learned = state.learned;
   Object.assign(state, fresh);
 }

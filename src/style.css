@@ -491,6 +491,21 @@ button:focus:not(:focus-visible) {
   box-shadow: 0 0 0 3px currentColor inset;
 }
 
+/* The Nap button: glows when a tired pet could nap, fades when it wouldn't. */
+.round.ready {
+  animation: nap-glow 1.6s ease-in-out infinite;
+}
+
+@keyframes nap-glow {
+  50% {
+    box-shadow: 0 0 0 4px rgba(139, 109, 214, 0.35);
+  }
+}
+
+.round.dim {
+  opacity: 0.5;
+}
+
 .dock .dot {
   position: absolute;
   top: 0;
