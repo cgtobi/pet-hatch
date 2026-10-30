@@ -403,6 +403,38 @@ button:focus:not(:focus-visible) {
   transition: background-color 0.3s;
 }
 
+/* A newer deploy is out: a small card above the hint, offering a reload. */
+.update {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(env(safe-area-inset-bottom) + 192px);
+  width: max-content;
+  max-width: min(100% - 2 * var(--gutter), 420px);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 8px 8px 16px;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.update[hidden] {
+  display: none;
+}
+
+.update .primary {
+  min-height: 36px;
+  font-size: 15px;
+  padding: 0 14px;
+}
+
+.update .round {
+  width: 36px;
+  height: 36px;
+}
+
 .hint:empty {
   display: none;
 }

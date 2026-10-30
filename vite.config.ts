@@ -10,10 +10,13 @@ function listFiles(dir: string): string[] {
   });
 }
 
+const APP_VERSION: string = JSON.parse(readFileSync(join(import.meta.dirname, 'package.json'), 'utf8')).version;
+
 /**
  * Emits sw.js at build time with the full list of built files, so the game works
  * offline after the first visit. The cache name is a hash of everything it caches,
- * so each deploy replaces the old cache.
+ * so each deploy replaces the old cache. Also emits version.json, which an open game
+ * checks to offer a reload when a newer deploy is out (src/update.ts).
  */
 function serviceWorker(): Plugin {
   return {
@@ -31,6 +34,12 @@ function serviceWorker(): Plugin {
       hash.update(built.join('\n'));
       const files = ['./', ...built, ...publicFiles].map((f) => (f === './' ? f : `./${f}`));
       const version = hash.digest('hex').slice(0, 12);
+      const entry = Object.values(bundle).find((f) => f.type === 'chunk' && f.isEntry)?.fileName ?? '';
+      this.emitFile({
+        type: 'asset',
+        fileName: 'version.json',
+        source: JSON.stringify({ version: APP_VERSION, entry: entry.split('/').pop() }),
+      });
       this.emitFile({
         type: 'asset',
         fileName: 'sw.js',
@@ -52,7 +61,10 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const request = event.request;
-  if (request.method !== 'GET' || new URL(request.url).origin !== self.location.origin) return;
+  const url = new URL(request.url);
+  if (request.method !== 'GET' || url.origin !== self.location.origin) return;
+  // The update check always asks the server.
+  if (url.pathname.endsWith('/version.json')) return;
   if (request.mode === 'navigate') {
     // Pages: fresh from the network when online, cached copy when offline.
     event.respondWith(
@@ -82,6 +94,6 @@ export default defineConfig({
   server: { proxy: { '/relay': { target: 'ws://localhost:8787', ws: true } } },
   build: { target: 'es2022', chunkSizeWarningLimit: 1000 },
   // Shown at the bottom of Settings.
-  define: { __APP_VERSION__: JSON.stringify(JSON.parse(readFileSync(join(import.meta.dirname, 'package.json'), 'utf8')).version) },
+  define: { __APP_VERSION__: JSON.stringify(APP_VERSION) },
   plugins: [serviceWorker()],
 });

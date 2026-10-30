@@ -10,6 +10,9 @@ Status of each part: ✅ built, 🔜 planned.
 - ✅ Vite + TypeScript + three.js. `npm run build` outputs static files with relative paths, so `dist/` runs from
   any folder on any web server. No backend.
 - ✅ Installable web app: manifest, icons, and a service worker that precaches the build for offline play.
+- ✅ Update notice: each build publishes `version.json` (version and bundle name). An open game checks it when it
+  comes back to the foreground and once an hour, and on a newer deploy shows a small card with **Reload**
+  (pages always come fresh from the server, so a reload gets the new version) or **Not now**.
   Install needs HTTPS (or `localhost`).
 - ✅ Saves live in `localStorage`. Settings › Backup copies/loads a save code to move between devices.
 - ✅ Six languages: English, German, French, Spanish, Italian, Dutch (`src/i18n/`, one file each). The game
@@ -358,5 +361,5 @@ UI: Fredoka (display) + Nunito (body), self-hosted Latin subsets.
 | `Dockerfile`, `docker-compose.yml` | One image with the game and the relay (amd64 and arm64). |
 | `repository.yaml`, `pet_hatch/` | Home Assistant app: sidebar via ingress plus a direct port; builds from this repository's Git URL. |
 | `src/feedback.ts` | Synthesized sound effects, generative music and haptic patterns. |
-| `src/main.ts` | Wires it together: game loop, care actions, hints, hatch moment, growing up and endings. |
+| `src/main.ts` | Wires it together: game loop, care actions, hints, hatch moment, growing up and endings. `src/update.ts` watches for a newer deploy. |
 | `vite.config.ts` | Relative base and the service-worker generator. |

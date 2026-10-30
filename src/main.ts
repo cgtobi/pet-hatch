@@ -58,6 +58,8 @@ import { openSettings, type InstallState } from './ui/settings';
 import { Arena } from './ui/arena';
 import { ActivitySheet } from './ui/sheet';
 import { Training } from './ui/training';
+import { icon } from './ui/icons';
+import { watchForUpdates } from './update';
 
 const params = new URLSearchParams(location.search);
 /** Invite links for live battles: ?live=ROOM. */
@@ -1096,4 +1098,29 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
   navigator.serviceWorker.register('./sw.js').catch(() => {
     // Offline support is a bonus; the game works without it.
   });
+}
+
+// ---------- updates ----------
+
+/** A newer deploy is out: offer a reload (pages always come fresh from the server, so a reload gets it). */
+function offerUpdate(version: string): void {
+  const box = document.getElementById('update')!;
+  document.getElementById('update-text')!.textContent =
+    version === __APP_VERSION__ ? t('update.ready') : t('update.readyVersion', { version });
+  const reload = document.getElementById('update-reload') as HTMLButtonElement;
+  reload.textContent = t('update.reload');
+  reload.onclick = () => {
+    saveGame(state);
+    location.reload();
+  };
+  const later = document.getElementById('update-later') as HTMLButtonElement;
+  later.innerHTML = icon('close', 18);
+  later.ariaLabel = t('update.later');
+  later.onclick = () => (box.hidden = true);
+  box.hidden = false;
+}
+
+if (import.meta.env.PROD) {
+  const entry = new URL(import.meta.url).pathname.split('/').pop() ?? '';
+  watchForUpdates({ version: __APP_VERSION__, entry }, (deployed) => offerUpdate(deployed.version));
 }

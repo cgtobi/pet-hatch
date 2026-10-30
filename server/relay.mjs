@@ -86,7 +86,7 @@ export function createRelay({ staticDir = null, log = () => {} } = {}) {
     }
     try {
       const body = await readFile(file);
-      const noCache = file.endsWith('sw.js') || file.endsWith('.html');
+      const noCache = file.endsWith('sw.js') || file.endsWith('.html') || file.endsWith('version.json');
       res.writeHead(200, {
         'content-type': TYPES[extname(file)] ?? 'application/octet-stream',
         'cache-control': noCache ? 'no-cache' : 'public, max-age=31536000, immutable',
