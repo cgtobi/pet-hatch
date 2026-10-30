@@ -405,4 +405,6 @@ export const en = {
   'debug.skip1': '+1 h',
   'debug.skip6': '+6 h',
   'debug.ready': 'Ready now',
+  'debug.sky': 'Sky',
+  'debug.skyLive': 'Live',
 };

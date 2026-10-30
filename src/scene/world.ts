@@ -1,7 +1,9 @@
 import * as THREE from 'three';
+import type { SunState } from '../sim/sun';
 import type { Dropping, ElementType, FormId } from '../sim/types';
 import { Effects } from './effects';
 import { Egg3D } from './egg3d';
+import { Fireflies } from './fireflies';
 import { GROUND_Y, Island } from './island';
 import { Pet3D, SHELL } from './pet3d';
 import { Sky, skyAt } from './sky';
@@ -14,6 +16,11 @@ const ORBIT_SPEED = 0.006;
 const BATTLE_RECENTER_MS = 1500;
 /** Where the sun shines from, relative to the camera: it turns with the view so every side is lit alike. */
 const SUN_OFFSET = new THREE.Vector3(4, 7, 5);
+/** The island's light hangs above the front of the island and turns with the view like the sun. */
+const LAMP_OFFSET = new THREE.Vector3(0.6, 3.2, 1.6);
+const LAMP_INTENSITY = 22;
+/** With the light off once it's dark, the island only gets this share of the (already dim) outside light. */
+const DARK_ROOM = 0.55;
 const UP = new THREE.Vector3(0, 1, 0);
 /** Where the two sides of a battle stand (x, z, facing): your pet on the left, the opponent on the right. */
 const BATTLE_SPOTS = {
@@ -28,6 +35,14 @@ const VERTICAL_FOV = 34;
 /** World-space half extents the camera keeps in view. */
 const HALF_WIDTH = 3.7;
 const HALF_HEIGHT = 2.8;
+
+/** What lights the island besides the sky. */
+export interface Lighting {
+  /** Evening or night with the light off: the island sits in the dark. */
+  dark: boolean;
+  /** The light is on while it's dark outside: a warm glow over the island. */
+  lamp: boolean;
+}
 
 export interface Insets {
   top: number;
@@ -51,6 +66,8 @@ export class World {
   private island: Island;
   private hemi = new THREE.HemisphereLight('#ffffff', '#c9a27e', 1.6);
   private sun = new THREE.DirectionalLight('#fff3e0', 2.2);
+  private lamp = new THREE.PointLight('#ffc27a', 0, 0, 2);
+  private fireflies: Fireflies;
   private raycaster = new THREE.Raycaster();
   private yaw = 0;
   private yawVel = 0;
@@ -67,8 +84,18 @@ export class World {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.island = new Island(seed);
     this.egg = new Egg3D(seed);
+    this.fireflies = new Fireflies(seed);
     this.sun.position.copy(SUN_OFFSET);
-    this.scene.add(this.sky.group, this.island.group, this.egg.group, this.effects.group, this.hemi, this.sun);
+    this.scene.add(
+      this.sky.group,
+      this.island.group,
+      this.egg.group,
+      this.effects.group,
+      this.fireflies.points,
+      this.hemi,
+      this.sun,
+      this.lamp,
+    );
     this.resize();
   }
 
@@ -215,7 +242,7 @@ export class World {
     return [...this.droppings.values()].map((g) => g.position.clone().setY(GROUND_Y + 0.35));
   }
 
-  render(dt: number, time: number, hour: number, lightsOff: boolean): void {
+  render(dt: number, time: number, sun: SunState, lighting: Lighting): void {
     if (Math.abs(this.yawVel) > 0.001) {
       this.yaw += this.yawVel * dt;
       this.yawVel *= Math.pow(0.04, dt);
@@ -236,19 +263,20 @@ export class World {
     );
     this.camera.lookAt(target);
     this.sun.position.copy(SUN_OFFSET).applyAxisAngle(UP, this.yaw);
+    this.lamp.position.copy(LAMP_OFFSET).applyAxisAngle(UP, this.yaw);
     if (this.pet) this.pet.viewYaw = this.yaw;
 
-    const look = skyAt(hour);
-    const dim = lightsOff ? 0.35 : 1;
-    if (lightsOff) {
-      look.top.lerp(new THREE.Color('#10132e'), 0.7);
-      look.bottom.lerp(new THREE.Color('#1f2350'), 0.7);
-      look.night = 1;
-    }
-    this.sky.update(hour, look, this.camera);
+    // The sky follows the time of day only; the island's own light just changes how the island is lit.
+    const look = skyAt(sun);
+    const halfWidth = Math.atan(Math.tan(THREE.MathUtils.degToRad(VERTICAL_FOV / 2)) * this.camera.aspect);
+    this.sky.update(sun, look, this.yaw, halfWidth, time, dt);
+    const dim = lighting.dark ? DARK_ROOM : 1;
     this.hemi.intensity = 1.6 * look.light * dim;
     this.sun.intensity = 2.2 * look.light * dim;
-    this.hemi.color.set(lightsOff || look.night > 0.5 ? '#b9c2ff' : '#ffffff');
+    this.sun.color.copy(look.sunColor);
+    this.hemi.color.set('#ffffff').lerp(new THREE.Color('#b9c2ff'), look.night);
+    this.lamp.intensity = lighting.lamp ? LAMP_INTENSITY * (1 - look.light) : 0;
+    this.fireflies.update(time, 1 - look.light);
 
     this.island.update(time, dt);
     this.effects.update(dt);

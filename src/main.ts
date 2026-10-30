@@ -10,6 +10,7 @@ import { listOf, setLang, t, type TextKey } from './i18n';
 import { attachGestures } from './input/gestures';
 import { World } from './scene/world';
 import { dayPart, HOUR, isAsleep, localHour } from './sim/clock';
+import { sunAt } from './sim/sun';
 import {
   careLeaning,
   comfortEgg,
@@ -64,6 +65,8 @@ const LIVE_PARAM = 'live';
 /** Debug: run game time faster than real time, e.g. ?speed=600. */
 const SPEED = Math.max(1, Number(params.get('speed')) || 1);
 const DEBUG = params.has('debug') || SPEED > 1;
+/** Debug: show the sky at this hour instead of the game's (the game itself keeps its own time). */
+let skyHour: number | null = null;
 
 const WARM_PER_SECOND = 22;
 const STROKE_PER_PIXEL = 0.06;
@@ -923,6 +926,8 @@ function showSettings() {
             }
             updateHud();
           },
+          skyHour: (h) => (skyHour = h),
+          getSkyHour: () => skyHour ?? localHour(gameNow(state)),
         }
       : null,
   });
@@ -1067,7 +1072,8 @@ function frame(ms: number) {
   }
 
   world.egg.update(dt, { warmth: egg.warmth, ready: rushLeft !== null });
-  world.render(dt, time, localHour(now), roomDark(now));
+  const lit = state.phase !== 'egg' && state.egg.lightsOn && dayPart(now, state.settings) !== 'day';
+  world.render(dt, time, sunAt(skyHour ?? localHour(now), now, state.settings), { dark: roomDark(now), lamp: lit });
 
   hudTimer -= dt;
   if (hudTimer <= 0) {

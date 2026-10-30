@@ -26,7 +26,13 @@ export interface SettingsHandlers {
   onInstall(): void;
   /** Current game time, which runs ahead of the real clock after debug skips or with ?speed=. */
   now(): number;
-  debug: null | { skip(hours: number): void; readyNow(): void };
+  debug: null | {
+    skip(hours: number): void;
+    readyNow(): void;
+    /** Show the sky at this hour; null follows the game's clock again. */
+    skyHour(h: number | null): void;
+    getSkyHour(): number;
+  };
 }
 
 const HELP_TOPICS = ['egg', 'types', 'care', 'calls', 'mistakes', 'life', 'train', 'evolve', 'battle', 'modes'] as const;
@@ -223,6 +229,19 @@ export function openSettings(
         b.onclick = fn;
         return b;
       };
+      // Scrub the sky through the day; "Live" hands it back to the game's clock.
+      const skyLabel = (h: number) => `${String(Math.floor(h)).padStart(2, '0')}:${String(Math.round((h % 1) * 60) % 60).padStart(2, '0')}`;
+      const skyValue = el('span', { className: 'sky-value' }, skyLabel(dbg.getSkyHour()));
+      const sky = el('input', { type: 'range', min: '0', max: '23.75', step: '0.25', value: String(dbg.getSkyHour()) });
+      sky.oninput = () => {
+        dbg.skyHour(Number(sky.value));
+        skyValue.textContent = skyLabel(Number(sky.value));
+      };
+      const live = btn(t('debug.skyLive'), () => {
+        dbg.skyHour(null);
+        sky.value = String(dbg.getSkyHour());
+        skyValue.textContent = skyLabel(dbg.getSkyHour());
+      });
       body.append(
         el(
           'div',
@@ -235,6 +254,8 @@ export function openSettings(
             btn(t('debug.skip6'), () => dbg.skip(6)),
             btn(t('debug.ready'), () => dbg.readyNow()),
           ),
+          el('label', { className: 'choice sky-scrub' }, t('debug.sky'), sky, skyValue),
+          el('div', { className: 'row' }, live),
         ),
       );
     }

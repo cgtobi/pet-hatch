@@ -406,4 +406,6 @@ export const it: Dict = {
   'debug.skip1': '+1 h',
   'debug.skip6': '+6 h',
   'debug.ready': 'Subito pronto',
+  'debug.sky': 'Cielo',
+  'debug.skyLive': 'Dal vivo',
 };

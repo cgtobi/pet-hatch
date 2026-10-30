@@ -310,6 +310,19 @@ A public waiting room for live battles against strangers of similar strength.
 Cute low-poly scene: a floating island with toon shading (three-band gradient map), a sky that follows the local
 time, drifting clouds and bobbing mini-islands.
 
+- **Sky through the day** (`sim/sun.ts` times it, `scene/sky.ts` draws it): the sun rises at the player's wake-up
+  time and sets when the evening starts (4 h before bedtime), so the sky matches the game; without a sleep window
+  07:00–19:00. Sunrise and sunset glow orange and pink on the sun's side for about 1½ h either way, the sunlight
+  turns warm and low, then twilight blue, then night. The sky turns with the view, so the sun rises bottom left
+  and sinks bottom right beside the island even on a narrow phone.
+- **Night sky:** about 500 twinkling stars in a few sizes and tints, a faint Milky Way, the moon crossing in its
+  real phase for the date (with a glow that grows towards full moon) and a shooting star every half minute to a
+  minute and a half. Moonlight is blue.
+- **The island's light** only changes the island, never the sky: on after dark it casts a warm glow; off, the
+  island sits in dim moonlight. Fireflies drift over the island from dusk on.
+- Twinkling, shooting stars and drifting fireflies keep still when the device asks for reduced motion.
+- Debug mode (`?debug`) has a sky slider in Settings to scrub through the day; Live hands it back to the clock.
+
 - **Every island is different**, laid out from the egg's seed: 1–3 trees (round, pine, blossom or apple),
   2–5 bushes (some with berries or flowers), 1–4 rocks, flowers and grass, and on about 40% of islands a small
   pond with a stone rim, a lily pad and sometimes reeds. Trees and the pond stay at the back and sides so they
@@ -332,8 +345,8 @@ UI: Fredoka (display) + Nunito (body), self-hosted Latin subsets.
 
 | Path | What |
 |---|---|
-| `src/sim/` | Pure game rules, no DOM or three.js: `egg.ts` and `pet.ts` rules, `training.ts` stats and caps, `evolution.ts` forms and species names, `battle.ts` battle rules, moves and wild creatures, `battlecode.ts` share codes, `game.ts` catch-up and hatching, `save.ts` persistence and save upgrades. Unit tested in `sim.test.ts`, `pet.test.ts`, `training.test.ts`, `battle.test.ts` and `family.test.ts`. |
-| `src/scene/` | three.js: `world.ts` (renderer, camera framing, lights), `island.ts`, `egg3d.ts`, `pet3d.ts` (the living pet and its 9 body plans), `sky.ts`, `effects.ts`. |
+| `src/sim/` | Pure game rules, no DOM or three.js: `egg.ts` and `pet.ts` rules, `training.ts` stats and caps, `evolution.ts` forms and species names, `battle.ts` battle rules, moves and wild creatures, `battlecode.ts` share codes, `game.ts` catch-up and hatching, `sun.ts` sun and moon times, `save.ts` persistence and save upgrades. Unit tested in `sim.test.ts`, `pet.test.ts`, `training.test.ts`, `battle.test.ts`, `family.test.ts` and `sun.test.ts`. |
+| `src/scene/` | three.js: `world.ts` (renderer, camera framing, lights), `island.ts`, `egg3d.ts`, `pet3d.ts` (the living pet and its 9 body plans), `sky.ts` (sky, sun, moon, stars), `fireflies.ts`, `effects.ts`. |
 | `src/input/gestures.ts` | Pointer events → hold / swipe / stroke / tap / orbit. |
 | `src/ui/` | DOM HUD, settings sheet (with help), the Training/Battle sheet (`sheet.ts`, `training.ts`, `arena.ts`), the four minigames and icons. |
 | `src/i18n/` | All player-facing text: `en.ts` is the source, one file per translation, checked by `i18n.test.ts`. |

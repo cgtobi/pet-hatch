@@ -783,6 +783,15 @@ textarea {
   letter-spacing: 1px;
 }
 
+.sky-scrub input {
+  flex: 1;
+  min-width: 0;
+}
+
+.sky-value {
+  font-variant-numeric: tabular-nums;
+}
+
 .train-val .star {
   color: var(--star);
 }

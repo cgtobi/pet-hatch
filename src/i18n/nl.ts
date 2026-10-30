@@ -406,4 +406,6 @@ export const nl: Dict = {
   'debug.skip1': '+1 u',
   'debug.skip6': '+6 u',
   'debug.ready': 'Nu klaar',
+  'debug.sky': 'Lucht',
+  'debug.skyLive': 'Live',
 };
