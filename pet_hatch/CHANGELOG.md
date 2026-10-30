@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.15
+
+- Endurance training is here for everyone: a jump-rope rhythm game on the Train sheet. Endurance gives your pet
+  more energy (up to +50), so it can train, play and battle longer. It doesn't count in battles.
+
 ## 0.3.14
 
 - Not every pet lives exactly 37 days any more: each one stays an adult up to 3 days longer and an elder up to
