@@ -36,7 +36,8 @@ Status of each part: ✅ built, 🔜 planned.
 - ✅ **Sleep window** (default 22:00–07:00, set in Settings). Needs drain at 10% with the light off,
   30% with it left on, and no care mistakes count while you sleep. The **evening** is the 4 hours before it
   (`dayPart()` in `src/sim/clock.ts`).
-- ✅ **Debug:** `?debug` shows Settings › Debug (+1 h, +6 h, Ready now); `?speed=600` runs game time 600×.
+- ✅ **Debug** (dev server only; built games ignore it): `?debug` shows Settings › Debug (+1 h, +6 h, Ready now);
+  `?speed=600` runs game time 600×.
 
 ## Egg phase
 

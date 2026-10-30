@@ -12,7 +12,7 @@ npm run dev
 
 The dev server listens on your network too (`--host`), so you can open it on your phone in the same Wi-Fi.
 
-Handy URL flags:
+Handy URL flags (dev server only; the built game ignores them):
 
 - `?debug` adds a Debug section to Settings (skip time, make the egg ready or jump the pet to its next life stage).
 - `?speed=600` runs game time 600× faster.

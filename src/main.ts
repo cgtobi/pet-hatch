@@ -34,9 +34,9 @@ import { watchForUpdates } from './update';
 import { findStats, report, type PetEnding } from './net/stats';
 
 const params = new URLSearchParams(location.search);
-/** Debug: run game time faster than real time, e.g. ?speed=600. */
-const SPEED = Math.max(1, Number(params.get('speed')) || 1);
-const DEBUG = params.has('debug') || SPEED > 1;
+/** Debug, only on the dev server (npm run dev): run game time faster than real time, e.g. ?speed=600. */
+const SPEED = import.meta.env.DEV ? Math.max(1, Number(params.get('speed')) || 1) : 1;
+const DEBUG = import.meta.env.DEV && (params.has('debug') || SPEED > 1);
 /** Debug: show the sky at this hour instead of the game's (the game itself keeps its own time). */
 let skyHour: number | null = null;
 
