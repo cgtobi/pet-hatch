@@ -97,7 +97,9 @@ export class Hud {
     this.lights.addEventListener('click', () => handlers.onLightButton());
     const closeOverlay = () => {
       const close = this.overlayClose;
-      const value = this.input.value.trim();
+      const choices = $('overlay-choices');
+      const picked = choices.querySelector<HTMLInputElement>('input:checked');
+      const value = !choices.hidden && picked ? picked.value : this.input.value.trim();
       this.hideOverlay();
       close?.(value);
     };
@@ -280,6 +282,8 @@ export class Hud {
     button: string,
     onClose: (value: string) => void,
     field?: { label: string; value: string },
+    /** A choice instead of a text field: onClose gets the picked value. */
+    choices?: { options: { value: string; label: string }[]; value: string },
   ): void {
     $('overlay-title').textContent = title;
     $('overlay-body').textContent = body;
@@ -289,6 +293,22 @@ export class Hud {
       $('overlay-label').textContent = field.label;
       this.input.value = field.value;
     }
+    const list = $('overlay-choices');
+    list.hidden = !choices;
+    list.replaceChildren(
+      ...(choices?.options ?? []).map((o) => {
+        const label = document.createElement('label');
+        label.className = 'choice';
+        const input = Object.assign(document.createElement('input'), {
+          type: 'radio',
+          name: 'overlay-choice',
+          value: o.value,
+          checked: o.value === choices!.value,
+        });
+        label.append(input, o.label);
+        return label;
+      }),
+    );
     this.overlayClose = onClose;
     this.overlay.hidden = false;
   }

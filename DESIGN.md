@@ -63,7 +63,11 @@ The egg simply rests at night; the light only matters once the pet has hatched.
     two extra songs → Bloom (~60%); pampering all three evenly → Astral. Eggs from older saves are converted.
 - **Health** drops while needs are empty and recovers while all needs are above 40%.
 
-### Neglect modes (Settings)
+### Neglect modes
+
+Chosen when an egg is started (a welcome screen for the very first egg, and a picker whenever a new egg begins:
+after a pet's story ends, a lost egg, or Settings › Start a new egg) and fixed until the next egg. Settings shows
+the current mode but can't change it.
 
 | Mode | Effect |
 |---|---|

@@ -4,12 +4,15 @@ import { topStat } from './evolution';
 import { createPet, tickPet } from './pet';
 import { randomSeed } from './rng';
 import { masteredStats } from './training';
-import type { GameState, Heritage, PetState, Settings } from './types';
+import type { GameState, Heritage, NeglectMode, PetState, Settings } from './types';
 
 /** Fixed simulation step; catch-up replays missed time in these slices. */
 const STEP = MINUTE;
 /** Never replay more than this much missed time (keeps load fast after long absences). */
 const MAX_CATCH_UP = 14 * 24 * HOUR;
+
+/** Gentlest first. Chosen when an egg is started and fixed until the next one. */
+export const NEGLECT_MODES: NeglectMode[] = ['cozy', 'gentle', 'classic'];
 
 export const DEFAULT_SETTINGS: Settings = {
   neglect: 'gentle',
@@ -95,8 +98,10 @@ export function heritageOf(pet: PetState): Heritage {
 /**
  * Replace the finished pet (or failed egg) with a fresh egg, keeping settings and debug clock.
  * The pet joins the family list; only a pet that retired passes something on to the new egg.
+ * The new egg is the one moment the neglect mode can change.
  */
-export function layNewEgg(state: GameState, now: number, seed = randomSeed()): void {
+export function layNewEgg(state: GameState, now: number, seed = randomSeed(), neglect = state.settings.neglect): void {
+  state.settings.neglect = neglect;
   const pet = state.pet;
   const family = [...state.family];
   if (pet) {

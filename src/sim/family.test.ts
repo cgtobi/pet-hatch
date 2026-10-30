@@ -46,6 +46,14 @@ describe('inheritance', () => {
     expect(child.stats).toEqual({ power: MASTERED_BONUS, speed: 8, guard: MASTERED_BONUS, wits: 0 });
   });
 
+  it('takes the neglect mode chosen for the new egg, or keeps the old one', () => {
+    const s = withPet();
+    layNewEgg(s, T0 + 50 * HOUR, 12, 'classic');
+    expect(s.settings.neglect).toBe('classic');
+    layNewEgg(s, T0 + 60 * HOUR, 13);
+    expect(s.settings.neglect).toBe('classic');
+  });
+
   it('passes nothing on after running away, dying or a manual restart', () => {
     for (const status of ['ranAway', 'died', 'alive'] as const) {
       const s = withPet();

@@ -2,8 +2,9 @@ import { canVibrate } from '../feedback';
 import { LANGUAGE_NAMES, LANGUAGES, t, type TextKey } from '../i18n';
 import { BATTLE_ENERGY } from '../sim/battle';
 import { STAT_CAPS, TRAIN_ENERGY } from '../sim/training';
+import { NEGLECT_MODES } from '../sim/game';
 import { speciesName } from '../sim/evolution';
-import type { Ancestor, NeglectMode, Settings } from '../sim/types';
+import type { Ancestor, Settings } from '../sim/types';
 import { icon } from './icons';
 
 export interface InstallState {
@@ -88,15 +89,13 @@ export function openSettings(
       languageSelect,
     );
 
-    const neglect = el('fieldset', { className: 'field' }, el('legend', {}, t('settings.neglect')));
-    for (const mode of ['cozy', 'gentle', 'classic'] as NeglectMode[]) {
+    // Fixed for the current egg and pet: it is chosen when a new egg is started.
+    const neglect = el('fieldset', { className: 'field', disabled: true }, el('legend', {}, t('settings.neglect')));
+    for (const mode of NEGLECT_MODES) {
       const input = el('input', { type: 'radio', name: 'neglect', value: mode, checked: settings.neglect === mode });
-      input.onchange = () => {
-        settings.neglect = mode;
-        h.onChange({ neglect: mode });
-      };
       neglect.append(el('label', { className: 'choice' }, input, t(`neglect.${mode}`)));
     }
+    neglect.append(el('small', {}, t('settings.neglectLocked')));
 
     const hourSelect = (value: number, pick: (v: number) => void, label: string) => {
       const s = el('select', { ariaLabel: label });

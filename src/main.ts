@@ -23,7 +23,7 @@ import {
   warmEgg,
   type CareResult,
 } from './sim/egg';
-import { advance, gameNow, hatch, heritageOf, isReadyToHatch, layNewEgg, newGame } from './sim/game';
+import { advance, gameNow, hatch, heritageOf, isReadyToHatch, layNewEgg, NEGLECT_MODES, newGame } from './sim/game';
 import {
   ageHours,
   CALL_THRESHOLD,
@@ -52,7 +52,7 @@ import { speciesName } from './sim/evolution';
 import { randomSeed } from './sim/rng';
 import { exportSave, importSave, loadGame, saveGame } from './sim/save';
 import { canTrain, finishTraining, masteredStats, startTraining } from './sim/training';
-import type { ElementType, GameState, PetState, Stat } from './sim/types';
+import type { ElementType, GameState, NeglectMode, PetState, Stat } from './sim/types';
 import { Hud, type DockAction, type LightButton } from './ui/hud';
 import { openSettings, type InstallState } from './ui/settings';
 import { Arena } from './ui/arena';
@@ -84,7 +84,8 @@ const WOBBLE = [
   { every: 0.8, strength: 3.4 },
 ];
 
-const state: GameState = loadGame() ?? newGame(Date.now());
+const saved = loadGame();
+const state: GameState = saved ?? newGame(Date.now());
 setLang(state.settings.language);
 setSoundEnabled(state.settings.sound);
 setMusicEnabled(state.settings.music);
@@ -688,10 +689,20 @@ function showEnding(pet: PetState) {
   );
 }
 
+/** Every egg starts with choosing how forgiving the game is; it stays fixed until the next egg. */
+function chooseNeglect(title: string, body: string, then: (mode: NeglectMode) => void): void {
+  hud.showOverlay(title, body, t('newEgg.start'), (mode) => then(mode as NeglectMode), undefined, {
+    options: NEGLECT_MODES.map((mode) => ({ value: mode, label: t(`neglect.${mode}`) })),
+    value: state.settings.neglect,
+  });
+}
+
 function startNewEgg() {
-  layNewEgg(state, gameNow(state));
-  saveGame(state);
-  location.reload();
+  chooseNeglect(t('newEgg.title'), t('newEgg.body'), (mode) => {
+    layNewEgg(state, gameNow(state), undefined, mode);
+    saveGame(state);
+    location.reload();
+  });
 }
 
 // ---------- HUD ----------
@@ -1093,6 +1104,15 @@ function frame(ms: number) {
 
 updateHud();
 requestAnimationFrame(frame);
+
+// The very first egg: welcome, and choose how forgiving the game is.
+if (!saved) {
+  chooseNeglect(t('welcome.title'), t('welcome.body'), (mode) => {
+    state.settings.neglect = mode;
+    saveGame(state);
+    updateHud();
+  });
+}
 
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   navigator.serviceWorker.register('./sw.js').catch(() => {
