@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.5
+
+- In debug mode, Settings shows the game's clock under the version.
+
 ## 0.3.4
 
 - The light has a purpose now: evenings get dark and the pet dozes off unless the light is on. It switches
