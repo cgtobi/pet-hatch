@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.17
+
+- How to play mentions that a game server may count dojo visits per pet, without names. This Home Assistant app
+  doesn't count anything.
+
 ## 0.3.16
 
 - Training and battle costs now say energy points instead of percent, since endurance can raise the maximum
