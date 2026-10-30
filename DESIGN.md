@@ -106,15 +106,16 @@ You name the baby when it hatches (a name is suggested).
 | Energy | −5 awake; +25 asleep in the dark, +10 with the light on or dozing | Sleep, **Nap** by day |
 | Clean | One dropping 1.5–3 h after each meal (max 5) | **Clean** |
 
-- **Naps:** a pet that runs out of energy during the day naps on its own until it has 70% again.
+- **Naps:** a pet that runs out of energy during the day naps on its own until it has 40% again (about 1.5 h).
   Energy never triggers a call, because the player can't fix it directly.
 - **The round button beside More** changes with the time of day: **Nap** (then **Wake up**) by day, **Light** in
   the evening and at night. The light means nothing during the day.
 - **Power naps:** below 40% energy, **Nap** puts the pet down for a nap. The button glows when the pet could nap
   and is dimmed when it wouldn't (not tired, hungry or sick: it stays up, no penalty).
   - It regains 25 energy per hour while food and mood drain at half speed (no shortcut around care); calls pause.
-  - It wakes on its own at 90% ("woke up refreshed", +5 mood), or early when hunger drops below 20% or it gets
-    sick (it then calls). Training, battles, feeding and play wait while it sleeps.
+  - It wakes on its own after an hour, or sooner at 90% ("woke up refreshed", +5 mood), or early when hunger drops
+    below 20% or it gets sick (it then calls). An hour at the usual rate is about one training's worth of energy:
+    naps break up the day, they don't speed up training. Training, battles, feeding and play wait while it sleeps.
   - **Wake up** within 20 minutes makes it grumpy (−5 mood).
 - **Evening** (from 4 h before bedtime): it gets dark (the light switches off by itself) and the pet **dozes**:
   light rest (+10 energy per hour, needs at half speed), and feeding, play, training and battles wait.

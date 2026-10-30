@@ -31,8 +31,8 @@ const DECAY: Record<LifeStage, Record<'hunger' | 'mood', number>> = {
   elder: { hunger: 14, mood: 12 },
 };
 const ENERGY_DRAIN = 5;
-/** An exhausted pet naps during the day until it has this much energy again. */
-const NAP_UNTIL = 70;
+/** An exhausted pet naps during the day until it has this much energy again (about 1.4 hours from empty). */
+const NAP_UNTIL = 40;
 const NAP_START = 5;
 const ENERGY_REST_DARK = 25;
 const ENERGY_REST_LIT = 10;
@@ -47,9 +47,13 @@ const MORNING_MOOD = 8;
 /** Woken at night, a pet stays up this long, losing this much mood (more each time that night). */
 const UP_LATE_MIN = 60;
 const NIGHT_WAKE_MOOD = [10, 15, 20];
-/** Power naps: only for a tired pet, until this rested, with needs draining at this rate. */
+/**
+ * Power naps: only for a tired pet, until this rested or for at most POWER_NAP_MAX_MIN, with needs draining at
+ * this rate. The usual rest rate, so a nap gives about one training's worth of energy, never a shortcut.
+ */
 export const POWER_NAP_BELOW = 40;
 const POWER_NAP_UNTIL = 90;
+const POWER_NAP_MAX_MIN = 60;
 const POWER_NAP_DECAY = 0.5;
 /** Woken within this long, the pet is grumpy. */
 const POWER_NAP_GRUMPY_MIN = 20;
@@ -292,9 +296,10 @@ export function tickPet(pet: PetState, t: number, dtH: number, settings: Setting
     }
   }
 
-  // A power nap ends once rested, or early when hunger or sickness needs the player.
+  // A power nap ends once rested or after an hour, or early when hunger or sickness needs the player.
   if (pet.powerNap) {
-    const end = pet.energy >= POWER_NAP_UNTIL ? 'rested' : pet.hunger < CALL_THRESHOLD || pet.sick ? 'need' : null;
+    const rested = pet.energy >= POWER_NAP_UNTIL || t - pet.powerNap.since >= POWER_NAP_MAX_MIN * MINUTE;
+    const end = rested ? 'rested' : pet.hunger < CALL_THRESHOLD || pet.sick ? 'need' : null;
     if (end) {
       pet.powerNap = null;
       pet.napping = false;

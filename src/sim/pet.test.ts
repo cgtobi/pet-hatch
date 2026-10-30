@@ -298,19 +298,29 @@ describe('power naps', () => {
     expect(startPowerNap(evening.pet, at(1, 19), evening.settings)).toBe('night');
   });
 
-  it('rests the pet with needs at half speed, then wakes it rested', () => {
+  it('rests the pet for an hour with needs at half speed, then wakes it rested', () => {
     const s = tired(30);
     startPowerNap(s.pet, at(1, 10), s.settings);
+    advance(s, at(1, 10, 59));
+    expect(s.pet.napping).toBe(true);
     advance(s, at(1, 11));
     expect(s.pet.energy).toBeCloseTo(55, 0);
     // Babies lose 25 food per awake hour; napping halves that.
     expect(s.pet.hunger).toBeCloseTo(87.5, 0);
-    advance(s, at(1, 13));
     expect(s.pet.powerNap).toBeNull();
     expect(s.pet.napping).toBe(false);
     expect(s.pet.wake).toBe('rested');
-    // Woke at 90% around 12:24 and has been awake since (−5 per hour).
-    expect(s.pet.energy).toBeGreaterThan(85);
+  });
+
+  it('ends a power nap sooner once the pet is at 90%', () => {
+    const s = tired(39);
+    s.pet.endurance = 100;
+    s.pet.energy = 39;
+    startPowerNap(s.pet, at(1, 10), s.settings);
+    s.pet.energy = 80;
+    advance(s, at(1, 10, 30));
+    expect(s.pet.powerNap).toBeNull();
+    expect(s.pet.wake).toBe('rested');
   });
 
   it('wakes early when hunger gets low, and then calls for food', () => {
@@ -345,12 +355,18 @@ describe('power naps', () => {
     expect(s.pet.dozing).toBe(true);
   });
 
-  it('leaves exhaustion naps as they were', () => {
+  it('naps an exhausted pet on its own, until it has 40% again', () => {
     const s = tired(4);
     s.egg.lightsOn = true;
     advance(s, at(1, 10, 5));
     expect(s.pet.napping).toBe(true);
     expect(s.pet.powerNap).toBeNull();
+    // 36 points at 25 per hour: about an hour and a half.
+    advance(s, at(1, 11, 20));
+    expect(s.pet.napping).toBe(true);
+    advance(s, at(1, 11, 40));
+    expect(s.pet.napping).toBe(false);
+    expect(s.pet.energy).toBeGreaterThanOrEqual(39);
   });
 
   it('gives older pets no nap state', () => {
