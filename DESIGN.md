@@ -394,6 +394,7 @@ UI: Fredoka (display) + Nunito (body), self-hosted Latin subsets.
 | `Dockerfile`, `docker-compose.yml` | One image with the game and the relay (amd64 and arm64). |
 | `repository.yaml`, `pet_hatch/` | Home Assistant app: sidebar via ingress plus a direct port; builds from this repository's Git URL. |
 | `src/feedback.ts` | Synthesized sound effects, generative music and haptic patterns. |
-| `src/main.ts` | Wires it together: game loop, care actions, hatch moment, growing up and endings. `src/update.ts` watches for a newer deploy. |
+| `src/app/` | The running game in parts, each given a shared `Game` context (`context.ts`: state, world, HUD, sheet, save, refresh): `eggCare.ts` (warming, misting, turning, the taps that break the shell, wobbles and cracks), `petCare.ts` (the dock's actions, Nap/Wake/Light, waking at night, the pet from moment to moment), `moments.ts` (hatching and naming, evolving, endings, starting a new egg) and `battles.ts` (the Train and Battle tabs and a battle's effects). |
+| `src/main.ts` | Sets it all up and runs it: the game loop, the status card, settings, stats and the update notice. `src/update.ts` watches for a newer deploy. |
 | `tsconfig.server.json` | Type-checks the servers (JSDoc in the `.mjs` files), their tests and the scripts; part of `npm run build`. |
 | `vite.config.ts` | Relative base and the service-worker generator. |

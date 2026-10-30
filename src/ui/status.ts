@@ -8,7 +8,8 @@ import { dayPart, isAsleep } from '../sim/clock';
 import { careLeaning, hatchStage, hoursUntilTurn, isTurnOverdue } from '../sim/egg';
 import { POWER_NAP_BELOW } from '../sim/pet';
 import { canTrain } from '../sim/training';
-import type { EggState, PetState, Settings } from '../sim/types';
+import type { EggState, GameState, PetState, Settings } from '../sim/types';
+import type { LightButton } from './hud';
 
 export interface Hint {
   key: TextKey;
@@ -101,4 +102,17 @@ export function crackLevel(egg: EggState, rush: Rush): number {
   const from = egg.thresholds[2];
   const f = egg.devHours / egg.baseHours;
   return 0.15 + 0.6 * Math.min(1, Math.max(0, (f - from) / (1 - from)));
+}
+
+/** What the round button beside More does: Nap or Wake up by day, the light in the evening and at night. */
+export function lightButtonKind(pet: PetState, now: number, settings: Settings): LightButton {
+  if (dayPart(now, settings) !== 'day') return 'light';
+  return pet.powerNap ? 'wake' : 'nap';
+}
+
+/** Evenings and nights are dark with the light off; the egg simply rests in the dark at night. */
+export function roomDark(state: GameState, now: number): boolean {
+  const part = dayPart(now, state.settings);
+  if (state.phase === 'egg') return part === 'night';
+  return part !== 'day' && !state.egg.lightsOn;
 }
