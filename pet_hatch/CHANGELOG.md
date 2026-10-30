@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.16
+
+- Training and battle costs now say energy points instead of percent, since endurance can raise the maximum
+  above 100.
+
 ## 0.3.15
 
 - Endurance training is here for everyone: a jump-rope rhythm game on the Train sheet. Endurance gives your pet
