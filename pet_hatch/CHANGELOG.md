@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.4
+
+- The debug options (skipping time, a faster clock) are gone from the released game.
+
 ## 0.4.3
 
 - Dojo: waiting is shorter. The search for a similar pet widens steadily after 10 seconds, and if nobody close in
