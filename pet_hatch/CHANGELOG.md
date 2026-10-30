@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.14
+
+- Not every pet lives exactly 37 days any more: each one stays an adult up to 3 days longer and an elder up to
+  2 days longer.
+
 ## 0.3.13
 
 - Preview, off by default: Endurance training with a jump-rope rhythm game. Endurance gives the pet more
