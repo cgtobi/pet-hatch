@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.18
+
+- Security fixes: a malformed web address can no longer stop the app, and an opponent can no longer fake a
+  disconnect to win a live battle. Home Assistant now restarts the app if it stops answering.
+- Imported save codes are checked properly, and a save with an unknown language no longer breaks the game.
+- The evening lullaby follows your bedtime setting.
+
 ## 0.3.17
 
 - How to play mentions that a game server may count dojo visits per pet, without names. This Home Assistant app
