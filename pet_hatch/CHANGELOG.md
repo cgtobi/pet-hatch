@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.7
+
+- Every stat at 100 earns a star, shown on the pet, on the Train sheet and in the family list.
+- A retiring pet with stats at 100 gives the next generation a bigger head start: 5 extra points in each.
+
 ## 0.3.6
 
 - Training slows down as a stat climbs: children learn almost as fast as before, but getting a stat to 100
