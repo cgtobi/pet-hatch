@@ -828,6 +828,11 @@ textarea {
   letter-spacing: 1px;
 }
 
+.field-value {
+  font-size: 14px;
+  font-weight: 700;
+}
+
 .sky-scrub input {
   flex: 1;
   min-width: 0;

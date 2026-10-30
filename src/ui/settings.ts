@@ -2,7 +2,6 @@ import { canVibrate } from '../feedback';
 import { LANGUAGE_NAMES, LANGUAGES, t, type TextKey } from '../i18n';
 import { BATTLE_ENERGY } from '../sim/battle';
 import { STAT_CAPS, TRAIN_ENERGY } from '../sim/training';
-import { NEGLECT_MODES } from '../sim/game';
 import { speciesName } from '../sim/evolution';
 import type { Ancestor, Settings } from '../sim/types';
 import { icon } from './icons';
@@ -89,13 +88,14 @@ export function openSettings(
       languageSelect,
     );
 
-    // Fixed for the current egg and pet: it is chosen when a new egg is started.
-    const neglect = el('fieldset', { className: 'field', disabled: true }, el('legend', {}, t('settings.neglect')));
-    for (const mode of NEGLECT_MODES) {
-      const input = el('input', { type: 'radio', name: 'neglect', value: mode, checked: settings.neglect === mode });
-      neglect.append(el('label', { className: 'choice' }, input, t(`neglect.${mode}`)));
-    }
-    neglect.append(el('small', {}, t('settings.neglectLocked')));
+    // Fixed for the current egg and pet: it is chosen when a new egg is started, so only the choice shows here.
+    const neglect = el(
+      'div',
+      { className: 'field' },
+      el('span', { className: 'field-title' }, t('settings.neglect')),
+      el('span', { className: 'field-value' }, t(`neglect.${settings.neglect}`)),
+      el('small', {}, t('settings.neglectLocked')),
+    );
 
     const hourSelect = (value: number, pick: (v: number) => void, label: string) => {
       const s = el('select', { ariaLabel: label });
@@ -211,7 +211,6 @@ export function openSettings(
       { className: 'settings-body' },
       el('div', { className: 'settings-head' }, el('h2', { id: 'settings-title' }, t('settings.title')), close),
       help,
-      language,
       neglect,
       sleep,
       sound,
@@ -219,6 +218,7 @@ export function openSettings(
       ...(h.family.length ? [family] : []),
       backup,
       el('div', { className: 'row' }, newEgg),
+      language,
     );
 
     if (h.debug) {
