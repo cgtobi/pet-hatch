@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createRelay, type Relay } from '../../server/relay.mjs';
+import { WebSocket } from 'ws';
+import { createRelay, visitorOf, type Relay } from '../../server/relay.mjs';
 import { battleState, createBattle, MAX_TURNS, MOVES, movesFor, playTurn, type Fighter, type MoveId } from '../sim/battle';
 import type { Channel } from './channel';
 import { hash, LiveError, LiveSession, newRoomCode, parseRoomCode } from './live';
@@ -234,5 +235,43 @@ describe('relay web server', () => {
     } finally {
       await web.close();
     }
+  });
+});
+
+describe('relay limits', () => {
+  it('lets one visitor hold only a few connections, and frees them when they close', async () => {
+    const limited = createRelay({ maxPerVisitor: 2 });
+    const port = await limited.listen(0, '127.0.0.1');
+    /** Open a socket as a host of a new room; resolves with the first message, or 'open' after a moment. */
+    const connect = () =>
+      new Promise<{ ws: WebSocket; first: string }>((done) => {
+        const ws = new WebSocket(`ws://127.0.0.1:${port}/relay?room=${newRoomCode()}&role=host`);
+        ws.once('message', (data) => done({ ws, first: data.toString() }));
+      });
+    try {
+      const a = await connect();
+      const b = await connect();
+      expect(JSON.parse(a.first).t).toBe('room');
+      expect(JSON.parse(b.first).t).toBe('room');
+      const c = await connect();
+      expect(JSON.parse(c.first)).toEqual({ t: 'error', code: 'busy' });
+      await new Promise((r) => {
+        a.ws.once('close', r);
+        a.ws.close();
+      });
+      await new Promise((r) => setTimeout(r, 50));
+      const d = await connect();
+      expect(JSON.parse(d.first).t).toBe('room');
+      for (const s of [b, c, d]) s.ws.close();
+    } finally {
+      await limited.close();
+    }
+  });
+
+  it('counts an IPv6 visitor by its /64 network', () => {
+    expect(visitorOf('2001:db8:1:2:3:4:5:6')).toBe(visitorOf('2001:DB8:1:2::9'));
+    expect(visitorOf('2001:db8:1:2::1')).not.toBe(visitorOf('2001:db8:1:3::1'));
+    expect(visitorOf('::ffff:192.0.2.7')).toBe('192.0.2.7');
+    expect(visitorOf('192.0.2.7')).not.toBe(visitorOf('192.0.2.8'));
   });
 });

@@ -20,6 +20,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/common.php';
+
 const ROOM_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const ROOM_CODE = '/^[A-Z2-9]{4,8}$/';
 /** Battle messages are tiny; anything bigger is not from the game. */
@@ -69,10 +71,11 @@ const DOJO_MAX_PLAYERS = 100;
 /** Matching compares every waiting pair, so it runs at most this often rather than on every request. */
 const DOJO_MATCH_EVERY_MS = 1000;
 
-/** The state file is PHP, so a web server that hands out the data folder only ever shows an empty page. */
-const GUARD = "<?php exit; ?>\n";
-/** < and > escaped, so no player's message can ever put a PHP tag into the state file. */
-const STATE_JSON = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG;
+/** While nothing changes, a waiting poll looks at the full state only this often (for timeouts and cleanup). */
+const POLL_FULL_CHECK_MS = 2000;
+/** New dojo pets one visitor can add to the count per day, and the most pets the count keeps. */
+const DOJO_NEW_PETS_PER_VISITOR = 5;
+const DOJO_MAX_PETS = 20_000;
 
 // Replies are JSON: a PHP notice in one would break it and show the server's file paths. Errors still get logged.
 ini_set('display_errors', '0');
@@ -90,43 +93,20 @@ function reply(array $body, int $status = 200): never
     exit;
 }
 
-function state_file(): string
-{
-    $dir = getenv('PETHATCH_DATA_DIR') ?: __DIR__ . '/relay-data';
-    if (!is_dir($dir) && !@mkdir($dir, 0700, true) && !is_dir($dir)) {
-        error_log("Pet Hatch relay: can’t create its data folder $dir");
-        reply(['error' => 'The relay can’t create its data folder; see the server’s error log.'], 500);
-    }
-    if (!file_exists("$dir/.htaccess")) @file_put_contents("$dir/.htaccess", "Require all denied\n");
-    return "$dir/state.php";
-}
-
 /** Run $fn on the shared state, one request at a time; saves it again if it changed. */
 function with_state(callable $fn): mixed
 {
-    $file = state_file();
-    $handle = @fopen($file, 'c+');
-    if (!$handle || !flock($handle, LOCK_EX)) {
-        error_log("Pet Hatch relay: can’t write $file");
-        reply(['error' => 'The relay can’t write its data; see the server’s error log.'], 500);
+    try {
+        return with_data('state.php', function (mixed &$state) use ($fn) {
+            if (!is_array($state)) $state = ['rooms' => [], 'conns' => [], 'recent' => []];
+            $state['salt'] ??= bin2hex(random_bytes(16));
+            $now = now_ms();
+            cleanup($state, $now);
+            return $fn($state, $now);
+        });
+    } catch (DataUnavailable) {
+        reply(['error' => 'The relay can’t store its data; see the server’s error log.'], 500);
     }
-    $json = substr((string) stream_get_contents($handle), strlen(GUARD));
-    $state = json_decode($json, true);
-    if (!is_array($state)) $state = ['rooms' => [], 'conns' => [], 'recent' => []];
-    $state['salt'] ??= bin2hex(random_bytes(16));
-    $now = now_ms();
-    cleanup($state, $now);
-    $result = $fn($state, $now);
-    $out = json_encode($state, STATE_JSON);
-    if ($out !== false && $out !== $json) {
-        ftruncate($handle, 0);
-        rewind($handle);
-        fwrite($handle, GUARD . $out);
-        fflush($handle);
-    }
-    flock($handle, LOCK_UN);
-    fclose($handle);
-    return $result;
 }
 
 // ---------- connections ----------
@@ -145,10 +125,10 @@ function new_conn(array &$s, int $now, array $fields): string
     return $id;
 }
 
-/** Who is asking, as a salted hash of the IP address: enough to count connections, without keeping addresses. */
+/** Who is asking, as a salted hash of the IP address (IPv6 by its /64): enough to count connections. */
 function visitor(array $s): string
 {
-    return substr(hash('sha256', $s['salt'] . ($_SERVER['REMOTE_ADDR'] ?? '')), 0, 16);
+    return visitor_hash($s['salt']);
 }
 
 /** Whether this visitor may open another connection. */
@@ -381,33 +361,45 @@ function rating_from_code(mixed $code): ?int
     return array_sum($stats) + 20 * min($stage, 3);
 }
 
-/** Count a dojo visit for this battle code (already checked by rating_from_code). Never fails the visit. */
+/**
+ * Count a pet that got into the dojo (its battle code already checked by rating_from_code). Battle codes are easy
+ * to make up, so one visitor adds at most DOJO_NEW_PETS_PER_VISITOR new pets a day, and the count keeps at most
+ * DOJO_MAX_PETS. Never fails the visit.
+ */
 function count_dojo_pet(string $code): void
 {
     $bytes = array_values(unpack('C*', base64_decode(strtr($code, '-_', '+/'))));
     array_pop($bytes);
-    $file = dirname(state_file()) . '/dojo-pets.php';
-    $handle = @fopen($file, 'c+');
-    if (!$handle || !flock($handle, LOCK_EX)) return;
-    $data = json_decode(substr((string) stream_get_contents($handle), strlen(GUARD)), true);
-    if (!is_array($data)) $data = ['secret' => bin2hex(random_bytes(32)), 'pets' => [], 'days' => []];
-    $stable = implode(',', [$bytes[1] >> 6, $bytes[8], $bytes[9], ...array_slice($bytes, 10)]);
-    $key = substr(hash_hmac('sha256', $stable, $data['secret']), 0, 16);
-    $today = gmdate('Y-m-d');
-    $pet = $data['pets'][$key] ?? ['first' => $today, 'last' => ''];
-    if ($pet['last'] !== $today) {
-        $data['days'][$today]['pets'] = ($data['days'][$today]['pets'] ?? 0) + 1;
-        if ($pet['first'] === $today) $data['days'][$today]['new'] = ($data['days'][$today]['new'] ?? 0) + 1;
+    try {
+        with_data('dojo-pets.php', function (mixed &$data) use ($bytes) {
+            if (!is_array($data)) $data = ['secret' => bin2hex(random_bytes(32)), 'pets' => [], 'days' => []];
+            $today = gmdate('Y-m-d');
+            if (($data['visitors']['day'] ?? '') !== $today) {
+                // Yesterday's visitor hashes and salt go, as in stats.php.
+                $data['visitors'] = ['day' => $today, 'salt' => bin2hex(random_bytes(16)), 'new' => []];
+                $oldest = gmdate('Y-m-d', time() - DOJO_PETS_KEEP_DAYS * 86400);
+                $data['pets'] = array_filter($data['pets'], fn($p) => $p['last'] >= $oldest);
+                $data['days'] = array_filter($data['days'], fn($d) => $d >= gmdate('Y-m-d', time() - 400 * 86400), ARRAY_FILTER_USE_KEY);
+            }
+            $stable = implode(',', [$bytes[1] >> 6, $bytes[8], $bytes[9], ...array_slice($bytes, 10)]);
+            $key = substr(hash_hmac('sha256', $stable, $data['secret']), 0, 16);
+            $pet = $data['pets'][$key] ?? null;
+            if (!$pet) {
+                $visitor = visitor_hash($data['visitors']['salt']);
+                $added = $data['visitors']['new'][$visitor] ?? 0;
+                if ($added >= DOJO_NEW_PETS_PER_VISITOR || count($data['pets']) >= DOJO_MAX_PETS) return;
+                $data['visitors']['new'][$visitor] = $added + 1;
+                $pet = ['first' => $today, 'last' => ''];
+            }
+            if ($pet['last'] !== $today) {
+                $data['days'][$today]['pets'] = ($data['days'][$today]['pets'] ?? 0) + 1;
+                if ($pet['first'] === $today) $data['days'][$today]['new'] = ($data['days'][$today]['new'] ?? 0) + 1;
+            }
+            $data['pets'][$key] = ['first' => $pet['first'], 'last' => $today, 'stage' => ($bytes[1] >> 3) & 7, 'form' => $bytes[2]];
+        });
+    } catch (DataUnavailable) {
+        // Counting is a bonus; the dojo works without it.
     }
-    $data['pets'][$key] = ['first' => $pet['first'], 'last' => $today, 'stage' => ($bytes[1] >> 3) & 7, 'form' => $bytes[2]];
-    $oldest = gmdate('Y-m-d', time() - DOJO_PETS_KEEP_DAYS * 86400);
-    $data['pets'] = array_filter($data['pets'], fn($p) => $p['last'] >= $oldest);
-    $data['days'] = array_filter($data['days'], fn($d) => $d >= gmdate('Y-m-d', time() - 400 * 86400), ARRAY_FILTER_USE_KEY);
-    ftruncate($handle, 0);
-    rewind($handle);
-    fwrite($handle, GUARD . json_encode($data, JSON_UNESCAPED_SLASHES));
-    flock($handle, LOCK_UN);
-    fclose($handle);
 }
 
 function match_window(int $rating, int $waitedMs): float
@@ -518,9 +510,11 @@ switch (field($req, 'a')) {
     case 'dojo':
         $rating = rating_from_code($req['code'] ?? null);
         if ($rating === null || $id === '' || strlen($id) > 40) reply(refused('bad-request'));
-        count_dojo_pet($req['code']);
         $player = $id;
-        reply(with_state(fn (array &$s, int $now) => join_dojo($s, $now, $rating, $player)));
+        $joined = with_state(fn (array &$s, int $now) => join_dojo($s, $now, $rating, $player));
+        // Only pets that actually got in count (not ones turned away because the dojo is full).
+        if (isset($joined['id'])) count_dojo_pet($req['code']);
+        reply($joined);
 
     case 'send':
         reply(with_state(function (array &$s, int $now) use ($id, $req) {
@@ -545,12 +539,30 @@ switch (field($req, 'a')) {
         $after = is_int($req['after'] ?? null) ? $req['after'] : 0;
         $until = now_ms() + POLL_WAIT_MS;
         set_time_limit(intdiv(POLL_WAIT_MS, 1000) + 20);
+        // One poll per connection: a new one ends the one before, so nobody can tie up every PHP worker with
+        // many polls on one connection.
+        $poll = bin2hex(random_bytes(8));
         $first = true;
+        $stamp = '';
+        $lookedAt = 0;
         while (true) {
-            $res = with_state(function (array &$s, int $now) use ($id, $after, $until, &$first) {
+            // While the state file hasn't changed, there's nothing new to deliver: skip reading it, except now and
+            // then for timeouts and cleanup.
+            if (!$first && data_stamp('state.php') === $stamp && now_ms() - $lookedAt < POLL_FULL_CHECK_MS && now_ms() < $until) {
+                usleep(POLL_STEP_US);
+                continue;
+            }
+            // Stamped before reading, so a change made while (or right after) reading is never missed.
+            $before = data_stamp('state.php');
+            $res = with_state(function (array &$s, int $now) use ($id, $after, $until, $poll, &$first) {
                 if (!isset($s['conns'][$id])) return ['gone' => true];
-                // Seen when the poll starts and when it ends: well within STALE_MS, without a write every step.
-                if ($first) $s['conns'][$id]['seen'] = $now;
+                if ($first) {
+                    // Seen when the poll starts and when it ends: well within STALE_MS, without a write every step.
+                    $s['conns'][$id]['seen'] = $now;
+                    $s['conns'][$id]['poll'] = $poll;
+                } elseif (($s['conns'][$id]['poll'] ?? '') !== $poll) {
+                    return ['msgs' => []];
+                }
                 $first = false;
                 $c = $s['conns'][$id];
                 $news = $c['closed'] || array_filter($c['inbox'], fn ($m) => $m[0] > $after);
@@ -559,6 +571,8 @@ switch (field($req, 'a')) {
                 return deliver($s, $id, $after);
             });
             if ($res !== null) reply($res);
+            $stamp = $before;
+            $lookedAt = now_ms();
             usleep(POLL_STEP_US);
         }
 

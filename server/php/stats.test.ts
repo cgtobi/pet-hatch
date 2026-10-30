@@ -142,6 +142,17 @@ describe.skipIf(!url || !token)('PHP stats', () => {
     expect(html).not.toMatch(/Warning|Notice|Deprecated|Fatal/);
   });
 
+  it('1: counts at most a handful of games for one visitor, whatever browser it claims', async () => {
+    for (let i = 0; i < 12; i++) await check(`Made-up Browser ${i}`);
+    // Every request here comes from one address, so that's the cap however many games were faked.
+    expect(kpi(await dashboard(), 1, 'today')).toBe(8);
+  });
+
+  it('2: lets one visitor add only a few new dojo pets a day', async () => {
+    for (let seed = 5000; seed < 5010; seed++) await visitDojo({ seed, name: `Fake ${seed}` });
+    expect(kpi(await dashboard(), 2, 'today')).toBe(5);
+  });
+
   it('3: limits how much one visitor can send in a day', async () => {
     const replies = [];
     for (let i = 0; i < 210; i++) replies.push((await send(snap({ pet: i.toString(16).padStart(14, '0') }))).status);

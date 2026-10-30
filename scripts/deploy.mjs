@@ -27,6 +27,7 @@ mkdirSync(out);
 copy('dist', 'static');
 
 copy('dist', 'php');
+copy('server/php/common.php', 'php/common.php');
 copy('server/php/relay.php', 'php/relay.php');
 copy('server/php/relay.json', 'php/relay.json');
 copy('server/php/stats.php', 'php/stats.php');

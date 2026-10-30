@@ -8,4 +8,15 @@ export interface Relay {
   close(): Promise<void>;
 }
 
-export function createRelay(options?: { staticDir?: string | null; log?: (msg: string) => void }): Relay;
+export function createRelay(options?: {
+  staticDir?: string | null;
+  log?: (msg: string) => void;
+  /** Open connections per visitor (IP address, IPv6 by /64); 0 turns the limit off. */
+  maxPerVisitor?: number;
+}): Relay;
+
+/** The visitor an address counts as: the IP itself, or an IPv6 address's /64 network. */
+export function visitorOf(address?: string): string;
+
+/** Whether a player's message pretends to come from the relay (and so must not be forwarded). */
+export function speaksForRelay(text: string): boolean;

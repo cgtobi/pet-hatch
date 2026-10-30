@@ -22,14 +22,21 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/common.php';
+
 const WINDOWS = [30, 90, 365];
 /** Daily totals are kept this long. */
 const KEEP_DAYS = 400;
 /** Opt-in pet snapshots are kept this long. */
 const KEEP_LOG_DAYS = 180;
 const MAX_BODY = 512;
-/** Snapshots one visitor (IP address) may send per day: a pet sends one or two, a household a handful. */
+/** Snapshots one visitor (IP address; IPv6 by /64) may send per day: a pet sends one or two, a household a handful. */
 const MAX_PER_VISITOR = 200;
+/** Snapshots kept per day in all, so nobody can fill the disk. */
+const MAX_SNAPSHOTS_PER_DAY = 5000;
+/** Open games one visitor counts for per day (a household's phones and tablets), and per day in all. */
+const MAX_GAMES_PER_VISITOR = 8;
+const MAX_GAMES_PER_DAY = 100_000;
 const TYPES = ['ember', 'tide', 'bloom', 'astral'];
 const MODES = ['cozy', 'gentle', 'classic'];
 const STATUSES = ['alive', 'retired', 'ranAway', 'died', 'lost', 'released'];
@@ -37,9 +44,6 @@ const STAGES = ['Baby', 'Child', 'Teen', 'Adult', 'Elder'];
 /** The battle code's form numbers, as in src/sim/battlecode.ts. */
 const CODE_FORMS = ['baby', 'child.bright', 'child.scruffy', 'teen.physical', 'teen.technical', 'adult.power',
     'adult.speed', 'adult.guard', 'adult.wits'];
-/** Data files are PHP, so a web server that hands out the data folder only ever shows an empty page. */
-const GUARD = "<?php exit; ?>\n";
-
 ini_set('display_errors', '0');
 
 function fail(int $status, string $message): never
@@ -50,44 +54,6 @@ function fail(int $status, string $message): never
     exit;
 }
 
-function data_dir(): ?string
-{
-    $dir = getenv('PETHATCH_DATA_DIR') ?: __DIR__ . '/relay-data';
-    if (!is_dir($dir) && !@mkdir($dir, 0700, true) && !is_dir($dir)) {
-        error_log("Pet Hatch stats: can’t create its data folder $dir");
-        return null;
-    }
-    if (!file_exists("$dir/.htaccess")) @file_put_contents("$dir/.htaccess", "Require all denied\n");
-    return $dir;
-}
-
-/** Run $fn on a guarded JSON data file, one request at a time, and save it again. Null when it can't be used. */
-function with_file(string $name, callable $fn): mixed
-{
-    $dir = data_dir();
-    $handle = $dir ? @fopen("$dir/$name", 'c+') : false;
-    if (!$handle || !flock($handle, LOCK_EX)) {
-        if ($dir) error_log("Pet Hatch stats: can’t write $dir/$name");
-        return null;
-    }
-    $data = json_decode(substr((string) stream_get_contents($handle), strlen(GUARD)), true);
-    $result = $fn($data);
-    ftruncate($handle, 0);
-    rewind($handle);
-    fwrite($handle, GUARD . json_encode($data, JSON_UNESCAPED_SLASHES));
-    fflush($handle);
-    flock($handle, LOCK_UN);
-    fclose($handle);
-    return $result;
-}
-
-function read_file(string $name): mixed
-{
-    $dir = data_dir();
-    $text = $dir && is_file("$dir/$name") ? (string) file_get_contents("$dir/$name") : '';
-    return json_decode(substr($text, strlen(GUARD)), true);
-}
-
 // ---------- 1. open games ----------
 
 /** Count this game once for today, then answer with version.json as if it had been asked for directly. */
@@ -95,30 +61,45 @@ function check(): never
 {
     $version = is_string($_GET['v'] ?? null) && preg_match('/^\d{1,3}\.\d{1,3}\.\d{1,3}$/', $_GET['v'])
         ? $_GET['v'] : 'older';
-    with_file('players.php', function (mixed &$c) use ($version) {
-        if (!is_array($c)) $c = ['days' => []];
-        $day = gmdate('Y-m-d');
-        if (($c['today'] ?? '') !== $day) {
-            // A new day: yesterday's hashes and salt go, so nothing links one day's games to another's.
-            $c['today'] = $day;
-            $c['salt'] = bin2hex(random_bytes(16));
-            $c['seen'] = [];
-            $oldest = gmdate('Y-m-d', time() - KEEP_DAYS * 86400);
-            $c['days'] = array_filter($c['days'], fn($d) => $d >= $oldest, ARRAY_FILTER_USE_KEY);
-        }
-        $game = substr(hash('sha256', $c['salt'] . '|' . ($_SERVER['REMOTE_ADDR'] ?? '') . '|'
-            . substr((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 300)), 0, 16);
-        if (isset($c['seen'][$game])) return;
-        $c['seen'][$game] = 1;
-        $c['days'][$day]['games'] = ($c['days'][$day]['games'] ?? 0) + 1;
-        $c['days'][$day]['versions'][$version] = ($c['days'][$day]['versions'][$version] ?? 0) + 1;
-    });
+    try {
+        with_data('players.php', fn(mixed &$c) => count_game($c, $version));
+    } catch (DataUnavailable) {
+        // Counting is a bonus; the update check still gets its answer.
+    }
     $file = __DIR__ . '/version.json';
     if (!is_file($file)) fail(404, 'No version.json.');
     header('Content-Type: application/json');
     header('Cache-Control: no-store');
     readfile($file);
     exit;
+}
+
+/**
+ * Count the asking game once for today. Random browser strings could make one visitor look like many games, so
+ * a visitor counts for at most MAX_GAMES_PER_VISITOR, and a day for at most MAX_GAMES_PER_DAY.
+ */
+function count_game(mixed &$c, string $version): void
+{
+    if (!is_array($c)) $c = ['days' => []];
+    $day = gmdate('Y-m-d');
+    if (($c['today'] ?? '') !== $day) {
+        // A new day: yesterday's hashes and salt go, so nothing links one day's games to another's.
+        $c['today'] = $day;
+        $c['salt'] = bin2hex(random_bytes(16));
+        $c['seen'] = [];
+        $c['visitors'] = [];
+        $oldest = gmdate('Y-m-d', time() - KEEP_DAYS * 86400);
+        $c['days'] = array_filter($c['days'], fn($d) => $d >= $oldest, ARRAY_FILTER_USE_KEY);
+    }
+    $game = substr(hash('sha256', $c['salt'] . '|' . visitor_address() . '|'
+        . substr((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 300)), 0, 16);
+    if (isset($c['seen'][$game]) || count($c['seen']) >= MAX_GAMES_PER_DAY) return;
+    $visitor = visitor_hash($c['salt']);
+    if (($c['visitors'][$visitor] ?? 0) >= MAX_GAMES_PER_VISITOR) return;
+    $c['visitors'][$visitor] = ($c['visitors'][$visitor] ?? 0) + 1;
+    $c['seen'][$game] = 1;
+    $c['days'][$day]['games'] = ($c['days'][$day]['games'] ?? 0) + 1;
+    $c['days'][$day]['versions'][$version] = ($c['days'][$day]['versions'][$version] ?? 0) + 1;
 }
 
 // ---------- 3. pet details (opt-in) ----------
@@ -146,14 +127,16 @@ function row(mixed $r): ?array
 /** Counts this visitor's snapshot for today; false once over the limit. A new day brings a new salt. */
 function within_limit(string $day): bool
 {
-    return (bool) with_file('stats-limits.php', function (mixed &$l) use ($day) {
+    return (bool) with_data('stats-limits.php', function (mixed &$l) use ($day) {
         if (!is_array($l) || ($l['day'] ?? '') !== $day) {
-            $l = ['day' => $day, 'salt' => bin2hex(random_bytes(16)), 'counts' => []];
+            $l = ['day' => $day, 'salt' => bin2hex(random_bytes(16)), 'counts' => [], 'total' => 0];
             prune_logs();
         }
-        $visitor = substr(hash('sha256', $l['salt'] . ($_SERVER['REMOTE_ADDR'] ?? '')), 0, 16);
+        $visitor = visitor_hash($l['salt']);
+        if (($l['counts'][$visitor] ?? 0) >= MAX_PER_VISITOR || ($l['total'] ?? 0) >= MAX_SNAPSHOTS_PER_DAY) return false;
         $l['counts'][$visitor] = ($l['counts'][$visitor] ?? 0) + 1;
-        return $l['counts'][$visitor] <= MAX_PER_VISITOR;
+        $l['total'] = ($l['total'] ?? 0) + 1;
+        return true;
     });
 }
 
@@ -172,7 +155,11 @@ function collect(): never
     $row = row(json_decode($body, true));
     if (!$row) fail(400, 'Not a pet snapshot.');
     $day = gmdate('Y-m-d');
-    if (!within_limit($day)) fail(429, 'Too many reports today.');
+    try {
+        if (!within_limit($day)) fail(429, 'Too many reports today.');
+    } catch (DataUnavailable) {
+        fail(500, 'Can’t store stats; see the server’s error log.');
+    }
     $file = data_dir() . "/stats-$day.php";
     $handle = @fopen($file, 'a');
     if (!$handle || !flock($handle, LOCK_EX)) fail(500, 'Can’t store stats; see the server’s error log.');
@@ -185,40 +172,45 @@ function collect(): never
     exit;
 }
 
-/** Every opt-in snapshot from the last $days days (UTC), oldest first, as [day, row]. */
+/**
+ * The opt-in snapshots of the last $days days (UTC), oldest first: each pet's story so far, and which pets
+ * reported on each day. Read line by line, so even months of logs don't have to fit in memory at once.
+ */
 function read_logs(int $days): array
 {
-    $rows = [];
+    $pets = [];
+    $byDay = [];
     for ($i = min($days, KEEP_LOG_DAYS) - 1; $i >= 0; $i--) {
         $day = gmdate('Y-m-d', time() - $i * 86400);
-        $file = data_dir() . "/stats-$day.php";
-        if (!is_file($file)) continue;
-        foreach (array_slice(file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [], 1) as $line) {
+        $handle = @fopen(data_dir() . "/stats-$day.php", 'r');
+        if (!$handle) continue;
+        fgets($handle);
+        while (($line = fgets($handle)) !== false) {
             $row = json_decode($line, true);
-            if (is_array($row) && count($row) === 11) $rows[] = [$day, $row];
+            if (!is_array($row) || count($row) !== 11) continue;
+            $byDay[$day][$row[1]] = true;
+            add_snapshot($pets, $day, $row);
         }
+        fclose($handle);
     }
-    return $rows;
+    return [$pets, $byDay];
 }
 
-/** Each opted-in pet's story so far, from its snapshots. */
-function pets(array $rows): array
+/** Add one snapshot to its pet's story. */
+function add_snapshot(array &$pets, string $day, array $row): void
 {
-    $pets = [];
-    foreach ($rows as [$day, [, $id, $v, $phase, $stage, $type, $form, $mode, $gen, $status, $stars]]) {
-        $p = $pets[$id] ?? ['first' => $day, 'startedAsEgg' => $phase === 'egg', 'reached' => -1, 'stars' => 0];
-        if ($phase === 'pet') $p['reached'] = max($p['reached'], $stage);
-        $p['last'] = $day;
-        $p['mode'] = $mode;
-        $p['gen'] = max($p['gen'] ?? 1, $gen);
-        $p['stars'] = max($p['stars'], $stars);
-        if ($type) $p['type'] = $type;
-        if ($form) $p['form'] = $form;
-        // An ending sticks, even if an older tab reports the pet alive afterwards.
-        if (($p['status'] ?? 'alive') === 'alive') $p['status'] = $status;
-        $pets[$id] = $p;
-    }
-    return $pets;
+    [, $id, $v, $phase, $stage, $type, $form, $mode, $gen, $status, $stars] = $row;
+    $p = $pets[$id] ?? ['first' => $day, 'startedAsEgg' => $phase === 'egg', 'reached' => -1, 'stars' => 0];
+    if ($phase === 'pet') $p['reached'] = max($p['reached'], $stage);
+    $p['last'] = $day;
+    $p['mode'] = $mode;
+    $p['gen'] = max($p['gen'] ?? 1, $gen);
+    $p['stars'] = max($p['stars'], $stars);
+    if ($type) $p['type'] = $type;
+    if ($form) $p['form'] = $form;
+    // An ending sticks, even if an older tab reports the pet alive afterwards.
+    if (($p['status'] ?? 'alive') === 'alive') $p['status'] = $status;
+    $pets[$id] = $p;
 }
 
 // ---------- the dashboard ----------
@@ -278,7 +270,13 @@ function dashboard(): never
     for ($i = $days - 1; $i >= 0; $i--) $range[] = gmdate('Y-m-d', time() - $i * 86400);
 
     // 1. Open games.
-    $games = read_file('players.php')['days'] ?? [];
+    try {
+        $games = read_data('players.php')['days'] ?? [];
+        $dojo = read_data('dojo-pets.php') ?: [];
+        [$allPets, $optIn] = read_logs(max($days, 30));
+    } catch (DataUnavailable) {
+        fail(500, 'Can’t read the stats; see the server’s error log.');
+    }
     $gameSeries = array_combine($range, array_map(fn($d) => $games[$d]['games'] ?? 0, $range));
     [$gameKpis, $gameChart, $gamePeak, $gamePeakDay] = series_card($gameSeries, $games ? min(array_keys($games)) : '9999');
     $todayKey = gmdate('Y-m-d');
@@ -288,7 +286,6 @@ function dashboard(): never
     uksort($versions, fn($a, $b) => version_compare($b === 'older' ? '0' : $b, $a === 'older' ? '0' : $a));
 
     // 2. Dojo pets.
-    $dojo = read_file('dojo-pets.php') ?: [];
     $dojoDays = $dojo['days'] ?? [];
     $dojoPets = $dojo['pets'] ?? [];
     $dojoSeries = array_combine($range, array_map(fn($d) => $dojoDays[$d]['pets'] ?? 0, $range));
@@ -311,12 +308,9 @@ function dashboard(): never
     }
 
     // 3. Pet details (opt-in).
-    $rows = read_logs(max($days, 30));
-    $optIn = [];
-    foreach ($rows as [$day, $row]) $optIn[$day][$row[1]] = true;
     $optSeries = array_combine($range, array_map(fn($d) => count($optIn[$d] ?? []), $range));
     [$optKpis, $optChart] = series_card($optSeries, $optIn ? min(array_keys($optIn)) : '9999');
-    $pets = array_filter(pets($rows), fn($p) => $p['first'] >= $since(min($days, KEEP_LOG_DAYS)));
+    $pets = array_filter($allPets, fn($p) => $p['first'] >= $since(min($days, KEEP_LOG_DAYS)));
     $eggs = array_filter($pets, fn($p) => $p['startedAsEgg']);
     $funnel = ['Eggs' => count($eggs)];
     foreach (STAGES as $i => $name) $funnel[$name] = count(array_filter($eggs, fn($p) => $p['reached'] >= $i));
@@ -359,6 +353,8 @@ function dashboard(): never
     header('Content-Type: text/html; charset=utf-8');
     header('Cache-Control: no-store');
     header('X-Robots-Tag: noindex');
+    // The token is in this page's address: never hand it on to another site.
+    header('Referrer-Policy: no-referrer');
     echo <<<HTML
     <!doctype html>
     <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">

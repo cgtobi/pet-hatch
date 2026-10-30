@@ -35,6 +35,12 @@ const ROOM_IDLE_MS = 15 * 60_000;
 /** Per connection: at most this many messages per window. */
 const RATE_LIMIT = { messages: 60, windowMs: 10_000 };
 const PING_MS = 30_000;
+/**
+ * Open connections per visitor (IP address; IPv6 by its /64), so one visitor can't take every room or dojo place.
+ * A phone needs one or two. PETHATCH_MAX_PER_IP changes it; 0 turns it off, e.g. when every player arrives through
+ * the same proxy.
+ */
+const MAX_PER_IP = 16;
 
 const TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -49,8 +55,29 @@ const TYPES = {
 };
 
 /**
- * @param {{ staticDir?: string | null, log?: (msg: string) => void }} [options]
+ * @param {{ staticDir?: string | null, log?: (msg: string) => void, maxPerVisitor?: number }} [options]
  */
+/**
+ * Who is asking, for the per-visitor limit: the IP address, an IPv6 one cut to its /64 (a home or phone gets a
+ * whole /64 and can pick any address in it). Exported for tests.
+ * @param {string | undefined} address
+ */
+export function visitorOf(address = '') {
+  const ip = address.replace(/^::ffff:(?=\d+\.)/, '');
+  if (!ip.includes(':')) return ip;
+  // Expand "::" so the first four groups are always the /64.
+  const [head, tail = ''] = ip.split('::');
+  const left = head ? head.split(':') : [];
+  const right = tail ? tail.split(':') : [];
+  const groups = ip.includes('::') ? [...left, ...Array(8 - left.length - right.length).fill('0'), ...right] : left;
+  return `${groups.slice(0, 4).map((g) => g.toLowerCase().padStart(4, '0')).join(':')}::/64`;
+}
+
+function maxPerVisitorFromEnv() {
+  const env = process.env.PETHATCH_MAX_PER_IP;
+  return env === undefined || env === '' ? MAX_PER_IP : Number(env) || 0;
+}
+
 /** Message types only the relay itself sends (errors, room and dojo news, matches). */
 const RELAY_TYPES = new Set(['error', 'room', 'dojo', 'match']);
 
@@ -68,10 +95,12 @@ export function speaksForRelay(text) {
   }
 }
 
-export function createRelay({ staticDir = null, log = () => {} } = {}) {
+export function createRelay({ staticDir = null, log = () => {}, maxPerVisitor = maxPerVisitorFromEnv() } = {}) {
   /** @type {Map<string, { peers: Set<import('ws').WebSocket>, timer: NodeJS.Timeout | undefined }>} */
   const rooms = new Map();
   const root = staticDir ? resolve(staticDir) : null;
+  /** Open connections per visitor. */
+  const perVisitor = new Map();
 
   /** @param {import('node:http').IncomingMessage} req @param {import('node:http').ServerResponse} res */
   const serve = async (req, res) => {
@@ -145,7 +174,18 @@ export function createRelay({ staticDir = null, log = () => {} } = {}) {
       socket.destroy();
       return;
     }
-    wss.handleUpgrade(req, socket, head, (ws) => enter(ws, url));
+    wss.handleUpgrade(req, socket, head, (ws) => {
+      const visitor = visitorOf(req.socket.remoteAddress);
+      const open = perVisitor.get(visitor) ?? 0;
+      if (maxPerVisitor > 0 && open >= maxPerVisitor) return reject(ws, 'busy');
+      perVisitor.set(visitor, open + 1);
+      ws.once('close', () => {
+        const left = (perVisitor.get(visitor) ?? 1) - 1;
+        if (left > 0) perVisitor.set(visitor, left);
+        else perVisitor.delete(visitor);
+      });
+      enter(ws, url);
+    });
   });
 
   const send = (ws, msg) => ws.readyState === ws.OPEN && ws.send(JSON.stringify(msg));

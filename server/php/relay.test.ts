@@ -79,6 +79,18 @@ describe.skipIf(!url)('PHP relay protections', () => {
     expect(peers.at(-1)?.peers).toBe(1);
   });
 
+  it('answers an older poll at once when a newer one comes in on the same connection', async () => {
+    const host = await join(room(), 'host');
+    const started = Date.now();
+    const first = post({ a: 'poll', id: host.id, after: 99 });
+    await new Promise((r) => setTimeout(r, 500));
+    const second = post({ a: 'poll', id: host.id, after: 99 });
+    expect(await first).toEqual({ msgs: [] });
+    // Well before the 8 s a poll would otherwise wait.
+    expect(Date.now() - started).toBeLessThan(5000);
+    void second;
+  });
+
   it('lets one visitor open only a few connections', async () => {
     const replies = [];
     for (let i = 0; i < 20; i++) replies.push(await join(room(), 'host'));
