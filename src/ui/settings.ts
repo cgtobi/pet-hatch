@@ -233,15 +233,17 @@ export function openSettings(
         ),
       );
     }
-    clock = el('small', { className: 'app-clock' }, clockLabel(h.now()));
-    body.append(el('small', { className: 'app-version' }, `Pet Hatch ${__APP_VERSION__}`), clock);
+    body.append(el('small', { className: 'app-version' }, `Pet Hatch ${__APP_VERSION__}`));
+    if (h.debug) body.append((clock = el('small', { className: 'app-clock' }, clockLabel(h.now()))));
     dialog.replaceChildren(body);
   };
 
-  // The game clock under the version, ticking while the sheet is open.
+  // In debug mode, the game clock under the version, ticking while the sheet is open.
   let clock: HTMLElement | undefined;
-  const tick = setInterval(() => clock && (clock.textContent = clockLabel(h.now())), 1000);
-  dialog.addEventListener('close', () => clearInterval(tick), { once: true });
+  if (h.debug) {
+    const tick = setInterval(() => clock && (clock.textContent = clockLabel(h.now())), 1000);
+    dialog.addEventListener('close', () => clearInterval(tick), { once: true });
+  }
 
   render();
   if (!dialog.open) dialog.showModal();
