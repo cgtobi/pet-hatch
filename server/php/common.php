@@ -103,13 +103,39 @@ function visitor_hash(string $salt): string
     return substr(hash('sha256', $salt . '|' . visitor_address()), 0, 16);
 }
 
+/** How many folders up from the scripts to look for a pet-hatch-private folder. */
+const PRIVATE_LEVELS = 5;
+
+/**
+ * Where a secret file is (stats-token.php, push-key.php), or null. Best outside the web folder, where no web
+ * server can ever hand it out: in PETHATCH_PRIVATE_DIR, or a folder named pet-hatch-private next to any folder
+ * above the scripts (e.g. /home/you/pet-hatch-private for a game in /home/you/public_html/pet-hatch), which the
+ * web and the cron job's command line both find. Otherwise next to the scripts, where .htaccess guards it.
+ */
+function private_file(string $name): ?string
+{
+    $dirs = [];
+    if ($env = getenv('PETHATCH_PRIVATE_DIR')) $dirs[] = $env;
+    for ($dir = dirname(__DIR__), $i = 0; $i < PRIVATE_LEVELS; $dir = dirname($dir), $i++) {
+        $dirs[] = "$dir/pet-hatch-private";
+        if ($dir === dirname($dir)) break;
+    }
+    $dirs[] = __DIR__;
+    foreach ($dirs as $dir) {
+        // @: a host's open_basedir may forbid even looking above the web folder.
+        if (@is_file("$dir/$name")) return "$dir/$name";
+    }
+    return null;
+}
+
 /**
  * The owner's secret token: it opens the stats dashboard and lets a cron job run push.php's tick over the web.
- * From PETHATCH_STATS_TOKEN, or stats-token.php next to the scripts (written by npm run deploy); null without one.
+ * From PETHATCH_STATS_TOKEN, or stats-token.php (written by npm run deploy, see private_file()); null without one.
  */
 function dashboard_token(): ?string
 {
     $token = getenv('PETHATCH_STATS_TOKEN') ?: null;
-    if (!$token && is_file(__DIR__ . '/stats-token.php')) $token = include __DIR__ . '/stats-token.php';
+    $file = $token ? null : private_file('stats-token.php');
+    if ($file) $token = include $file;
     return is_string($token) && strlen($token) >= 16 ? $token : null;
 }

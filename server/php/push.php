@@ -14,8 +14,9 @@
  *   php push.php tick                    the cron job, from the command line; or over the web:
  *   GET  push.php?tick&token=…           (the stats dashboard's token)
  *
- * The keys (VAPID) come from PETHATCH_PUSH_PUBLIC_KEY and PETHATCH_PUSH_PRIVATE_KEY, or from push-key.php next to
- * this file, which npm run deploy writes along with push.json (which tells the game alerts exist). Data lives in
+ * The keys (VAPID) come from PETHATCH_PUSH_PUBLIC_KEY and PETHATCH_PUSH_PRIVATE_KEY, or from push-key.php, best
+ * kept in a pet-hatch-private folder outside the web folder (see private_file() in common.php). npm run deploy
+ * writes it, and push.json (which tells the game alerts exist) for the web folder. Data lives in
  * the relay's data folder (relay-data/, or PETHATCH_DATA_DIR). Needs PHP 8.1 or newer with openssl, and curl or
  * allow_url_fopen.
  */
@@ -56,9 +57,10 @@ function push_keys(): ?array
 {
     $public = getenv('PETHATCH_PUSH_PUBLIC_KEY') ?: null;
     $private = getenv('PETHATCH_PUSH_PRIVATE_KEY') ?: null;
-    if ((!$public || !$private) && is_file(__DIR__ . '/push-key.php')) {
-        $file = include __DIR__ . '/push-key.php';
-        [$public, $private] = [$file['public'] ?? null, $file['private'] ?? null];
+    $file = $public && $private ? null : private_file('push-key.php');
+    if ($file) {
+        $keys = include $file;
+        [$public, $private] = [$keys['public'] ?? null, $keys['private'] ?? null];
     }
     $public = is_string($public) ? b64url_decode($public) : null;
     $private = is_string($private) ? b64url_decode($private) : null;
@@ -208,7 +210,7 @@ if (PHP_SAPI === 'cli') {
         exit(1);
     }
     if (!$keys) {
-        fwrite(STDERR, "No push keys: set PETHATCH_PUSH_PUBLIC_KEY and PETHATCH_PUSH_PRIVATE_KEY, or upload push-key.php.\n");
+        fwrite(STDERR, "No push keys: upload push-key.php to pet-hatch-private/ (or set PETHATCH_PUSH_PUBLIC_KEY and PETHATCH_PUSH_PRIVATE_KEY).\n");
         exit(1);
     }
     echo tick($keys), "\n";

@@ -1,7 +1,23 @@
 # Pet Hatch: the game's update check (version.json) goes through stats.php, which answers with the same file and
 # counts open games per day (no cookies, nothing stored on the player's device). Without mod_rewrite version.json
-# is served as a plain file and nothing is counted.
+# is served as a plain file and nothing is counted. To stop counting, remove these four lines.
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteRule ^version\.json$ stats.php [L,QSA]
+</IfModule>
+
+# The secret files, if they are kept here rather than in a pet-hatch-private folder outside the web folder: never
+# handed out directly, even if PHP stops running and they would otherwise be sent as plain text.
+<FilesMatch "^(push-key|stats-token)\.php$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
+# The data folder makes its own .htaccess too; this also covers it before it exists, and if that one is lost.
+<IfModule mod_alias.c>
+  RedirectMatch 403 (^|/)relay-data(/|$)
 </IfModule>

@@ -15,7 +15,8 @@
  *   POST stats.php                                       a pet snapshot (JSON, at most MAX_BODY bytes) → 204
  *   GET  stats.php?view&token=…                          the dashboard (&days=30|90|365)
  *
- * The dashboard's token comes from PETHATCH_STATS_TOKEN, or from stats-token.php next to this file
+ * The dashboard's token comes from PETHATCH_STATS_TOKEN, or from stats-token.php, best kept in a pet-hatch-private
+ * folder outside the web folder (see private_file() in common.php)
  * (<?php return '…';), which npm run deploy writes. Without one the dashboard stays off.
  * Data lives in the relay's data folder (relay-data/, or PETHATCH_DATA_DIR). Needs PHP 8.1 or newer.
  */
@@ -254,7 +255,7 @@ function series_card(array $series, string $since, array $extra = []): array
 function dashboard(): never
 {
     $token = dashboard_token();
-    if (!$token) fail(403, 'The dashboard is off: set PETHATCH_STATS_TOKEN or upload stats-token.php.');
+    if (!$token) fail(403, 'The dashboard is off: upload stats-token.php to pet-hatch-private/ (or set PETHATCH_STATS_TOKEN).');
     if (!is_string($_GET['token'] ?? null) || !hash_equals($token, $_GET['token'])) fail(403, 'Wrong token.');
     $asked = (int) ($_GET['days'] ?? 90);
     $days = in_array($asked, WINDOWS, true) ? $asked : 90;

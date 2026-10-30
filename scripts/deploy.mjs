@@ -3,6 +3,7 @@
  *
  *   deploy/static/  the game alone, for any static web server (no live battles or dojo)
  *   deploy/php/     the game plus the PHP relay, for web hosting with PHP 8.1+
+ *   deploy/pet-hatch-private/  its secrets (stats token, push keys), for a folder outside the web folder
  *   deploy/node/    the game plus the Node relay, for a server with Node 20+: node server/relay.mjs
  *
  *   npm run deploy   (builds the game first)
@@ -41,7 +42,10 @@ copy('server/php/webpush.php', 'php/webpush.php');
 const tokenFile = join(root, '.stats-token');
 if (!existsSync(tokenFile)) writeFileSync(tokenFile, randomBytes(18).toString('hex') + '\n', { mode: 0o600 });
 const statsToken = readFileSync(tokenFile, 'utf8').trim();
-writeFileSync(join(out, 'php', 'stats-token.php'), `<?php return '${statsToken}';\n`);
+// Secrets go in their own folder, to upload outside the web folder (see private_file() in server/php/common.php).
+const secrets = join(out, 'pet-hatch-private');
+mkdirSync(secrets);
+writeFileSync(join(secrets, 'stats-token.php'), `<?php return '${statsToken}';\n`, { mode: 0o600 });
 // The alerts' key pair (VAPID): made once, kept in .push-keys (not tracked). A new pair would cut off every phone
 // that signed up with the old one, so keep the file. push.json tells the game alerts exist, with the public key.
 const keysFile = join(root, '.push-keys');
@@ -52,7 +56,9 @@ if (!existsSync(keysFile)) {
   writeFileSync(keysFile, JSON.stringify({ public: pub, private: jwk.d }) + '\n', { mode: 0o600 });
 }
 const pushKeys = JSON.parse(readFileSync(keysFile, 'utf8'));
-writeFileSync(join(out, 'php', 'push-key.php'), `<?php return ['public' => '${pushKeys.public}', 'private' => '${pushKeys.private}'];\n`);
+writeFileSync(join(secrets, 'push-key.php'), `<?php return ['public' => '${pushKeys.public}', 'private' => '${pushKeys.private}'];\n`, {
+  mode: 0o600,
+});
 writeFileSync(join(out, 'php', 'push.json'), JSON.stringify({ url: 'push.php', key: pushKeys.public }) + '\n');
 
 // As in the Docker image: the relay's only dependency is ws, which has none of its own.
@@ -79,19 +85,27 @@ php/     Upload the contents to web hosting with PHP 8.1 or newer. Live battles 
            2. pets that visit the dojo, counted by relay.php from their battle code (hashed, no names);
            3. pet details from players who opt in (stats.json makes the game ask them).
          The dashboard: stats.php?view&token=${statsToken}
-         (the token is in stats-token.php and .stats-token; keep it private). Leave out .htaccess or stats.json
-         to switch off tier 1 or 3. See README.md › Stats for what to put in your privacy notice.
+         Remove the rewrite lines from .htaccess, or leave out stats.json, to switch off tier 1 or 3.
+         See README.md › Stats for what to put in your privacy notice.
          push.php sends alerts to players who turn them on ("Pip is calling!"). It needs a cron job every
-         minute (* * * * *) that runs either
+         minute (* * * * *) that runs
            php /path/to/push.php tick
-         or opens push.php?tick&token=${statsToken}
-         Leave out push.json to switch alerts off. Keep push-key.php private; see README.md › Alerts.
+         (only if your host's cron can't run commands: open push.php?tick&token=${statsToken}, but then the
+         token ends up in access logs). Leave out push.json to switch alerts off. See README.md › Alerts.
+
+pet-hatch-private/
+         The secrets: the stats token (stats-token.php) and the push keys (push-key.php). Upload the folder,
+         named exactly so, outside the web folder, next to any folder above the game: for a game in
+         /home/you/public_html/pet-hatch, as /home/you/pet-hatch-private. No web server can hand it out
+         there, even if PHP stops working. Delete any stats-token.php and push-key.php left in the web folder.
+         If your host has no place outside the web folder, put both files next to the game in php/ instead;
+         its .htaccess keeps them from being downloaded (Apache only).
 
 node/    Copy the folder to a server with Node 20 or newer and run: PORT=8787 npm start
          It serves the game and the live battle relay on one port. Put it behind an HTTPS reverse proxy
          that passes WebSockets through.
 `,
 );
-console.log(`deploy/ is ready (Pet Hatch ${version}): static/, php/ and node/. See deploy/README.txt.`);
+console.log(`deploy/ is ready (Pet Hatch ${version}): static/, php/, pet-hatch-private/ and node/. See deploy/README.txt.`);
 console.log(`Stats dashboard (PHP): stats.php?view&token=${statsToken}`);
-console.log(`Alerts cron job (PHP), every minute: push.php?tick&token=${statsToken}  or  php push.php tick`);
+console.log('Alerts cron job (PHP), every minute: php /path/to/push.php tick');

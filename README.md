@@ -98,6 +98,13 @@ of these limits and of the stats below.
 makes the token once, keeps it in `.stats-token` (not tracked) and prints the link; set `PETHATCH_STATS_TOKEN`
 on the server to use another.
 
+**Secrets:** `npm run deploy` puts the token (`stats-token.php`) and the alerts' push keys (`push-key.php`) in
+`deploy/pet-hatch-private/`, not with the game. Upload that folder, named exactly so, outside the web folder, next
+to any folder above the game (for a game in `/home/you/public_html/pet-hatch`, as `/home/you/pet-hatch-private`):
+the scripts look there first, and no web server can hand it out, even if PHP stops working. `PETHATCH_PRIVATE_DIR`
+names another folder. Without such a place, put the two files next to the game; its `.htaccess` refuses to serve
+them (Apache), and so does PHP while it runs.
+
 1. **Open games per day** (everyone, no consent): an `.htaccess` routes the game's update check (`version.json`)
    through `stats.php`, which answers with the same file and counts each browser and network once a day, as a hash
    of IP address and browser with a salt replaced every day. Only today's hashes are kept; after that only daily
@@ -130,12 +137,13 @@ The Node relay and the static deploy have none of this.
 closed ("Pip is calling!"), by web push. Players turn it on in Settings; on iPhone and iPad only once the game is
 on the Home Screen (Safari only offers push there).
 
-- **Cron job:** every minute (`* * * * *`), run `php /path/to/push.php tick`, or open
-  `https://…/push.php?tick&token=…` (the stats token) where your host's cron only opens addresses. Every 5 minutes
-  works too. Each run prints what it sent, e.g. `sent 2, failed 0, gone 0`.
+- **Cron job:** every minute (`* * * * *`), run `php /path/to/push.php tick`. Every 5 minutes works too. Each run
+  prints what it sent, e.g. `sent 2, failed 0, gone 0`. Only if your host's cron can't run commands, open
+  `https://…/push.php?tick&token=…` (the stats token) instead; the token then ends up in access logs.
 - **Keys:** `npm run deploy` makes a key pair once and keeps it in `.push-keys` (not tracked; keep it, or every
-  phone has to turn alerts on again). The private key goes to `push-key.php`, the public one to `push.json`, which
-  tells the game alerts exist. Leave out `push.json` to switch alerts off.
+  phone has to turn alerts on again). The private key goes to `push-key.php` in `pet-hatch-private/` (see
+  Secrets above), the public one to `push.json`, which tells the game alerts exist. Leave out `push.json` to
+  switch alerts off.
 - **How:** the game works out from its own simulation when the next calls will come and, each time it is closed,
   sends those times (the next day's, at most 6 in a row, none at night); opening it clears them. Alerts only go to
   the push services of Chrome, Safari, Firefox and Edge.
