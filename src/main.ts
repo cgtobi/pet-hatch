@@ -32,6 +32,18 @@ import { createPetCare } from './app/petCare';
 import { icon } from './ui/icons';
 import { watchForUpdates } from './update';
 import { findStats, report, type PetEnding } from './net/stats';
+import {
+  currentSubscription,
+  findPush,
+  pushSupport,
+  sendAlerts,
+  storeAlertTexts,
+  subscribe,
+  unsubscribe,
+  type AlertTexts,
+  type PushConfig,
+} from './net/push';
+import { predictAlerts } from './sim/alerts';
 
 const params = new URLSearchParams(location.search);
 /** Debug, only on the dev server (npm run dev): run game time faster than real time, e.g. ?speed=600. */
@@ -202,7 +214,9 @@ function installState(): InstallState {
 }
 
 function showSettings() {
-  openSettings(document.getElementById('settings') as HTMLDialogElement, state.settings, installState(), {
+  const install = installState();
+  const alertsReady = pushConfig ? pushSupport(install.ios, install.standalone) : 'no';
+  openSettings(document.getElementById('settings') as HTMLDialogElement, state.settings, install, {
     family: state.family,
     onChange: (patch) => {
       Object.assign(state.settings, patch);
@@ -251,6 +265,10 @@ function showSettings() {
           },
         }
       : null,
+    alerts:
+      alertsReady === 'no'
+        ? null
+        : { on: state.settings.alerts === true, ready: alertsReady, set: (on) => setAlerts(on) },
     onInstall: async () => {
       await installPrompt?.prompt();
       installPrompt = null;
@@ -416,6 +434,58 @@ const statsKnown = findStats().then((url) => {
 });
 setInterval(() => reportStats(), 60_000);
 document.addEventListener('visibilitychange', () => document.hidden || reportStats());
+
+// ---------- alerts (opt-in) ----------
+
+/** Where alerts are signed up, if this server sends them (null until known, or when it doesn't). */
+let pushConfig: PushConfig | null = null;
+/** This phone's push address while alerts are on. */
+let pushSub: PushSubscriptionJSON | null = null;
+
+function alertTexts(): AlertTexts {
+  const name = state.pet?.name ?? '';
+  return {
+    call: { title: t('alert.call.title', { name }), body: t('alert.call.body') },
+    egg: { title: t('alert.egg.title'), body: t('alert.egg.body') },
+    hatch: { title: t('alert.hatch.title'), body: t('alert.hatch.body') },
+  };
+}
+
+/** Closing the game sends the coming alerts; opening it clears them (the player is here). */
+function syncAlerts(): void {
+  if (!pushConfig || !pushSub || !state.settings.alerts) return;
+  if (document.hidden) void storeAlertTexts(alertTexts());
+  sendAlerts(pushConfig, pushSub, document.hidden ? predictAlerts(state, Date.now()) : []);
+}
+
+async function setAlerts(on: boolean): Promise<boolean> {
+  if (!pushConfig) return false;
+  if (on) {
+    pushSub = await subscribe(pushConfig);
+    if (!pushSub) return false;
+    void storeAlertTexts(alertTexts());
+  } else {
+    await unsubscribe(pushConfig);
+    pushSub = null;
+  }
+  state.settings.alerts = on;
+  saveGame(state);
+  syncAlerts();
+  return on;
+}
+
+void findPush().then(async (config) => {
+  pushConfig = config;
+  if (!config || !state.settings.alerts) return;
+  pushSub = await currentSubscription();
+  // Notifications were blocked since, or the browser dropped the push address: alerts are off again.
+  if (!pushSub) {
+    state.settings.alerts = false;
+    saveGame(state);
+  }
+  syncAlerts();
+});
+document.addEventListener('visibilitychange', syncAlerts);
 
 // The very first egg: welcome, choose how forgiving the game is, and (where the server collects them) whether
 // to share anonymous pet stats: unticked, so only a player who ticks it shares.

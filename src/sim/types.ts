@@ -17,6 +17,8 @@ export interface Settings {
   language: 'auto' | Language;
   /** Opted in to anonymous pet stats (src/net/stats.ts); missing until the player has been asked. */
   shareStats?: boolean;
+  /** Turned on alerts while the game is closed (src/net/push.ts). */
+  alerts?: boolean;
 }
 
 /** What a retired pet passes on to the egg it leaves behind. */

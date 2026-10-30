@@ -215,13 +215,6 @@ function add_snapshot(array &$pets, string $day, array $row): void
 
 // ---------- the dashboard ----------
 
-function dashboard_token(): ?string
-{
-    $token = getenv('PETHATCH_STATS_TOKEN') ?: null;
-    if (!$token && is_file(__DIR__ . '/stats-token.php')) $token = include __DIR__ . '/stats-token.php';
-    return is_string($token) && strlen($token) >= 16 ? $token : null;
-}
-
 function h(string|int $s): string
 {
     return htmlspecialchars((string) $s, ENT_QUOTES);

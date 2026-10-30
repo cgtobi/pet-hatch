@@ -141,6 +141,13 @@ You name the baby when it hatches (a name is suggested).
 - **Care mistakes** (stored per life stage, for evolution in milestone 3): an ignored call (30 min), a dropping
   left 1 awake hour, waking the pet a second time in one night. A diligent owner makes almost none (tested).
 - **Night:** calls pause, droppings don't age, and needs drain at 10% (light off) or 30% (light on).
+- **Alerts** ✅ (PHP hosting with a cron job; opt-in in Settings): while the game is closed, the phone says when
+  the pet calls ("Pip is calling!", the same for needs and tantrums), the egg needs care (a need below 20% or
+  turning due within 30 min) or is ready to hatch. Closing the game runs a copy of the simulation 24 h ahead
+  (`src/sim/alerts.ts`: exact, since its chances come from the seed and the time) and sends the times to
+  `push.php`; opening it clears them. At least 30 min apart, at most 6 unanswered in a row, and whatever starts
+  at night waits for the morning. The server never learns the pet's name: the push message names only the kind,
+  and the service worker takes the words from a cache the game fills in the player's language.
 
 ### Endings ✅
 
@@ -398,7 +405,7 @@ UI: Fredoka (display) + Nunito (body), self-hosted Latin subsets.
 | `src/net/` | Live battles: `live.ts` (lockstep protocol over the relay), `dojo.ts` (waiting in the dojo), `channel.ts` (WebSocket or HTTP polling), `relayConfig.ts` (finding the relay), `sha256.ts` (move commitments), `stats.ts` (opt-in pet stats). Tested end to end against a real relay in `live.test.ts` and `dojo.test.ts`, and against the PHP relay with `npm run test:php`. |
 | `server/relay.mjs` | The optional live battle relay (rooms and the dojo), which can also serve the built game. |
 | `server/dojo.mjs` | Dojo matchmaking: ratings from battle codes, the widening match window, pairing, uneven offers. |
-| `server/php/` | For PHP web hosting: the relay (`relay.php`, `relay.json`), its dojo rules (`dojo.php`, compared with `server/dojo.mjs` on the same codes and waiting rooms by `dojo.test.ts` through `check-dojo.php`), the stats and dashboard (`stats.php`, `stats.json`, `.htaccess`) and what they share (`common.php`: the data folder, safe writes, visitors). `npm run deploy` bundles them with the game in `deploy/php/`. |
+| `server/php/` | For PHP web hosting: alerts (`push.php`, with web push in `webpush.php`, checked against RFC 8291 by `push.test.ts` through `check-push.php`), the relay (`relay.php`, `relay.json`), its dojo rules (`dojo.php`, compared with `server/dojo.mjs` on the same codes and waiting rooms by `dojo.test.ts` through `check-dojo.php`), the stats and dashboard (`stats.php`, `stats.json`, `.htaccess`) and what they share (`common.php`: the data folder, safe writes, visitors). `npm run deploy` bundles them with the game in `deploy/php/`. |
 | `scripts/deploy.mjs` | `npm run deploy`: the built game in `deploy/` (untracked), as static, PHP and Node hosting folders. |
 | `Dockerfile`, `docker-compose.yml` | One image with the game and the relay (amd64 and arm64). |
 | `repository.yaml`, `pet_hatch/` | Home Assistant app: sidebar via ingress plus a direct port; builds from this repository's Git URL. |

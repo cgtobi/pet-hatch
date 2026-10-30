@@ -124,6 +124,31 @@ logs.
 
 The Node relay and the static deploy have none of this.
 
+#### Alerts
+
+`deploy/php/push.php` lets the phone tell players when their pet calls or their egg needs care, while the game is
+closed ("Pip is calling!"), by web push. Players turn it on in Settings; on iPhone and iPad only once the game is
+on the Home Screen (Safari only offers push there).
+
+- **Cron job:** every minute (`* * * * *`), run `php /path/to/push.php tick`, or open
+  `https://…/push.php?tick&token=…` (the stats token) where your host's cron only opens addresses. Every 5 minutes
+  works too. Each run prints what it sent, e.g. `sent 2, failed 0, gone 0`.
+- **Keys:** `npm run deploy` makes a key pair once and keeps it in `.push-keys` (not tracked; keep it, or every
+  phone has to turn alerts on again). The private key goes to `push-key.php`, the public one to `push.json`, which
+  tells the game alerts exist. Leave out `push.json` to switch alerts off.
+- **How:** the game works out from its own simulation when the next calls will come and, each time it is closed,
+  sends those times (the next day's, at most 6 in a row, none at night); opening it clears them. Alerts only go to
+  the push services of Chrome, Safari, Firefox and Edge.
+- **Stored per phone:** its push address and keys, the alert times with their kind (call, egg, hatch), the site's
+  address, a hash of the IP address that signed it up (at most 20 phones each) and when it last checked in.
+  Nothing about the pet; the words, with its name, stay on the phone. Forgotten when the player turns alerts off,
+  when the push service says the address is gone, or after 30 days without the game being opened.
+- **Needs:** PHP 8.1+ with openssl, and curl or `allow_url_fopen`.
+
+For your privacy notice: players who turn on alerts are sent push messages through their browser's push service
+(Google, Apple, Mozilla or Microsoft); the server keeps their push address and alert times until they switch
+alerts off, or 30 days after they last opened the game.
+
 
 ## Docker
 

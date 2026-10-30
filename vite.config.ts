@@ -86,6 +86,43 @@ self.addEventListener('fetch', (event) => {
   // Built assets have content hashes in their names, so cache-first is safe.
   event.respondWith(caches.match(request).then((hit) => hit || fetch(request)));
 });
+
+// Alerts (src/net/push.ts): the message only says which kind; the words, with the pet's name, were left by the
+// game in its own cache, in the player's language.
+self.addEventListener('push', (event) => {
+  let kind = 'call';
+  try {
+    kind = event.data?.json().kind || kind;
+  } catch {
+    // Not one of ours: still show something, as browsers require.
+  }
+  event.waitUntil(
+    caches.open('pethatch-alerts')
+      .then((cache) => cache.match('texts'))
+      .then((hit) => (hit ? hit.json() : {}))
+      .catch(() => ({}))
+      .then((texts) => {
+        const text = texts[kind] || texts.call || { title: 'Pet Hatch', body: '' };
+        return self.registration.showNotification(text.title, {
+          body: text.body,
+          icon: './app-icons/icon-192.png',
+          // One at a time: a newer alert replaces an older one still showing.
+          tag: 'pet-hatch',
+          renotify: true,
+        });
+      }),
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((open) => {
+      const game = open.find((c) => 'focus' in c);
+      return game ? game.focus() : self.clients.openWindow('./');
+    }),
+  );
+});
 `,
       });
     },

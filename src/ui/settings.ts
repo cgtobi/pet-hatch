@@ -26,6 +26,11 @@ export interface SettingsHandlers {
   onInstall(): void;
   /** Anonymous pet stats, where the server collects them (null otherwise: nothing to switch). */
   stats: null | { on: boolean; set(on: boolean): void };
+  /**
+   * Alerts while the game is closed, where the server sends them (null otherwise). 'install': not until the game
+   * is on the Home Screen (iPhone, iPad). set() resolves to whether they are on now.
+   */
+  alerts: null | { on: boolean; ready: 'yes' | 'install'; set(on: boolean): Promise<boolean> };
   /** Current game time, which runs ahead of the real clock after debug skips or with ?speed=. */
   now(): number;
   debug: null | {
@@ -155,6 +160,21 @@ export function openSettings(
       const share = el('input', { type: 'checkbox', checked: stats.on });
       share.onchange = () => stats.set((stats.on = share.checked));
       app.append(el('label', { className: 'choice' }, share, t('stats.share')), el('small', {}, t('stats.hint')));
+    }
+    if (h.alerts?.ready === 'install') app.append(el('small', {}, t('alerts.install')));
+    else if (h.alerts) {
+      const alerts = h.alerts;
+      const box = el('input', { type: 'checkbox', checked: alerts.on });
+      const blocked = el('small', { className: 'import-error', hidden: true }, t('alerts.blocked'));
+      box.onchange = async () => {
+        box.disabled = true;
+        const want = box.checked;
+        const on = await alerts.set(want);
+        box.checked = alerts.on = on;
+        blocked.hidden = on || !want;
+        box.disabled = false;
+      };
+      app.append(el('label', { className: 'choice' }, box, t('alerts.toggle')), el('small', {}, t('alerts.hint')), blocked);
     }
 
     const code = el('textarea', { placeholder: t('settings.importPlaceholder'), spellcheck: false });

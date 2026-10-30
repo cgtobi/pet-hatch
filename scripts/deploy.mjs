@@ -7,7 +7,7 @@
  *
  *   npm run deploy   (builds the game first)
  */
-import { randomBytes } from 'node:crypto';
+import { generateKeyPairSync, randomBytes } from 'node:crypto';
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
@@ -35,11 +35,25 @@ copy('server/php/relay.json', 'php/relay.json');
 copy('server/php/stats.php', 'php/stats.php');
 copy('server/php/.htaccess', 'php/.htaccess');
 copy('server/php/stats.json', 'php/stats.json');
+copy('server/php/push.php', 'php/push.php');
+copy('server/php/webpush.php', 'php/webpush.php');
 // The player count dashboard's token: made once, kept in .stats-token (not tracked), so every deploy keeps the same link.
 const tokenFile = join(root, '.stats-token');
 if (!existsSync(tokenFile)) writeFileSync(tokenFile, randomBytes(18).toString('hex') + '\n', { mode: 0o600 });
 const statsToken = readFileSync(tokenFile, 'utf8').trim();
 writeFileSync(join(out, 'php', 'stats-token.php'), `<?php return '${statsToken}';\n`);
+// The alerts' key pair (VAPID): made once, kept in .push-keys (not tracked). A new pair would cut off every phone
+// that signed up with the old one, so keep the file. push.json tells the game alerts exist, with the public key.
+const keysFile = join(root, '.push-keys');
+if (!existsSync(keysFile)) {
+  const jwk = generateKeyPairSync('ec', { namedCurve: 'prime256v1' }).privateKey.export({ format: 'jwk' });
+  const raw = (/** @type {string} */ b64) => Buffer.from(b64, 'base64url');
+  const pub = Buffer.concat([Buffer.from([4]), raw(jwk.x ?? ''), raw(jwk.y ?? '')]).toString('base64url');
+  writeFileSync(keysFile, JSON.stringify({ public: pub, private: jwk.d }) + '\n', { mode: 0o600 });
+}
+const pushKeys = JSON.parse(readFileSync(keysFile, 'utf8'));
+writeFileSync(join(out, 'php', 'push-key.php'), `<?php return ['public' => '${pushKeys.public}', 'private' => '${pushKeys.private}'];\n`);
+writeFileSync(join(out, 'php', 'push.json'), JSON.stringify({ url: 'push.php', key: pushKeys.public }) + '\n');
 
 // As in the Docker image: the relay's only dependency is ws, which has none of its own.
 copy('dist', 'node/dist');
@@ -67,6 +81,11 @@ php/     Upload the contents to web hosting with PHP 8.1 or newer. Live battles 
          The dashboard: stats.php?view&token=${statsToken}
          (the token is in stats-token.php and .stats-token; keep it private). Leave out .htaccess or stats.json
          to switch off tier 1 or 3. See README.md › Stats for what to put in your privacy notice.
+         push.php sends alerts to players who turn them on ("Pip is calling!"). It needs a cron job every
+         minute (* * * * *) that runs either
+           php /path/to/push.php tick
+         or opens push.php?tick&token=${statsToken}
+         Leave out push.json to switch alerts off. Keep push-key.php private; see README.md › Alerts.
 
 node/    Copy the folder to a server with Node 20 or newer and run: PORT=8787 npm start
          It serves the game and the live battle relay on one port. Put it behind an HTTPS reverse proxy
@@ -75,3 +94,4 @@ node/    Copy the folder to a server with Node 20 or newer and run: PORT=8787 np
 );
 console.log(`deploy/ is ready (Pet Hatch ${version}): static/, php/ and node/. See deploy/README.txt.`);
 console.log(`Stats dashboard (PHP): stats.php?view&token=${statsToken}`);
+console.log(`Alerts cron job (PHP), every minute: push.php?tick&token=${statsToken}  or  php push.php tick`);

@@ -1,18 +1,21 @@
 /**
  * Runs the live battle and dojo tests against the PHP relay (server/php/relay.php) as well as the Node one,
- * then the PHP relay's own protection tests (server/php/relay.test.ts) and the player count tests
- * (server/php/stats.test.ts). Served by Apache with PHP in Docker,
+ * then the PHP relay's own protection tests (server/php/relay.test.ts), the player count tests
+ * (server/php/stats.test.ts) and the alert tests (server/php/push.test.ts). Served by Apache with PHP in Docker,
  * like on typical web hosting. Without Docker it falls back to a local `php -S`, whose workers can get stuck
  * behind a long poll, so expect the odd slow test there.
  *
  *   npm run test:php
  */
 import { spawn, spawnSync } from 'node:child_process';
+import { generateKeyPairSync } from 'node:crypto';
 import { chmodSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
 const PORT = 8099;
+/** Where push.test.ts runs a stand-in push service for push.php to send to. */
+const PUSH_PORT = 8098;
 const root = resolve(import.meta.dirname, '..');
 const phpDir = join(root, 'server', 'php');
 const hasDocker = spawnSync('docker', ['info'], { stdio: 'ignore' }).status === 0;
@@ -35,7 +38,7 @@ async function start(env) {
     const name = `pet-hatch-php-${process.pid}`;
     const vars = Object.entries({ ...env, PETHATCH_DATA_DIR: '/data' }).flatMap(([k, v]) => ['-e', `${k}=${v}`]);
     const run = spawnSync('docker', [
-      'run', '--rm', '-d', '--name', name, '-p', `127.0.0.1:${PORT}:80`, ...vars,
+      'run', '--rm', '-d', '--name', name, '-p', `127.0.0.1:${PORT}:80`, '--add-host=host.docker.internal:host-gateway', ...vars,
       '-v', `${phpDir}:/var/www/html:ro`, '-v', `${data}:/data`, 'php:8.3-apache',
     ], { stdio: ['ignore', 'ignore', 'inherit'] });
     if (run.status !== 0) process.exit(1);
@@ -83,13 +86,29 @@ const statsToken = 'test-token-0123456789';
 const checkDojo = hasDocker
   ? ['docker', 'run', '--rm', '-i', '-v', `${phpDir}:/app:ro`, 'php:8.3-cli', 'php', '/app/check-dojo.php']
   : ['php', join(phpDir, 'check-dojo.php')];
-relay = await start({ PETHATCH_STATS_TOKEN: statsToken });
+// The alerts' key pair, and the stand-in push service on this machine, as the server sees it.
+const jwk = generateKeyPairSync('ec', { namedCurve: 'prime256v1' }).privateKey.export({ format: 'jwk' });
+const pushPublic = Buffer.concat([Buffer.from([4]), Buffer.from(jwk.x ?? '', 'base64url'), Buffer.from(jwk.y ?? '', 'base64url')]).toString('base64url');
+const pushOrigin = `http://${hasDocker ? 'host.docker.internal' : '127.0.0.1'}:${PUSH_PORT}`;
+const checkPush = hasDocker
+  ? ['docker', 'run', '--rm', '-i', '-v', `${phpDir}:/app:ro`, 'php:8.3-cli', 'php', '/app/check-push.php']
+  : ['php', join(phpDir, 'check-push.php')];
+relay = await start({
+  PETHATCH_STATS_TOKEN: statsToken,
+  PETHATCH_PUSH_PUBLIC_KEY: pushPublic,
+  PETHATCH_PUSH_PRIVATE_KEY: jwk.d ?? '',
+  PETHATCH_PUSH_TEST_ORIGIN: pushOrigin,
+});
 try {
   status ||= vitest(['server/php'], {
     PHP_RELAY_URL: url,
     PHP_RELAY_DATA: relay.data,
     PHP_STATS_TOKEN: statsToken,
     PHP_CHECK_DOJO: JSON.stringify(checkDojo),
+    PHP_CHECK_PUSH: JSON.stringify(checkPush),
+    PHP_PUSH_PUBLIC_KEY: pushPublic,
+    PHP_PUSH_ORIGIN: pushOrigin,
+    PHP_PUSH_SERVICE_PORT: String(PUSH_PORT),
   });
 } finally {
   relay.stop();

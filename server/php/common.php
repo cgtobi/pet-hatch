@@ -1,6 +1,6 @@
 <?php
 /**
- * Shared by relay.php and stats.php: the data folder, its guarded JSON files and who is asking.
+ * Shared by relay.php, stats.php and push.php: the data folder, its guarded JSON files and who is asking.
  * Not meant to be opened on its own (it does nothing then).
  */
 
@@ -101,4 +101,15 @@ function visitor_address(): string
 function visitor_hash(string $salt): string
 {
     return substr(hash('sha256', $salt . '|' . visitor_address()), 0, 16);
+}
+
+/**
+ * The owner's secret token: it opens the stats dashboard and lets a cron job run push.php's tick over the web.
+ * From PETHATCH_STATS_TOKEN, or stats-token.php next to the scripts (written by npm run deploy); null without one.
+ */
+function dashboard_token(): ?string
+{
+    $token = getenv('PETHATCH_STATS_TOKEN') ?: null;
+    if (!$token && is_file(__DIR__ . '/stats-token.php')) $token = include __DIR__ . '/stats-token.php';
+    return is_string($token) && strlen($token) >= 16 ? $token : null;
 }
