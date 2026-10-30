@@ -1,6 +1,7 @@
 /**
  * Runs the live battle and dojo tests against the PHP relay (server/php/relay.php) as well as the Node one,
- * then the PHP relay's own protection tests (server/php/relay.test.ts). Served by Apache with PHP in Docker,
+ * then the PHP relay's own protection tests (server/php/relay.test.ts) and the player count tests
+ * (server/php/stats.test.ts). Served by Apache with PHP in Docker,
  * like on typical web hosting. Without Docker it falls back to a local `php -S`, whose workers can get stuck
  * behind a long poll, so expect the odd slow test there.
  *
@@ -72,9 +73,10 @@ try {
 } finally {
   relay.stop();
 }
-relay = await start({});
+const statsToken = 'test-token-0123456789';
+relay = await start({ PETHATCH_STATS_TOKEN: statsToken });
 try {
-  status ||= vitest(['server/php'], { PHP_RELAY_URL: url, PHP_RELAY_DATA: relay.data });
+  status ||= vitest(['server/php'], { PHP_RELAY_URL: url, PHP_RELAY_DATA: relay.data, PHP_STATS_TOKEN: statsToken });
 } finally {
   relay.stop();
 }

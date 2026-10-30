@@ -13,6 +13,10 @@ Status of each part: ✅ built, 🔜 planned.
 - ✅ Update notice: each build publishes `version.json` (version and bundle name). An open game checks it when it
   comes back to the foreground and once an hour, and on a newer deploy shows a small card with **Reload**
   (pages always come fresh from the server, so a reload gets the new version) or **Not now**.
+- ✅ Player count (PHP deploy): the update check names the game's version, and an `.htaccess` routes it through
+  `server/php/stats.php`, which answers with `version.json` and counts open games per day (a hash of IP address
+  and browser with a daily salt; only today's hashes are kept, then only numbers). No cookies or IDs, nothing read
+  from or stored on the device. A dashboard behind a token shows games per day and versions in use.
   Install needs HTTPS (or `localhost`).
 - ✅ Saves live in `localStorage`. Settings › Backup copies/loads a save code to move between devices.
 - ✅ Six languages: English, German, French, Spanish, Italian, Dutch (`src/i18n/`, one file each). The game

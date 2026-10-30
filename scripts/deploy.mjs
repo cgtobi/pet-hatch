@@ -7,6 +7,7 @@
  *
  *   npm run deploy   (builds the game first)
  */
+import { randomBytes } from 'node:crypto';
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
@@ -28,6 +29,13 @@ copy('dist', 'static');
 copy('dist', 'php');
 copy('server/php/relay.php', 'php/relay.php');
 copy('server/php/relay.json', 'php/relay.json');
+copy('server/php/stats.php', 'php/stats.php');
+copy('server/php/.htaccess', 'php/.htaccess');
+// The player count dashboard's token: made once, kept in .stats-token (not tracked), so every deploy keeps the same link.
+const tokenFile = join(root, '.stats-token');
+if (!existsSync(tokenFile)) writeFileSync(tokenFile, randomBytes(18).toString('hex') + '\n', { mode: 0o600 });
+const statsToken = readFileSync(tokenFile, 'utf8').trim();
+writeFileSync(join(out, 'php', 'stats-token.php'), `<?php return '${statsToken}';\n`);
 
 // As in the Docker image: the relay's only dependency is ws, which has none of its own.
 copy('dist', 'node/dist');
@@ -47,6 +55,11 @@ static/  Upload the contents to any static web server. Everything works except l
 php/     Upload the contents to web hosting with PHP 8.1 or newer. Live battles and the dojo go through
          relay.php, which keeps its state in a relay-data/ folder it creates next to itself, so PHP must be
          allowed to write there (or set PETHATCH_DATA_DIR to another folder).
+         stats.php counts open games per day from the game's update check (no cookies, no IDs, nothing stored
+         on players' devices); .htaccess routes version.json through it (needs Apache with mod_rewrite; if your
+         folder already has an .htaccess, add its lines to yours). The dashboard:
+         stats.php?view&token=${statsToken}
+         (the token is in stats-token.php and .stats-token; keep it private). Leave out .htaccess to count nothing.
 
 node/    Copy the folder to a server with Node 20 or newer and run: PORT=8787 npm start
          It serves the game and the live battle relay on one port. Put it behind an HTTPS reverse proxy
@@ -54,3 +67,4 @@ node/    Copy the folder to a server with Node 20 or newer and run: PORT=8787 np
 `,
 );
 console.log(`deploy/ is ready (Pet Hatch ${version}): static/, php/ and node/. See deploy/README.txt.`);
+console.log(`Player count dashboard (PHP): stats.php?view&token=${statsToken}`);

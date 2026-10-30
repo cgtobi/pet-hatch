@@ -24,9 +24,13 @@ export function isUpdate(current: Build, deployed: unknown): deployed is Build {
   return typeof entry === 'string' && !!entry && !!current.entry && entry !== current.entry;
 }
 
-async function fetchDeployed(): Promise<unknown> {
+/**
+ * The deployed build. The request names the version this game runs, so a server that counts open games
+ * (server/php/stats.php) can also tell which versions are in use; it carries nothing else.
+ */
+async function fetchDeployed(current: Build): Promise<unknown> {
   try {
-    const res = await fetch(`./version.json?t=${Date.now()}`, { cache: 'no-store' });
+    const res = await fetch(`./version.json?v=${encodeURIComponent(current.version)}&t=${Date.now()}`, { cache: 'no-store' });
     return res.ok ? await res.json() : null;
   } catch {
     // Offline, or a server without version.json (it may answer with the game page): try again later.
@@ -41,7 +45,7 @@ export function watchForUpdates(current: Build, onUpdate: (deployed: Build) => v
   const check = async () => {
     if (found || document.hidden || Date.now() - lastCheck < MIN_GAP_MS) return;
     lastCheck = Date.now();
-    const deployed = await fetchDeployed();
+    const deployed = await fetchDeployed(current);
     if (!found && isUpdate(current, deployed)) {
       found = true;
       onUpdate(deployed);

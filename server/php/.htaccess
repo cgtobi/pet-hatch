@@ -1,0 +1,7 @@
+# Pet Hatch: the game's update check (version.json) goes through stats.php, which answers with the same file and
+# counts open games per day (no cookies, nothing stored on the player's device). Without mod_rewrite version.json
+# is served as a plain file and nothing is counted.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule ^version\.json$ stats.php [L,QSA]
+</IfModule>
