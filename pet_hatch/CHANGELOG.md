@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.6
+
+- Training slows down as a stat climbs: children learn almost as fast as before, but getting a stat to 100
+  now takes most of the adult stage.
+
 ## 0.3.5
 
 - In debug mode, Settings shows the game's clock under the version.
