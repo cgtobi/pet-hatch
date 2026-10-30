@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.10
+
+- Opening Training or Battle is smooth now: the camera glides back and up while the menu rises, and glides back
+  when it closes.
+
 ## 0.3.9
 
 - When a newer version is out, the open game says so and offers a reload. It checks when you come back to it
