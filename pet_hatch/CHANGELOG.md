@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.1
+
+- Shorter naps: a power nap lasts at most an hour, and a pet that ran out of energy naps for about an hour and a
+  half instead of most of the afternoon. It doesn't get more energy from it, so training stays as it was.
+
 ## 0.6.0
 
 - Wild creatures come as runts, even matches, strong ones and champions. Strong ones and champions have traits
