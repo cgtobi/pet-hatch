@@ -187,7 +187,7 @@ export const en = {
   'game.tap': 'Tap!',
   'game.watch': 'Watch…',
   'game.yourTurn': 'Your turn!',
-  'train.cost': 'Each session uses {n}% energy.',
+  'train.cost': 'Each session uses {n} energy points.',
   'train.no.baby': '{name} is too young to train. Wait until it is a child.',
   'train.no.asleep': '{name} is asleep.',
   'train.no.sick': '{name} is sick. Cure it first.',
@@ -272,7 +272,7 @@ export const en = {
   'battle.learned': 'Learned from {name}',
   'battle.xpPoint': 'From battle experience',
   'battle.xpFull': 'The experience bar is full. It turns into a point at the next life stage.',
-  'battle.cost': 'A battle uses {n}% energy.',
+  'battle.cost': 'A battle uses {n} energy points.',
   'battle.moves': 'Moves',
   'battle.explore': 'Look for a wild creature',
   'battle.friends': 'Battle a friend',
@@ -349,7 +349,7 @@ export const en = {
   'dojo.left': 'You left the dojo while the app was in the background.',
   'help.battle.title': 'Battles',
   'help.battle.body':
-    'From the child stage on, the Battle tab lets you fight wild creatures or a friend’s pet. A battle uses {battleEnergy}% energy.\nPick a move each turn. Power raises damage, Speed decides who goes first, Guard adds health and defense, Wits gives critical hits.\nA pet learns moves as it grows: 2 as a child, 3 as a teen, 4 as an adult. Its forms decide which.\nA pet with low discipline may ignore your orders.\nWins add a couple of stat points. Every real fight, won or lost, fills the experience bar; a full bar adds a point, often in the stat an opponent beat you with. Share your code or link so friends can battle a copy of your pet.\nLive battles (when this game has a battle server): start one, send your friend the room code, and fight in real time, each choosing your own moves. In the dojo, pets of similar strength from anywhere are matched automatically, but only while you stay there.',
+    'From the child stage on, the Battle tab lets you fight wild creatures or a friend’s pet. A battle uses {battleEnergy} energy points.\nPick a move each turn. Power raises damage, Speed decides who goes first, Guard adds health and defense, Wits gives critical hits.\nA pet learns moves as it grows: 2 as a child, 3 as a teen, 4 as an adult. Its forms decide which.\nA pet with low discipline may ignore your orders.\nWins add a couple of stat points. Every real fight, won or lost, fills the experience bar; a full bar adds a point, often in the stat an opponent beat you with. Share your code or link so friends can battle a copy of your pet.\nLive battles (when this game has a battle server): start one, send your friend the room code, and fight in real time, each choosing your own moves. In the dojo, pets of similar strength from anywhere are matched automatically, but only while you stay there.',
   'help.title': 'How to play',
   'help.egg.title': 'Caring for the egg',
   'help.egg.body':
@@ -371,7 +371,7 @@ export const en = {
     'Baby (1 day) → Child (3 days) → Teen (5 days) → Adult (3 weeks, sometimes a few days more) → Elder (1 week or a little more).\nIt changes form when it becomes a child, a teen and an adult.\nAfter its elder days it sets off on an adventure and leaves you a new egg. The next generation inherits a head start in its best stat, and in every other stat at 100.',
   'help.train.title': 'Training',
   'help.train.body':
-    'From the child stage on, Train offers five minigames: Power, Speed, Guard, Wits and Endurance.\nEach session uses {energy}% energy. A better score earns more points, and points come slower the higher a stat gets.\nEach stat has a limit per life stage: {child} as a child, {teen} as a teen, {adult} as an adult.\nEach type learns one stat faster: Ember Power, Tide Speed, Bloom Guard, Astral Wits.\nA stat at 100 earns a star.\nEndurance doesn’t count in battles and earns no star, but gives more energy: up to +50, so your pet can train, play and battle longer.',
+    'From the child stage on, Train offers five minigames: Power, Speed, Guard, Wits and Endurance.\nEach session uses {energy} energy points. A better score earns more points, and points come slower the higher a stat gets.\nEach stat has a limit per life stage: {child} as a child, {teen} as a teen, {adult} as an adult.\nEach type learns one stat faster: Ember Power, Tide Speed, Bloom Guard, Astral Wits.\nA stat at 100 earns a star.\nEndurance doesn’t count in battles and earns no star, but gives more energy: up to +50, so your pet can train, play and battle longer.',
   'help.evolve.title': 'Evolution',
   'help.evolve.body':
     'Child form: decided by how well you looked after the baby.\nTeen form: Power and Speed training make a sporty teen, Guard and Wits a clever one.\nAdult form: shaped by its best stat. Elders keep their adult form.',

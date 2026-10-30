@@ -188,7 +188,7 @@ export const nl: Dict = {
   'game.tap': 'Tik!',
   'game.watch': 'Kijk…',
   'game.yourTurn': 'Jouw beurt!',
-  'train.cost': 'Elke sessie kost {n}% energie.',
+  'train.cost': 'Elke sessie kost {n} energiepunten.',
   'train.no.baby': '{name} is nog te jong om te trainen. Wacht tot het een kind is.',
   'train.no.asleep': '{name} slaapt.',
   'train.no.sick': '{name} is ziek. Maak het eerst beter.',
@@ -273,7 +273,7 @@ export const nl: Dict = {
   'battle.learned': 'Geleerd van {name}',
   'battle.xpPoint': 'Dankzij gevechtservaring',
   'battle.xpFull': 'De ervaringsbalk is vol. Bij het volgende levensstadium wordt het een punt.',
-  'battle.cost': 'Een gevecht kost {n}% energie.',
+  'battle.cost': 'Een gevecht kost {n} energiepunten.',
   'battle.moves': 'Aanvallen',
   'battle.explore': 'Zoek een wild wezen',
   'battle.friends': 'Vecht tegen een vriend',
@@ -350,7 +350,7 @@ export const nl: Dict = {
   'dojo.left': 'Je hebt de dojo verlaten toen de app op de achtergrond ging.',
   'help.battle.title': 'Gevechten',
   'help.battle.body':
-    'Vanaf het kindstadium kun je op het tabblad Gevecht vechten tegen wilde wezens of het dier van een vriend. Een gevecht kost {battleEnergy}% energie.\nKies elke beurt een aanval. Kracht verhoogt de schade, Snelheid bepaalt wie eerst gaat, Afweer geeft gezondheid en verdediging, Brein zorgt voor voltreffers.\nEen dier leert aanvallen terwijl het groeit: 2 als kind, 3 als tiener, 4 als volwassene. Zijn vormen bepalen welke.\nEen dier met weinig discipline luistert soms niet naar je.\nOverwinningen geven een paar waardepunten. Elk echt gevecht, gewonnen of verloren, vult de ervaringsbalk; is die vol, dan krijg je een punt, vaak in de waarde waarmee een tegenstander je versloeg. Deel je code of link zodat vrienden tegen een kopie van jouw dier kunnen vechten.\nLive gevechten (als deze game een gevechtsserver heeft): start er een, stuur je vriend de kamercode en vecht in realtime, ieder kiest zijn eigen aanvallen. In de dojo worden even sterke dieren van overal automatisch gekoppeld, maar alleen zolang je daar blijft.',
+    'Vanaf het kindstadium kun je op het tabblad Gevecht vechten tegen wilde wezens of het dier van een vriend. Een gevecht kost {battleEnergy} energiepunten.\nKies elke beurt een aanval. Kracht verhoogt de schade, Snelheid bepaalt wie eerst gaat, Afweer geeft gezondheid en verdediging, Brein zorgt voor voltreffers.\nEen dier leert aanvallen terwijl het groeit: 2 als kind, 3 als tiener, 4 als volwassene. Zijn vormen bepalen welke.\nEen dier met weinig discipline luistert soms niet naar je.\nOverwinningen geven een paar waardepunten. Elk echt gevecht, gewonnen of verloren, vult de ervaringsbalk; is die vol, dan krijg je een punt, vaak in de waarde waarmee een tegenstander je versloeg. Deel je code of link zodat vrienden tegen een kopie van jouw dier kunnen vechten.\nLive gevechten (als deze game een gevechtsserver heeft): start er een, stuur je vriend de kamercode en vecht in realtime, ieder kiest zijn eigen aanvallen. In de dojo worden even sterke dieren van overal automatisch gekoppeld, maar alleen zolang je daar blijft.',
   'help.title': 'Zo speel je',
   'help.egg.title': 'Zorgen voor het ei',
   'help.egg.body':
@@ -372,7 +372,7 @@ export const nl: Dict = {
     'Baby (1 dag) → Kind (3 dagen) → Tiener (5 dagen) → Volwassen (3 weken, soms een paar dagen meer) → Oudste (1 week of iets langer).\nHet verandert van vorm als het kind, tiener en volwassen wordt.\nNa zijn oudste dagen gaat het op avontuur en laat het een nieuw ei voor je achter. De volgende generatie erft een voorsprong in zijn beste waarde en in elke andere waarde op 100.',
   'help.train.title': 'Training',
   'help.train.body':
-    'Vanaf het kindstadium biedt Train vijf minigames: Kracht, Snelheid, Afweer, Brein en Uithouding.\nElke sessie kost {energy}% energie. Een betere score levert meer punten op, en hoe hoger een waarde, hoe langzamer die stijgt.\nElke waarde heeft een limiet per levensfase: {child} als kind, {teen} als tiener, {adult} als volwassene.\nElk type leert één waarde sneller: Gloed Kracht, Vloed Snelheid, Bloei Afweer, Astraal Brein.\nEen waarde op 100 levert een ster op.\nUithouding telt niet mee in gevechten en levert geen ster op, maar geeft meer energie: tot +50, zodat je dier langer kan trainen, spelen en vechten.',
+    'Vanaf het kindstadium biedt Train vijf minigames: Kracht, Snelheid, Afweer, Brein en Uithouding.\nElke sessie kost {energy} energiepunten. Een betere score levert meer punten op, en hoe hoger een waarde, hoe langzamer die stijgt.\nElke waarde heeft een limiet per levensfase: {child} als kind, {teen} als tiener, {adult} als volwassene.\nElk type leert één waarde sneller: Gloed Kracht, Vloed Snelheid, Bloei Afweer, Astraal Brein.\nEen waarde op 100 levert een ster op.\nUithouding telt niet mee in gevechten en levert geen ster op, maar geeft meer energie: tot +50, zodat je dier langer kan trainen, spelen en vechten.',
   'help.evolve.title': 'Evolutie',
   'help.evolve.body':
     'Kindvorm: bepaald door hoe goed je voor de baby hebt gezorgd.\nTienervorm: Kracht- en Snelheidstraining maken een sportieve tiener, Afweer en Brein een slimme.\nVolwassen vorm: bepaald door zijn beste waarde. Ouderen houden hun volwassen vorm.',

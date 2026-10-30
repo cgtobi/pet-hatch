@@ -188,7 +188,7 @@ export const it: Dict = {
   'game.tap': 'Tocca!',
   'game.watch': 'Guarda…',
   'game.yourTurn': 'Tocca a te!',
-  'train.cost': 'Ogni sessione consuma il {n}% di energia.',
+  'train.cost': 'Ogni sessione consuma {n} punti di energia.',
   'train.no.baby': '{name} è troppo piccolo per allenarsi. Aspetta che cresca un po’.',
   'train.no.asleep': '{name} dorme.',
   'train.no.sick': '{name} sta male. Prima curalo.',
@@ -273,7 +273,7 @@ export const it: Dict = {
   'battle.learned': 'Imparato da {name}',
   'battle.xpPoint': 'Grazie all’esperienza in lotta',
   'battle.xpFull': 'La barra dell’esperienza è piena. Diventerà un punto al prossimo stadio.',
-  'battle.cost': 'Una lotta consuma il {n}% di energia.',
+  'battle.cost': 'Una lotta consuma {n} punti di energia.',
   'battle.moves': 'Mosse',
   'battle.explore': 'Cerca una creatura selvatica',
   'battle.friends': 'Sfida un amico',
@@ -350,7 +350,7 @@ export const it: Dict = {
   'dojo.left': 'Sei uscito dal dojo quando l’app è andata in background.',
   'help.battle.title': 'Lotte',
   'help.battle.body':
-    'Dallo stadio Piccolo in poi, la scheda Lotta ti permette di sfidare creature selvatiche o il cucciolo di un amico. Una lotta consuma il {battleEnergy}% di energia.\nScegli una mossa a ogni turno. La Forza aumenta il danno, la Velocità decide chi attacca per primo, la Difesa dà salute e protezione, l’Ingegno regala colpi critici.\nCrescendo, il cucciolo impara nuove mosse: 2 da Piccolo, 3 da Giovane, 4 da Adulto. Le sue forme decidono quali.\nUn cucciolo con poca disciplina può ignorare i tuoi ordini.\nOgni vittoria aggiunge qualche punto alle caratteristiche. Ogni vera lotta, vinta o persa, riempie la barra dell’esperienza; quando è piena dà un punto, spesso nella caratteristica con cui un avversario ti ha battuto. Condividi il tuo codice o link così gli amici possono lottare contro una copia del tuo cucciolo.\nLotte dal vivo (se questo gioco ha un server di lotta): avviane una, manda il codice stanza a un amico e lottate in tempo reale, ognuno sceglie le sue mosse. Nel dojo, cuccioli di forza simile da ogni luogo vengono abbinati da soli, ma solo finché resti lì.',
+    'Dallo stadio Piccolo in poi, la scheda Lotta ti permette di sfidare creature selvatiche o il cucciolo di un amico. Una lotta consuma {battleEnergy} punti di energia.\nScegli una mossa a ogni turno. La Forza aumenta il danno, la Velocità decide chi attacca per primo, la Difesa dà salute e protezione, l’Ingegno regala colpi critici.\nCrescendo, il cucciolo impara nuove mosse: 2 da Piccolo, 3 da Giovane, 4 da Adulto. Le sue forme decidono quali.\nUn cucciolo con poca disciplina può ignorare i tuoi ordini.\nOgni vittoria aggiunge qualche punto alle caratteristiche. Ogni vera lotta, vinta o persa, riempie la barra dell’esperienza; quando è piena dà un punto, spesso nella caratteristica con cui un avversario ti ha battuto. Condividi il tuo codice o link così gli amici possono lottare contro una copia del tuo cucciolo.\nLotte dal vivo (se questo gioco ha un server di lotta): avviane una, manda il codice stanza a un amico e lottate in tempo reale, ognuno sceglie le sue mosse. Nel dojo, cuccioli di forza simile da ogni luogo vengono abbinati da soli, ma solo finché resti lì.',
   'help.title': 'Come si gioca',
   'help.egg.title': 'Prendersi cura dell’uovo',
   'help.egg.body':
@@ -372,7 +372,7 @@ export const it: Dict = {
     'Cucciolo (1 giorno) → Piccolo (3 giorni) → Giovane (5 giorni) → Adulto (3 settimane, a volte qualche giorno in più) → Anziano (1 settimana o poco più).\nCambia forma quando diventa Piccolo, Giovane e Adulto.\nDopo gli anni da anziano parte per un’avventura e ti lascia un nuovo uovo. La generazione successiva eredita un vantaggio nella sua caratteristica migliore e in ogni altra caratteristica a 100.',
   'help.train.title': 'Allenamento',
   'help.train.body':
-    'Dallo stadio Piccolo in poi, Allena offre cinque minigiochi: Forza, Velocità, Difesa, Ingegno e Resistenza.\nOgni sessione consuma il {energy}% di energia. Un punteggio migliore dà più punti, e più una caratteristica è alta, più lentamente sale.\nOgni caratteristica ha un limite per fase di vita: {child} da Piccolo, {teen} da Giovane, {adult} da Adulto.\nOgni tipo impara più in fretta una caratteristica: Brace la Forza, Onda la Velocità, Fiore la Difesa, Astrale l’Ingegno.\nUna caratteristica a 100 vale una stella.\nLa Resistenza non conta in battaglia e non dà stelle, ma dà più energia: fino a +50, per allenarsi, giocare e combattere più a lungo.',
+    'Dallo stadio Piccolo in poi, Allena offre cinque minigiochi: Forza, Velocità, Difesa, Ingegno e Resistenza.\nOgni sessione consuma {energy} punti di energia. Un punteggio migliore dà più punti, e più una caratteristica è alta, più lentamente sale.\nOgni caratteristica ha un limite per fase di vita: {child} da Piccolo, {teen} da Giovane, {adult} da Adulto.\nOgni tipo impara più in fretta una caratteristica: Brace la Forza, Onda la Velocità, Fiore la Difesa, Astrale l’Ingegno.\nUna caratteristica a 100 vale una stella.\nLa Resistenza non conta in battaglia e non dà stelle, ma dà più energia: fino a +50, per allenarsi, giocare e combattere più a lungo.',
   'help.evolve.title': 'Evoluzione',
   'help.evolve.body':
     'Forma da Piccolo: dipende da quanto ti sei preso cura del cucciolo.\nForma da Giovane: allenare Forza e Velocità crea un giovane sportivo, Difesa e Ingegno uno scaltro.\nForma adulta: plasmata dalla sua caratteristica migliore. Gli anziani mantengono la forma adulta.',

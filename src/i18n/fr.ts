@@ -188,7 +188,7 @@ export const fr: Dict = {
   'game.tap': 'Touche !',
   'game.watch': 'Observe…',
   'game.yourTurn': 'À toi !',
-  'train.cost': 'Chaque séance utilise {n} % d’énergie.',
+  'train.cost': 'Chaque séance utilise {n} points d’énergie.',
   'train.no.baby': '{name} est trop jeune pour s’entraîner. Attends qu’il soit enfant.',
   'train.no.asleep': '{name} dort.',
   'train.no.sick': '{name} est malade. Soigne-le d’abord.',
@@ -273,7 +273,7 @@ export const fr: Dict = {
   'battle.learned': 'Appris de {name}',
   'battle.xpPoint': 'Grâce à l’expérience des combats',
   'battle.xpFull': 'La barre d’expérience est pleine. Elle se changera en point au prochain stade.',
-  'battle.cost': 'Un combat utilise {n} % d’énergie.',
+  'battle.cost': 'Un combat utilise {n} points d’énergie.',
   'battle.moves': 'Attaques',
   'battle.explore': 'Chercher une créature sauvage',
   'battle.friends': 'Combattre un ami',
@@ -350,7 +350,7 @@ export const fr: Dict = {
   'dojo.left': 'Tu as quitté le dojo quand l’app est passée en arrière-plan.',
   'help.battle.title': 'Combats',
   'help.battle.body':
-    'Dès le stade Enfant, l’onglet Combat te permet d’affronter des créatures sauvages ou le compagnon d’un ami. Un combat utilise {battleEnergy} % d’énergie.\nChoisis une attaque à chaque tour. La Force augmente les dégâts, la Vitesse décide qui joue en premier, la Garde ajoute de la vie et de la défense, l’Astuce donne des coups critiques.\nUn compagnon apprend des attaques en grandissant : 2 enfant, 3 ado, 4 adulte. Ses formes décident lesquelles.\nUn compagnon peu discipliné peut ignorer tes ordres.\nLes victoires ajoutent quelques points de stats. Chaque vrai combat, gagné ou perdu, remplit la barre d’expérience ; pleine, elle donne un point, souvent dans la stat avec laquelle un adversaire t’a battu. Partage ton code ou ton lien pour que tes amis combattent une copie de ton compagnon.\nCombats en direct (si ce jeu a un serveur de combat) : lances-en un, envoie le code de salle à un ami et affrontez-vous en temps réel, chacun choisit ses attaques. Au dojo, des compagnons de force semblable venus de partout s’affrontent automatiquement, tant que tu y restes.',
+    'Dès le stade Enfant, l’onglet Combat te permet d’affronter des créatures sauvages ou le compagnon d’un ami. Un combat utilise {battleEnergy} points d’énergie.\nChoisis une attaque à chaque tour. La Force augmente les dégâts, la Vitesse décide qui joue en premier, la Garde ajoute de la vie et de la défense, l’Astuce donne des coups critiques.\nUn compagnon apprend des attaques en grandissant : 2 enfant, 3 ado, 4 adulte. Ses formes décident lesquelles.\nUn compagnon peu discipliné peut ignorer tes ordres.\nLes victoires ajoutent quelques points de stats. Chaque vrai combat, gagné ou perdu, remplit la barre d’expérience ; pleine, elle donne un point, souvent dans la stat avec laquelle un adversaire t’a battu. Partage ton code ou ton lien pour que tes amis combattent une copie de ton compagnon.\nCombats en direct (si ce jeu a un serveur de combat) : lances-en un, envoie le code de salle à un ami et affrontez-vous en temps réel, chacun choisit ses attaques. Au dojo, des compagnons de force semblable venus de partout s’affrontent automatiquement, tant que tu y restes.',
   'help.title': 'Comment jouer',
   'help.egg.title': 'Soigner l’œuf',
   'help.egg.body':
@@ -372,7 +372,7 @@ export const fr: Dict = {
     'Bébé (1 jour) → Enfant (3 jours) → Ado (5 jours) → Adulte (3 semaines, parfois quelques jours de plus) → Ancien (1 semaine ou un peu plus).\nIl change de forme en devenant enfant, ado, puis adulte.\nAprès ses vieux jours, il part à l’aventure et te laisse un nouvel œuf. La génération suivante hérite d’une longueur d’avance dans sa meilleure stat et dans chaque autre stat à 100.',
   'help.train.title': 'Entraînement',
   'help.train.body':
-    'Dès le stade Enfant, Entraîner propose cinq mini-jeux : Force, Vitesse, Garde, Astuce et Endurance.\nChaque séance utilise {energy} % d’énergie. Un meilleur score rapporte plus de points, et plus une stat est haute, plus elle monte lentement.\nChaque stat a une limite par stade de vie : {child} enfant, {teen} ado, {adult} adulte.\nChaque type apprend plus vite une stat : Braise la Force, Marée la Vitesse, Pousse la Garde, Astral l’Astuce.\nUne stat à 100 rapporte une étoile.\nL’Endurance ne compte pas en combat et ne rapporte pas d’étoile, mais donne plus d’énergie : jusqu’à +50, pour s’entraîner, jouer et combattre plus longtemps.',
+    'Dès le stade Enfant, Entraîner propose cinq mini-jeux : Force, Vitesse, Garde, Astuce et Endurance.\nChaque séance utilise {energy} points d’énergie. Un meilleur score rapporte plus de points, et plus une stat est haute, plus elle monte lentement.\nChaque stat a une limite par stade de vie : {child} enfant, {teen} ado, {adult} adulte.\nChaque type apprend plus vite une stat : Braise la Force, Marée la Vitesse, Pousse la Garde, Astral l’Astuce.\nUne stat à 100 rapporte une étoile.\nL’Endurance ne compte pas en combat et ne rapporte pas d’étoile, mais donne plus d’énergie : jusqu’à +50, pour s’entraîner, jouer et combattre plus longtemps.',
   'help.evolve.title': 'Évolution',
   'help.evolve.body':
     'Forme enfant : décidée par la qualité des soins donnés au bébé.\nForme ado : l’entraînement en Force et en Vitesse donne un ado sportif, en Garde et en Astuce un ado malin.\nForme adulte : façonnée par sa meilleure stat. Les anciens gardent leur forme adulte.',

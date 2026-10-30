@@ -188,7 +188,7 @@ export const es: Dict = {
   'game.tap': '¡Toca!',
   'game.watch': 'Mira…',
   'game.yourTurn': '¡Tu turno!',
-  'train.cost': 'Cada sesión usa un {n} % de energía.',
+  'train.cost': 'Cada sesión usa {n} puntos de energía.',
   'train.no.baby': '{name} es muy pequeño para entrenar. Espera a que llegue a la niñez.',
   'train.no.asleep': '{name} está dormido.',
   'train.no.sick': '{name} está enfermo. Cúralo primero.',
@@ -273,7 +273,7 @@ export const es: Dict = {
   'battle.learned': 'Aprendido de {name}',
   'battle.xpPoint': 'Gracias a la experiencia en combate',
   'battle.xpFull': 'La barra de experiencia está llena. Se convertirá en un punto en la siguiente etapa.',
-  'battle.cost': 'Un combate usa un {n} % de energía.',
+  'battle.cost': 'Un combate usa {n} puntos de energía.',
   'battle.moves': 'Movimientos',
   'battle.explore': 'Buscar una criatura salvaje',
   'battle.friends': 'Combatir con un amigo',
@@ -350,7 +350,7 @@ export const es: Dict = {
   'dojo.left': 'Saliste del dojo cuando la app pasó a segundo plano.',
   'help.battle.title': 'Combates',
   'help.battle.body':
-    'Desde la niñez, la pestaña Combate te deja luchar contra criaturas salvajes o la mascota de un amigo. Un combate usa un {battleEnergy} % de energía.\nElige un movimiento cada turno. La Fuerza aumenta el daño, la Rapidez decide quién actúa primero, la Defensa añade vida y protección, la Astucia da golpes críticos.\nLa mascota aprende movimientos al crecer: 2 en la niñez, 3 de joven, 4 de adulta. Sus formas deciden cuáles.\nUna mascota con poca disciplina puede ignorar tus órdenes.\nLas victorias suman un par de puntos. Cada combate de verdad, ganado o perdido, llena la barra de experiencia; al llenarse da un punto, a menudo en la estadística con la que un rival te venció. Comparte tu código o enlace para que tus amigos combatan contra una copia de tu mascota.\nCombates en directo (si este juego tiene servidor de combate): inicia uno, envía el código de sala a un amigo y luchad en tiempo real, cada uno elige sus movimientos. En el dojo, mascotas de fuerza parecida de cualquier lugar se emparejan solas, pero solo mientras sigas allí.',
+    'Desde la niñez, la pestaña Combate te deja luchar contra criaturas salvajes o la mascota de un amigo. Un combate usa {battleEnergy} puntos de energía.\nElige un movimiento cada turno. La Fuerza aumenta el daño, la Rapidez decide quién actúa primero, la Defensa añade vida y protección, la Astucia da golpes críticos.\nLa mascota aprende movimientos al crecer: 2 en la niñez, 3 de joven, 4 de adulta. Sus formas deciden cuáles.\nUna mascota con poca disciplina puede ignorar tus órdenes.\nLas victorias suman un par de puntos. Cada combate de verdad, ganado o perdido, llena la barra de experiencia; al llenarse da un punto, a menudo en la estadística con la que un rival te venció. Comparte tu código o enlace para que tus amigos combatan contra una copia de tu mascota.\nCombates en directo (si este juego tiene servidor de combate): inicia uno, envía el código de sala a un amigo y luchad en tiempo real, cada uno elige sus movimientos. En el dojo, mascotas de fuerza parecida de cualquier lugar se emparejan solas, pero solo mientras sigas allí.',
   'help.title': 'Cómo se juega',
   'help.egg.title': 'Cuidar el huevo',
   'help.egg.body':
@@ -372,7 +372,7 @@ export const es: Dict = {
     'Bebé (1 día) → Niñez (3 días) → Joven (5 días) → Adulto (3 semanas, a veces unos días más) → Anciano (1 semana o un poco más).\nCambia de forma al llegar a la niñez, a joven y a adulto.\nTras su etapa de anciano se va de aventura y te deja un huevo nuevo. La siguiente generación hereda una ventaja en su mejor atributo y en cada otro atributo a 100.',
   'help.train.title': 'Entrenamiento',
   'help.train.body':
-    'Desde la niñez, Entrenar ofrece cinco minijuegos: Fuerza, Rapidez, Defensa, Astucia y Resistencia.\nCada sesión usa un {energy} % de energía. Una mejor puntuación da más puntos, y cuanto más alto es un atributo, más despacio sube.\nCada atributo tiene un límite por etapa de vida: {child} en la niñez, {teen} de joven, {adult} de adulto.\nCada tipo aprende un atributo más rápido: Ascua Fuerza, Marea Rapidez, Brote Defensa, Astral Astucia.\nUn atributo a 100 gana una estrella.\nLa Resistencia no cuenta en combate ni da estrella, pero da más energía: hasta +50, para entrenar, jugar y combatir más tiempo.',
+    'Desde la niñez, Entrenar ofrece cinco minijuegos: Fuerza, Rapidez, Defensa, Astucia y Resistencia.\nCada sesión usa {energy} puntos de energía. Una mejor puntuación da más puntos, y cuanto más alto es un atributo, más despacio sube.\nCada atributo tiene un límite por etapa de vida: {child} en la niñez, {teen} de joven, {adult} de adulto.\nCada tipo aprende un atributo más rápido: Ascua Fuerza, Marea Rapidez, Brote Defensa, Astral Astucia.\nUn atributo a 100 gana una estrella.\nLa Resistencia no cuenta en combate ni da estrella, pero da más energía: hasta +50, para entrenar, jugar y combatir más tiempo.',
   'help.evolve.title': 'Evolución',
   'help.evolve.body':
     'Forma de niñez: depende de lo bien que cuidaste al bebé.\nForma joven: entrenar Fuerza y Rapidez da un joven deportista, Defensa y Astucia, uno listo.\nForma adulta: moldeada por su mejor atributo. Los ancianos conservan su forma adulta.',

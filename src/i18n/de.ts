@@ -188,7 +188,7 @@ export const de: Dict = {
   'game.tap': 'Tippen!',
   'game.watch': 'Pass auf…',
   'game.yourTurn': 'Du bist dran!',
-  'train.cost': 'Jede Einheit kostet {n} % Energie.',
+  'train.cost': 'Jede Einheit kostet {n} Energiepunkte.',
   'train.no.baby': '{name} ist noch zu klein zum Trainieren. Warte, bis es ein Kind ist.',
   'train.no.asleep': '{name} schläft.',
   'train.no.sick': '{name} ist krank. Mach es erst gesund.',
@@ -273,7 +273,7 @@ export const de: Dict = {
   'battle.learned': 'Von {name} gelernt',
   'battle.xpPoint': 'Aus Kampferfahrung',
   'battle.xpFull': 'Die Erfahrungsleiste ist voll. In der nächsten Lebensphase wird daraus ein Punkt.',
-  'battle.cost': 'Ein Kampf kostet {n} % Energie.',
+  'battle.cost': 'Ein Kampf kostet {n} Energiepunkte.',
   'battle.moves': 'Attacken',
   'battle.explore': 'Nach wilden Wesen suchen',
   'battle.friends': 'Gegen Freunde kämpfen',
@@ -350,7 +350,7 @@ export const de: Dict = {
   'dojo.left': 'Du hast das Dojo verlassen, als die App im Hintergrund war.',
   'help.battle.title': 'Kämpfe',
   'help.battle.body':
-    'Ab dem Kindesalter kannst du im Tab Kampf gegen wilde Wesen oder das Tier von Freunden kämpfen. Ein Kampf kostet {battleEnergy} % Energie.\nWähle jede Runde eine Attacke. Kraft erhöht den Schaden, Tempo entscheidet, wer zuerst angreift, Abwehr bringt Lebenspunkte und Schutz, Köpfchen sorgt für Volltreffer.\nMit dem Alter lernt es Attacken dazu: 2 als Kind, 3 als Teenie, 4 als Erwachsener. Seine Formen bestimmen, welche.\nEin Tier mit wenig Disziplin hört manchmal nicht auf dich.\nSiege bringen ein paar Punkte. Jeder echte Kampf, ob gewonnen oder verloren, füllt die Erfahrungsleiste; ist sie voll, gibt es einen Punkt, oft im Wert, mit dem dich ein Gegner geschlagen hat. Teile deinen Code oder Link, damit Freunde gegen eine Kopie deines Tiers kämpfen können.\nLive-Kämpfe (wenn dieses Spiel einen Kampfserver hat): Starte einen, schick den Raumcode und kämpft in Echtzeit, jeder wählt seine Attacken selbst. Im Dojo werden ähnlich starke Tiere von überall automatisch zusammengebracht, aber nur, solange du dort bleibst.',
+    'Ab dem Kindesalter kannst du im Tab Kampf gegen wilde Wesen oder das Tier von Freunden kämpfen. Ein Kampf kostet {battleEnergy} Energiepunkte.\nWähle jede Runde eine Attacke. Kraft erhöht den Schaden, Tempo entscheidet, wer zuerst angreift, Abwehr bringt Lebenspunkte und Schutz, Köpfchen sorgt für Volltreffer.\nMit dem Alter lernt es Attacken dazu: 2 als Kind, 3 als Teenie, 4 als Erwachsener. Seine Formen bestimmen, welche.\nEin Tier mit wenig Disziplin hört manchmal nicht auf dich.\nSiege bringen ein paar Punkte. Jeder echte Kampf, ob gewonnen oder verloren, füllt die Erfahrungsleiste; ist sie voll, gibt es einen Punkt, oft im Wert, mit dem dich ein Gegner geschlagen hat. Teile deinen Code oder Link, damit Freunde gegen eine Kopie deines Tiers kämpfen können.\nLive-Kämpfe (wenn dieses Spiel einen Kampfserver hat): Starte einen, schick den Raumcode und kämpft in Echtzeit, jeder wählt seine Attacken selbst. Im Dojo werden ähnlich starke Tiere von überall automatisch zusammengebracht, aber nur, solange du dort bleibst.',
   'help.title': 'So wird gespielt',
   'help.egg.title': 'Das Ei pflegen',
   'help.egg.body':
@@ -372,7 +372,7 @@ export const de: Dict = {
     'Baby (1 Tag) → Kind (3 Tage) → Teenie (5 Tage) → Erwachsen (3 Wochen, manchmal ein paar Tage mehr) → Senior (1 Woche oder etwas mehr).\nEs verändert seine Form, wenn es Kind, Teenie und erwachsen wird.\nNach seiner Seniorenzeit bricht es zu einem Abenteuer auf und lässt dir ein neues Ei da. Die nächste Generation erbt einen Vorsprung in seinem besten Wert und in jedem weiteren Wert auf 100.',
   'help.train.title': 'Training',
   'help.train.body':
-    'Ab dem Kindesalter bietet Training fünf Minispiele: Kraft, Tempo, Abwehr, Köpfchen und Ausdauer.\nJede Einheit kostet {energy} % Energie. Ein besseres Ergebnis bringt mehr Punkte, und je höher ein Wert, desto langsamer steigt er.\nJeder Wert hat pro Lebensphase eine Grenze: {child} als Kind, {teen} als Teenie, {adult} als Erwachsener.\nJeder Typ lernt einen Wert schneller: Glut Kraft, Flut Tempo, Blüte Abwehr, Astral Köpfchen.\nEin Wert auf 100 bringt einen Stern.\nAusdauer zählt nicht im Kampf und bringt keinen Stern, aber mehr Energie: bis zu +50, so kann dein Tier länger trainieren, spielen und kämpfen.',
+    'Ab dem Kindesalter bietet Training fünf Minispiele: Kraft, Tempo, Abwehr, Köpfchen und Ausdauer.\nJede Einheit kostet {energy} Energiepunkte. Ein besseres Ergebnis bringt mehr Punkte, und je höher ein Wert, desto langsamer steigt er.\nJeder Wert hat pro Lebensphase eine Grenze: {child} als Kind, {teen} als Teenie, {adult} als Erwachsener.\nJeder Typ lernt einen Wert schneller: Glut Kraft, Flut Tempo, Blüte Abwehr, Astral Köpfchen.\nEin Wert auf 100 bringt einen Stern.\nAusdauer zählt nicht im Kampf und bringt keinen Stern, aber mehr Energie: bis zu +50, so kann dein Tier länger trainieren, spielen und kämpfen.',
   'help.evolve.title': 'Entwicklung',
   'help.evolve.body':
     'Kindform: hängt davon ab, wie gut du dich um das Baby gekümmert hast.\nTeenieform: Kraft- und Tempotraining machen einen sportlichen Teenie, Abwehr und Köpfchen einen schlauen.\nErwachsene Form: geprägt von seinem besten Wert. Senioren behalten ihre erwachsene Form.',
