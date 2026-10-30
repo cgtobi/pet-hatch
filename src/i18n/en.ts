@@ -1,6 +1,5 @@
 /** English: the source language. Every other language must translate each key. */
 export const en = {
-  'app.title': 'Pet Hatch',
   'aria.scene': 'Your floating island',
   'aria.more': 'More',
   'aria.status': 'Status',
@@ -67,7 +66,6 @@ export const en = {
   'toast.copied': 'Save code copied',
   'toast.linkCopied': 'Link copied',
   'toast.copyFailed': 'Copy failed. Select the code and copy it by hand',
-  'toast.imported': 'Save loaded',
   'toast.importFailed': 'That save code is not valid',
   'toast.lightsOff': 'Light off. Good night!',
   'toast.lightsOn': 'Light on',
@@ -166,7 +164,6 @@ export const en = {
   'toast.grew': '{name} grew up: {stage}!',
 
   'action.train': 'Train',
-  'train.title': 'Training',
   'stat.power': 'Power',
   'stat.speed': 'Speed',
   'stat.guard': 'Guard',

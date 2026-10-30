@@ -23,7 +23,10 @@ if (!hasDocker && spawnSync('php', ['-v']).status !== 0) {
   process.exit(1);
 }
 
-/** Start the relay with a fresh data folder and these settings; returns the folder and how to stop it. */
+/**
+ * Start the relay with a fresh data folder and these settings; returns the folder and how to stop it.
+ * @param {Record<string, string>} env
+ */
 async function start(env) {
   const data = mkdtempSync(join(tmpdir(), 'pet-hatch-php-'));
   chmodSync(data, 0o777);
@@ -60,6 +63,7 @@ async function start(env) {
   return { data, stop };
 }
 
+/** @param {string[]} args @param {Record<string, string>} env */
 function vitest(args, env) {
   return spawnSync('npx', ['vitest', 'run', ...args], { stdio: 'inherit', env: { ...process.env, ...env } }).status ?? 1;
 }
@@ -74,9 +78,18 @@ try {
   relay.stop();
 }
 const statsToken = 'test-token-0123456789';
+// The PHP dojo rules are also compared with the Node ones directly, through the PHP command line.
+const checkDojo = hasDocker
+  ? ['docker', 'run', '--rm', '-i', '-v', `${phpDir}:/app:ro`, 'php:8.3-cli', 'php', '/app/check-dojo.php']
+  : ['php', join(phpDir, 'check-dojo.php')];
 relay = await start({ PETHATCH_STATS_TOKEN: statsToken });
 try {
-  status ||= vitest(['server/php'], { PHP_RELAY_URL: url, PHP_RELAY_DATA: relay.data, PHP_STATS_TOKEN: statsToken });
+  status ||= vitest(['server/php'], {
+    PHP_RELAY_URL: url,
+    PHP_RELAY_DATA: relay.data,
+    PHP_STATS_TOKEN: statsToken,
+    PHP_CHECK_DOJO: JSON.stringify(checkDojo),
+  });
 } finally {
   relay.stop();
 }

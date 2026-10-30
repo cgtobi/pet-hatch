@@ -421,15 +421,22 @@ export function scold(pet: PetState): ScoldResult {
   return pet.call ? 'unfair' : 'confused';
 }
 
+/** Whether the pet could take a power nap now, and why not; startPowerNap() starts one. */
+export function napCheck(pet: PetState, now: number, settings: Settings): NapResult {
+  if (dayPart(now, settings) !== 'day') return 'night';
+  if (pet.napping) return 'napping';
+  if (pet.hunger < CALL_THRESHOLD || pet.sick) return 'needsCare';
+  if (pet.energy >= POWER_NAP_BELOW) return 'notSleepy';
+  return 'ok';
+}
+
 /**
  * The Nap button (daytime only): a tired pet (below POWER_NAP_BELOW energy) takes a power nap. A pet that
  * isn't sleepy stays up; a hungry or sick one can't settle down.
  */
 export function startPowerNap(pet: PetState, now: number, settings: Settings): NapResult {
-  if (dayPart(now, settings) !== 'day') return 'night';
-  if (pet.napping) return 'napping';
-  if (pet.hunger < CALL_THRESHOLD || pet.sick) return 'needsCare';
-  if (pet.energy >= POWER_NAP_BELOW) return 'notSleepy';
+  const check = napCheck(pet, now, settings);
+  if (check !== 'ok') return check;
   pet.powerNap = { since: now };
   pet.napping = true;
   return 'ok';

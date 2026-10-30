@@ -5,7 +5,7 @@ import '@fontsource/nunito/latin-700.css';
 import '@fontsource/nunito/latin-800.css';
 import './style.css';
 
-import { haptic, setHapticsEnabled, setMusicEnabled, setMusicMode, setSoundEnabled, sfx, suspendAudio, unlockAudio, type MusicMode } from './feedback';
+import { haptic, setHapticsEnabled, setMusicEnabled, setMusicMode, setSoundEnabled, sfx, suspendAudio, unlockAudio } from './feedback';
 import { listOf, setLang, t, type TextKey } from './i18n';
 import { attachGestures } from './input/gestures';
 import { World } from './scene/world';
@@ -16,7 +16,6 @@ import {
   comfortEgg,
   hatchStage,
   hoursUntilTurn,
-  isTurnOverdue,
   mistEgg,
   turnEgg,
   TURN_INTERVAL_H,
@@ -26,7 +25,6 @@ import {
 import { advance, gameNow, hatch, heritageOf, isReadyToHatch, layNewEgg, NEGLECT_MODES, newGame } from './sim/game';
 import {
   ageHours,
-  CALL_THRESHOLD,
   cleanUp,
   feedPet,
   giveMedicine,
@@ -38,8 +36,8 @@ import {
   lightSwitched,
   pat,
   playWith,
-  POWER_NAP_BELOW,
   scold,
+  napCheck,
   startPowerNap,
   wakeAtNight,
   SHELL_DAYS,
@@ -52,12 +50,13 @@ import { speciesName } from './sim/evolution';
 import { randomSeed } from './sim/rng';
 import { exportSave, importSave, loadGame, saveGame } from './sim/save';
 import { canTrain, finishTraining, masteredStats, maxEnergy, startTraining, type TrainStat } from './sim/training';
-import type { ElementType, GameState, NeglectMode, PetState, Stat } from './sim/types';
+import type { ElementType, FormId, GameState, NeglectMode, PetState, Stat } from './sim/types';
 import { Hud, type DockAction, type LightButton } from './ui/hud';
 import { openSettings, type InstallState } from './ui/settings';
 import { Arena } from './ui/arena';
 import { ActivitySheet } from './ui/sheet';
 import { Training } from './ui/training';
+import { crackLevel, eggHint, musicFor, petFeel, petHealth, petHint } from './ui/status';
 import { icon } from './ui/icons';
 import { watchForUpdates } from './update';
 import { findStats, report, type PetEnding } from './net/stats';
@@ -614,18 +613,18 @@ function burstAndReveal(pet: PetState, alone: boolean) {
             stats: listOf(Object.entries(h.stats).map(([s, n]) => `${t(`stat.${s as Stat}`)} +${n}`)),
           })}`
         : '');
-    hud.showOverlay(
-      t('reveal.title', { type }),
+    hud.showOverlay({
+      title: t('reveal.title', { type }),
       body,
-      t('reveal.button'),
-      (name) => {
+      button: t('reveal.button'),
+      onClose: (name) => {
         if (cleanName(name)) pet.name = cleanName(name);
         pet.revealSeen = true;
         saveGame(state);
         updateHud();
       },
-      { label: t('reveal.nameLabel'), value: pet.name },
-    );
+      field: { label: t('reveal.nameLabel'), value: pet.name },
+    });
   }, 1100);
 }
 
@@ -648,9 +647,17 @@ function evolve(pet: PetState) {
   const species = speciesName(pet.type, pet.form);
   const why = pet.form.startsWith('adult.')
     ? t('evolve.why.adult', { stat: t(`stat.${pet.form.slice('adult.'.length) as Stat}`) })
-    : t(`evolve.why.${pet.form}` as TextKey);
+    : pet.form !== 'baby'
+      ? t(`evolve.why.${pet.form as Exclude<FormId, 'baby' | `adult.${string}`>}`)
+      : '';
   setTimeout(
-    () => hud.showOverlay(t('evolve.title', { name }), `${t('evolve.body', { name, species })} ${why}`, t('evolve.button'), updateHud),
+    () =>
+      hud.showOverlay({
+        title: t('evolve.title', { name }),
+        body: `${t('evolve.body', { name, species })} ${why}`,
+        button: t('evolve.button'),
+        onClose: updateHud,
+      }),
     1900,
   );
 }
@@ -675,18 +682,19 @@ function showEnding(pet: PetState) {
   hud.setHint('');
   setTimeout(
     () =>
-      hud.showOverlay(
-        t(`end.${key}.title` as TextKey, name),
-        t(`end.${key}.body` as TextKey) +
+      hud.showOverlay({
+        title: t(`end.${key}.title`, name),
+        body:
+          t(`end.${key}.body`) +
           (key === 'retired'
             ? ` ${t('end.retired.heritage', {
                 name: pet.name,
                 stats: listOf(Object.keys(heritageOf(pet).stats).map((s) => t(`stat.${s as Stat}`))),
               })}`
             : ''),
-        t(key === 'retired' ? 'end.retired.button' : 'failed.button'),
-        startNewEgg,
-      ),
+        button: t(key === 'retired' ? 'end.retired.button' : 'failed.button'),
+        onClose: startNewEgg,
+      }),
     pet.status === 'retired' ? 1600 : 400,
   );
 }
@@ -698,15 +706,17 @@ function chooseNeglect(
   then: (mode: NeglectMode, checked: boolean) => void,
   check?: { label: string; checked: boolean },
 ): void {
-  hud.showOverlay(
+  hud.showOverlay({
     title,
     body,
-    t('newEgg.start'),
-    (mode, checked) => then(mode as NeglectMode, checked),
-    undefined,
-    { options: NEGLECT_MODES.map((mode) => ({ value: mode, label: t(`neglect.${mode}`) })), value: state.settings.neglect },
+    button: t('newEgg.start'),
+    onClose: (mode, checked) => then(mode as NeglectMode, checked),
+    choices: {
+      options: NEGLECT_MODES.map((mode) => ({ value: mode, label: t(`neglect.${mode}`) })),
+      value: state.settings.neglect,
+    },
     check,
-  );
+  });
 }
 
 function startNewEgg() {
@@ -722,66 +732,15 @@ function startNewEgg() {
 
 // ---------- HUD ----------
 
-function eggHint(now: number): [string, boolean] {
-  const egg = state.egg;
-  if (rushLeft !== null) return [rushLeft < RUSH_TAPS ? t('hint.rush', { n: rushLeft }) : t('hint.ready'), false];
-  if (isAsleep(now, state.settings)) return [t('hint.sleep'), false];
-  if (egg.warmth < 20) return [t('hint.cold'), true];
-  if (isTurnOverdue(egg, now)) return [t('hint.turnNow'), true];
-  if (egg.humidity < 20) return [t('hint.dry'), true];
-  if (egg.bond < 20) return [t('hint.lonely'), true];
-  if (careLeaning(egg).total < 40) return [t('hint.firstTime'), false];
-  const h = hoursUntilTurn(egg, now);
-  return [h < 1 ? t('hint.turnSoonest') : t('hint.turnSoon', { h: Math.round(h) }), false];
-}
+const EGG_MOODS = ['egg.mood.0', 'egg.mood.1', 'egg.mood.2', 'egg.mood.3', 'egg.mood.4'] as const satisfies readonly TextKey[];
 
-function petHint(pet: PetState, now: number): [string, boolean] {
-  const name = { name: pet.name };
-  if (pet.upLate) return [t('hint.pet.upLate', name), false];
-  if (isAsleep(now, state.settings)) {
-    if (!state.egg.lightsOn) return [t('hint.sleep'), false];
-    // With the light on, how to wake it is explained until the player has done it once.
-    return [t(state.learned?.nightWake ? 'hint.lightsNight' : 'hint.pet.nightWakeTip', name), false];
-  }
-  if (pet.powerNap) return [t('hint.pet.powerNap', name), false];
-  if (pet.napping) return [t('hint.pet.napping', name), false];
-  if (pet.dozing) return [t('hint.pet.dozing', name), false];
-  if (pet.sick) return [t('hint.pet.sick', name), true];
-  if (pet.call?.kind === 'fake') return [t('hint.pet.callFake', name), true];
-  if (pet.hunger < 30) return [t('hint.pet.hungry', name), pet.hunger < 20];
-  if (pet.droppings.length) return [t('hint.pet.dirty'), pet.droppings.length > 1];
-  if (pet.mood < 30) return [t('hint.pet.bored', name), pet.mood < 20];
-  if (pet.call) return [t('hint.pet.callNeed', name), true];
-  if (pet.energy < POWER_NAP_BELOW && dayPart(now, state.settings) === 'day') return [t('hint.pet.napReady', name), false];
-  if (pet.energy < 20) return [t('hint.pet.tired', name), false];
-  if (pet.energy >= 80 && canTrain(pet, now, state.settings) === 'ok') return [t('hint.pet.train', name), false];
-  return [t(petTapped ? 'hint.pet.fine' : 'hint.pet.tap', name), false];
-}
-
-/** Battle music in a fight, a lullaby in the evening, silence once the lights are off for the night. */
-function musicFor(now: number): MusicMode {
-  if (world.foe) return 'battle';
-  const asleep = isAsleep(now, state.settings);
-  if (asleep && roomDark(now)) return 'off';
-  const pet = livePet();
-  // The lullaby plays in the evening and at night, which follow the player's bedtime setting.
-  return asleep || pet?.napping || pet?.dozing || dayPart(now, state.settings) !== 'day' ? 'night' : 'day';
-}
+/** Taps left to break out of the shell, for the hint and the cracks. */
+const rush = () => ({ left: rushLeft, taps: RUSH_TAPS });
 
 function formatAge(hours: number): string {
   const d = Math.floor(hours / 24);
   const h = Math.floor(hours % 24);
   return d > 0 ? t('dur.dh', { d, h }) : t('dur.h', { h });
-}
-
-function crackLevel(): number {
-  const egg = state.egg;
-  const stage = hatchStage(egg);
-  if (stage < 3) return 0;
-  if (egg.readyAt !== null) return 0.85 + 0.15 * (rushLeft === null ? 0 : 1 - rushLeft / RUSH_TAPS);
-  const from = egg.thresholds[2];
-  const f = egg.devHours / egg.baseHours;
-  return 0.15 + 0.6 * Math.min(1, Math.max(0, (f - from) / (1 - from)));
 }
 
 function updateHud() {
@@ -795,7 +754,7 @@ function updateHud() {
     const h = egg.heritage;
     hud.setHeader(
       h ? t('egg.titleFrom', { name: h.parentName }) : t('egg.title'),
-      `${t('egg.day', { n: day })} · ${asleep ? t('egg.sleeping') : t(`egg.mood.${stage}` as TextKey)}`,
+      `${t('egg.day', { n: day })} · ${asleep ? t('egg.sleeping') : t(EGG_MOODS[stage])}`,
       h ? [{ text: t('gen', { n: h.generation }), tone: 'neutral' }] : [],
     );
     hud.setStage(stage);
@@ -806,34 +765,20 @@ function updateHud() {
       turn: hoursUntilTurn(egg, now) / TURN_INTERVAL_H,
     });
     hud.setLeaning(careLeaning(egg));
-    const [text, urgent] = eggHint(now);
-    hud.setHint(egg.failed ? '' : text, urgent);
+    const hint = eggHint(egg, now, state.settings, rush());
+    hud.setHint(egg.failed ? '' : t(hint.key, hint.params), hint.urgent);
     hud.setDockState({ turn: hoursUntilTurn(egg, now) < 0.5 });
-    world.egg.draw({ crack: crackLevel(), leaning: careLeaning(egg), failed: egg.failed });
+    world.egg.draw({ crack: crackLevel(egg, rush()), leaning: careLeaning(egg), failed: egg.failed });
   } else if (state.pet && !endShown) {
     const pet = state.pet;
     const stage = Math.min(pet.shownStage, LIFE_STAGES.length - 1);
     const sleeping = isSleeping(pet, now, state.settings);
-    const feel = pet.sick
-      ? 'sick'
-      : pet.upLate
-        ? 'upLate'
-        : isAsleep(now, state.settings)
-          ? 'sleeping'
-        : pet.napping
-          ? 'napping'
-          : pet.dozing
-            ? 'dozing'
-            : pet.mood >= 60
-            ? 'happy'
-            : pet.mood >= 30
-              ? 'ok'
-              : 'sad';
+    const feel = petFeel(pet, now, state.settings);
     hud.setMode('pet');
     const species = speciesName(pet.type, pet.shownForm);
     const age = t('pet.age', { age: formatAge(ageHours(pet, now)) });
     const stars = masteredStats(pet).length;
-    hud.setHeader(pet.name, `${species} · ${age} · ${t(`pet.feel.${feel}` as TextKey)}`, [
+    hud.setHeader(pet.name, `${species} · ${age} · ${t(`pet.feel.${feel}`)}`, [
       { text: t(`type.${pet.type}`), tone: pet.type },
       { text: t(`life.${LIFE_STAGES[stage]}`), tone: 'neutral' },
       ...(pet.generation > 1 ? [{ text: t('gen', { n: pet.generation }), tone: 'neutral' as const }] : []),
@@ -845,11 +790,16 @@ function updateHud() {
       energy: pet.energy / maxEnergy(pet),
       hygiene: hygiene(pet) / 100,
     });
-    const health = pet.sick ? 'sick' : pet.health < 40 ? 'weak' : 'good';
-    hud.setVitals(t(`pet.health.${health}` as TextKey), health !== 'good', pet.discipline / 100);
+    const health = petHealth(pet);
+    hud.setVitals(t(`pet.health.${health}`), health !== 'good', pet.discipline / 100);
     world.updateShell(ageHours(pet, now) / (SHELL_DAYS * 24), pet.shellSwept);
-    const [text, urgent] = petHint(pet, now);
-    hud.setHint(text, urgent);
+    const hint = petHint(pet, now, {
+      settings: state.settings,
+      lightsOn: state.egg.lightsOn,
+      knowsNightWake: !!state.learned?.nightWake,
+      tapped: petTapped,
+    });
+    hud.setHint(t(hint.key, hint.params), hint.urgent);
     hud.setDockState(
       {
         feed: pet.hunger < 30 && !sleeping,
@@ -858,7 +808,7 @@ function updateHud() {
         medicine: pet.sick,
       });
     const kind = lightButtonKind(pet, now);
-    const canNap = pet.energy < POWER_NAP_BELOW && !pet.napping && !pet.sick && pet.hunger >= CALL_THRESHOLD;
+    const canNap = napCheck(pet, now, state.settings) === 'ok';
     hud.setLightButton(kind, {
       lit: kind === 'light' && state.egg.lightsOn,
       ready: kind === 'nap' && canNap,
@@ -1078,7 +1028,7 @@ function frame(ms: number) {
     endShown = true;
     reportStats();
     updateHud();
-    hud.showOverlay(t('failed.title'), t('failed.body'), t('failed.button'), startNewEgg);
+    hud.showOverlay({ title: t('failed.title'), body: t('failed.body'), button: t('failed.button'), onClose: startNewEgg });
   }
 
   const pet = state.pet;
@@ -1118,7 +1068,7 @@ function frame(ms: number) {
   if (hudTimer <= 0) {
     hudTimer = 0.2;
     updateHud();
-    setMusicMode(musicFor(now));
+    setMusicMode(musicFor(now, state.settings, { battle: !!world.foe, dark: roomDark(now), pet: livePet() }));
   }
   saveTimer -= dt;
   if (saveTimer <= 0) {
@@ -1147,19 +1097,18 @@ function askAboutStats(): void {
     setTimeout(askAboutStats, 5000);
     return;
   }
-  hud.showOverlay(
-    t('stats.askTitle'),
-    t('stats.askBody'),
-    t('stats.ok'),
-    (answer) => {
+  hud.showOverlay({
+    title: t('stats.askTitle'),
+    body: t('stats.askBody'),
+    button: t('stats.ok'),
+    onClose: (answer) => {
       state.settings.shareStats = answer === 'yes';
       saveGame(state);
       reportStats();
     },
-    undefined,
     // A radio group needs a starting choice: "no", so only an active yes opts in.
-    { options: [{ value: 'yes', label: t('stats.yes') }, { value: 'no', label: t('stats.no') }], value: 'no' },
-  );
+    choices: { options: [{ value: 'yes', label: t('stats.yes') }, { value: 'no', label: t('stats.no') }], value: 'no' },
+  });
 }
 
 const statsKnown = findStats().then((url) => {

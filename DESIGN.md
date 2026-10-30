@@ -384,15 +384,16 @@ UI: Fredoka (display) + Nunito (body), self-hosted Latin subsets.
 | `src/sim/` | Pure game rules, no DOM or three.js: `egg.ts` and `pet.ts` rules, `training.ts` stats and caps, `evolution.ts` forms and species names, `battle.ts` battle rules, moves and wild creatures, `battlecode.ts` share codes, `game.ts` catch-up and hatching, `sun.ts` sun and moon times, `save.ts` persistence and save upgrades. Unit tested in `sim.test.ts`, `pet.test.ts`, `training.test.ts`, `battle.test.ts`, `family.test.ts` and `sun.test.ts`. |
 | `src/scene/` | three.js: `world.ts` (renderer, camera framing, lights), `island.ts`, `egg3d.ts`, `pet3d.ts` (the living pet and its 9 body plans), `sky.ts` (sky, sun, moon, stars), `fireflies.ts`, `effects.ts`. |
 | `src/input/gestures.ts` | Pointer events → hold / swipe / stroke / tap / orbit. |
-| `src/ui/` | DOM HUD, settings sheet (with help), the Training/Battle sheet (`sheet.ts`, `training.ts`, `arena.ts`), the four minigames and icons. |
+| `src/ui/` | DOM HUD, settings sheet (with help), the Training/Battle sheet (`sheet.ts`, `training.ts`, `arena.ts`), the five minigames and icons. `status.ts` holds the rules for what the hint and status card say and which music plays, as plain functions with their own tests (`status.test.ts`). |
 | `src/i18n/` | All player-facing text: `en.ts` is the source, one file per translation, checked by `i18n.test.ts`. |
-| `src/net/` | Live battles: `live.ts` (lockstep protocol over the relay), `dojo.ts` (waiting in the dojo), `channel.ts` (WebSocket or HTTP polling), `relayConfig.ts` (finding the relay). Tested end to end against a real relay in `live.test.ts` and `dojo.test.ts`, and against the PHP relay with `npm run test:php`. |
+| `src/net/` | Live battles: `live.ts` (lockstep protocol over the relay), `dojo.ts` (waiting in the dojo), `channel.ts` (WebSocket or HTTP polling), `relayConfig.ts` (finding the relay), `sha256.ts` (move commitments), `stats.ts` (opt-in pet stats). Tested end to end against a real relay in `live.test.ts` and `dojo.test.ts`, and against the PHP relay with `npm run test:php`. |
 | `server/relay.mjs` | The optional live battle relay (rooms and the dojo), which can also serve the built game. |
 | `server/dojo.mjs` | Dojo matchmaking: ratings from battle codes, the widening match window, pairing. |
-| `server/php/` | The relay for PHP web hosting (`relay.php`, `relay.json`); `npm run deploy` bundles it with the game in `deploy/php/`. |
+| `server/php/` | For PHP web hosting: the relay (`relay.php`, `relay.json`), its dojo rules (`dojo.php`, compared with `server/dojo.mjs` on the same codes by `dojo.test.ts` through `check-dojo.php`), the stats and dashboard (`stats.php`, `stats.json`, `.htaccess`) and what they share (`common.php`: the data folder, safe writes, visitors). `npm run deploy` bundles them with the game in `deploy/php/`. |
 | `scripts/deploy.mjs` | `npm run deploy`: the built game in `deploy/` (untracked), as static, PHP and Node hosting folders. |
 | `Dockerfile`, `docker-compose.yml` | One image with the game and the relay (amd64 and arm64). |
 | `repository.yaml`, `pet_hatch/` | Home Assistant app: sidebar via ingress plus a direct port; builds from this repository's Git URL. |
 | `src/feedback.ts` | Synthesized sound effects, generative music and haptic patterns. |
-| `src/main.ts` | Wires it together: game loop, care actions, hints, hatch moment, growing up and endings. `src/update.ts` watches for a newer deploy. |
+| `src/main.ts` | Wires it together: game loop, care actions, hatch moment, growing up and endings. `src/update.ts` watches for a newer deploy. |
+| `tsconfig.server.json` | Type-checks the servers (JSDoc in the `.mjs` files), their tests and the scripts; part of `npm run build`. |
 | `vite.config.ts` | Relative base and the service-worker generator. |

@@ -1,5 +1,5 @@
 import { canVibrate } from '../feedback';
-import { LANGUAGE_NAMES, LANGUAGES, t, type TextKey } from '../i18n';
+import { LANGUAGE_NAMES, LANGUAGES, t } from '../i18n';
 import { BATTLE_ENERGY } from '../sim/battle';
 import { STAT_CAPS, TRAIN_ENERGY } from '../sim/training';
 import { speciesName } from '../sim/evolution';
@@ -124,12 +124,12 @@ export function openSettings(
     const help = el('details', { className: 'help help-all' }, el('summary', {}, t('help.title')), topics);
     const params = { energy: TRAIN_ENERGY, battleEnergy: BATTLE_ENERGY, child: STAT_CAPS[1], teen: STAT_CAPS[2], adult: STAT_CAPS[3] };
     for (const topic of HELP_TOPICS) {
-      const lines = t(`help.${topic}.body` as TextKey, params).split('\n');
+      const lines = t(`help.${topic}.body`, params).split('\n');
       topics.append(
         el(
           'details',
           { className: 'help' },
-          el('summary', {}, t(`help.${topic}.title` as TextKey)),
+          el('summary', {}, t(`help.${topic}.title`)),
           el('ul', {}, ...lines.map((line) => el('li', {}, line))),
         ),
       );

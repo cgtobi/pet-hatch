@@ -2,7 +2,6 @@ import { HOUR, isAsleep } from './clock';
 import { mulberry32 } from './rng';
 import type { EggNeed, EggState, ElementType, Heritage, NeglectMode, Settings } from './types';
 
-export const STAGE_NAMES = ['Quiet', 'Stirring', 'Wobbly', 'Cracking', 'Hatching'] as const;
 
 /** Need loss per awake game hour. */
 const DECAY: Record<EggNeed, number> = { warmth: 34, humidity: 25, bond: 20 };
@@ -64,7 +63,7 @@ export function createEgg(now: number, seed: number, heritage: Heritage | null =
 
 const clamp = (v: number, lo = 0, hi = 100) => Math.min(hi, Math.max(lo, v));
 
-/** Visible stage index into STAGE_NAMES. Deliberately coarse: the exact hatch time stays hidden. */
+/** The visible egg stage, 0 (quiet) … 4 (hatching). Deliberately coarse: the exact hatch time stays hidden. */
 export function hatchStage(egg: EggState): number {
   if (egg.readyAt !== null) return 4;
   const f = egg.devHours / egg.baseHours;

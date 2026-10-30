@@ -1,7 +1,6 @@
 import type { Dict } from '.';
 
 export const it: Dict = {
-  'app.title': 'Pet Hatch',
   'aria.scene': 'La tua isola fluttuante',
   'aria.more': 'Altro',
   'aria.status': 'Stato',
@@ -68,7 +67,6 @@ export const it: Dict = {
   'toast.copied': 'Codice di salvataggio copiato',
   'toast.linkCopied': 'Link copiato',
   'toast.copyFailed': 'Copia non riuscita. Seleziona il codice e copialo a mano',
-  'toast.imported': 'Salvataggio caricato',
   'toast.importFailed': 'Questo codice di salvataggio non è valido',
   'toast.lightsOff': 'Luce spenta. Buonanotte!',
   'toast.lightsOn': 'Luce accesa',
@@ -167,7 +165,6 @@ export const it: Dict = {
   'toast.grew': '{name} è cresciuto: {stage}!',
 
   'action.train': 'Allena',
-  'train.title': 'Allenamento',
   'stat.power': 'Forza',
   'stat.speed': 'Velocità',
   'stat.guard': 'Difesa',

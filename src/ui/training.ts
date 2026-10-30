@@ -29,6 +29,9 @@ export interface TrainingHandlers {
 
 const TONES: Record<TrainStat, string> = { power: 'ember', speed: 'amber', guard: 'tide', wits: 'violet', endurance: 'bloom' };
 
+/** What training is for, by life stage (child … elder). */
+const GOALS = ['train.goal.1', 'train.goal.2', 'train.goal.3', 'train.goal.4'] as const satisfies readonly TextKey[];
+
 /** A star for each battle stat at 100; endurance has none. */
 const starred = (pet: PetState, stat: TrainStat) => stat !== 'endurance' && trainValue(pet, stat) >= MAX_STAT;
 
@@ -79,7 +82,7 @@ export class Training {
     }).join('');
     const note = check === 'ok' ? t('train.cost', { n: TRAIN_ENERGY }) : t(`train.no.${check}`, { name: pet.name });
     this.sheet.innerHTML = `${this.s.head({ tab: 'train', sub, closeLabel: t('train.close') })}
-      <p class="train-goal">${t(`train.goal.${Math.max(1, stage)}` as TextKey)}</p>
+      <p class="train-goal">${t(GOALS[Math.max(1, stage) - 1])}</p>
       <div class="train-rows">${rows}</div>
       <p class="train-note ${check === 'ok' ? '' : 'bad'}">${esc(note)}</p>`;
     this.s.bindHead();

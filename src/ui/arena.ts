@@ -1,4 +1,4 @@
-import { t, type TextKey } from '../i18n';
+import { t } from '../i18n';
 import { DojoSession } from '../net/dojo';
 import { LiveError, LiveSession, newRoomCode, parseRoomCode, type LiveErrorCode } from '../net/live';
 import {
@@ -53,6 +53,12 @@ const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const other = (k: SideKey): SideKey => (k === 'a' ? 'b' : 'a');
 
 /** The Battle tab: record, wild battles and friend battles (codes or live); then the fight and its result. */
+/** Live battle errors with their own explanation; the rest just say the battle ended unexpectedly. */
+const EXPLAINED_ERRORS = ['unreachable', 'no-room', 'full', 'left', 'gave-up', 'desync', 'timeout', 'disconnected', 'outdated'] as const;
+type ExplainedError = (typeof EXPLAINED_ERRORS)[number];
+/** Before there's an opponent, "you win" messages don't apply. */
+const EXPLAINED_IN_LOBBY: readonly ExplainedError[] = ['unreachable', 'no-room', 'full', 'desync', 'outdated'];
+
 export class Arena {
   /** WebSocket URL of the live battle relay, if this deployment has one. */
   relay: string | null = null;
@@ -120,11 +126,11 @@ export class Arena {
   }
 
   private moveName(move: MoveId, f: Fighter): string {
-    return move === 'element' ? t(`move.element.${f.type}`) : t(`move.${move}` as TextKey);
+    return move === 'element' ? t(`move.element.${f.type}`) : t(`move.${move}`);
   }
 
   private moveInfo(move: MoveId): string {
-    return t(`move.${move}.info` as TextKey, { n: MOVES[move].power });
+    return t(`move.${move}.info`, { n: MOVES[move].power });
   }
 
   menu(): void {
@@ -245,10 +251,9 @@ export class Arena {
 
   /** Why a live battle ended; without an opponent name (still in the lobby) "you win" messages don't apply. */
   private liveMessage(e: LiveError, foeName: string): string {
-    const known = foeName
-      ? ['unreachable', 'no-room', 'full', 'left', 'gave-up', 'desync', 'timeout', 'disconnected', 'outdated']
-      : ['unreachable', 'no-room', 'full', 'desync', 'outdated'];
-    return t(`live.error.${known.includes(e.code) ? e.code : 'other'}` as TextKey, { name: foeName });
+    const known: readonly ExplainedError[] = foeName ? EXPLAINED_ERRORS : EXPLAINED_IN_LOBBY;
+    const code = known.find((k) => k === e.code) ?? 'other';
+    return t(`live.error.${code}`, { name: foeName });
   }
 
   /** The dojo: wait to be matched with a pet of similar strength, then fight live automatically. */

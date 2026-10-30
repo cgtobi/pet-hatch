@@ -24,13 +24,6 @@ export function saveGame(state: GameState): void {
   }
 }
 
-export function clearSave(): void {
-  try {
-    localStorage.removeItem(KEY);
-  } catch {
-    // ignore
-  }
-}
 
 /** A copy-pasteable backup code. */
 export function exportSave(state: GameState): string {

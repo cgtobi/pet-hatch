@@ -21,6 +21,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/common.php';
+require_once __DIR__ . '/dojo.php';
 
 const ROOM_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const ROOM_CODE = '/^[A-Z2-9]{4,8}$/';
@@ -59,19 +60,13 @@ const POLL_STEP_US = 250_000;
 /** A connection not heard from for this long is gone. */
 const STALE_MS = 25_000;
 
-/** Stat limits by life stage (child … elder), as in the game. */
-const STAT_CAPS = [0, 30, 60, 100, 100];
 /**
  * Pets that visit the dojo are counted for the dashboard (stats.php), from the battle code they send anyway:
  * a key hashed with a secret from the parts that never change (type, the seed's 16 bits, name; the name is never
  * stored), with first and last visit and the last stage and form. Kept until this long after the last visit.
  */
 const DOJO_PETS_KEEP_DAYS = 90;
-/** Dojo matching, as in server/dojo.mjs. */
-const DOJO_BASE_WINDOW = 0.1;
-const DOJO_GROW_WINDOW = 0.05;
-const DOJO_MAX_WINDOW = 0.35;
-const DOJO_MIN_POINTS = 8;
+/** Dojo matching (the rating and match window are in dojo.php). */
 const DOJO_REMATCH_MS = 2 * 60_000;
 const DOJO_MAX_PLAYERS = 100;
 /** Matching compares every waiting pair, so it runs at most this often rather than on every request. */
@@ -368,32 +363,6 @@ function new_room_code(array $s): string
 
 // ---------- dojo ----------
 
-function checksum(array $bytes): int
-{
-    $h = 0x811c9dc5;
-    foreach ($bytes as $b) $h = (($h ^ $b) * 0x01000193) & 0xffffffff;
-    return ($h ^ ($h >> 8) ^ ($h >> 16) ^ ($h >> 24)) & 0xff;
-}
-
-/**
- * The battle rating of a battle code, or null if it isn't a valid one. Mirrors ratingFromCode() in
- * server/dojo.mjs, so a player can't claim a weaker pet than the one they fight with.
- */
-function rating_from_code(mixed $code): ?int
-{
-    if (!is_string($code) || !preg_match('/^[A-Za-z0-9_-]{16,120}$/', $code)) return null;
-    $bin = base64_decode(strtr($code, '-_', '+/'));
-    if ($bin === false || strlen($bin) < 12) return null;
-    $bytes = array_values(unpack('C*', $bin));
-    $check = array_pop($bytes);
-    if (checksum($bytes) !== $check || $bytes[0] !== 1) return null;
-    $stage = ($bytes[1] >> 3) & 7;
-    if ($stage < 1 || $stage > 4) return null;
-    $stats = array_slice($bytes, 3, 4);
-    foreach ($stats as $stat) if ($stat > STAT_CAPS[$stage]) return null;
-    return array_sum($stats) + 20 * min($stage, 3);
-}
-
 /**
  * Count a pet that got into the dojo (its battle code already checked by rating_from_code). Battle codes are easy
  * to make up, so one visitor adds at most DOJO_NEW_PETS_PER_VISITOR new pets a day, and the count keeps at most
@@ -435,16 +404,6 @@ function count_dojo_pet(string $code): void
     }
 }
 
-function match_window(int $rating, int $waitedMs): float
-{
-    $share = min(DOJO_MAX_WINDOW, DOJO_BASE_WINDOW + DOJO_GROW_WINDOW * floor($waitedMs / 10_000));
-    return max(DOJO_MIN_POINTS, $rating * $share);
-}
-
-function pair_key(string $x, string $y): string
-{
-    return $x < $y ? "$x|$y" : "$y|$x";
-}
 
 /** Connection ids of the players waiting in the dojo. */
 function waiting(array $s): array

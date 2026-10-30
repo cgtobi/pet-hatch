@@ -50,6 +50,7 @@ export function listOf(items: string[]): string {
 }
 
 export function t(key: TextKey, params: Record<string, string | number> = {}): string {
-  const text = dictionaries[current][key] ?? en[key];
+  // A key that somehow doesn't exist shows itself rather than breaking the screen it's on.
+  const text = dictionaries[current][key] ?? en[key] ?? String(key);
   return text.replace(/\{(\w+)\}/g, (_, p: string) => String(params[p] ?? `{${p}}`));
 }

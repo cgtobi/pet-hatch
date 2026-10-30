@@ -6,6 +6,8 @@ export type HudMode = 'egg' | 'pet' | 'none';
 export type EggAction = 'mist' | 'sing' | 'turn';
 export type PetAction = 'feed' | 'clean' | 'play' | 'train' | 'medicine' | 'scold';
 export type DockAction = EggAction | PetAction;
+/** The egg's visible stages, in order. */
+const STAGE_KEYS = ['stage.0', 'stage.1', 'stage.2', 'stage.3', 'stage.4'] as const satisfies readonly TextKey[];
 /** What the round button beside More does: Nap or Wake up by day, the light in the evening and at night. */
 export type LightButton = 'nap' | 'wake' | 'light';
 export type NeedKey = 'warmth' | 'humidity' | 'bond' | 'turn' | 'hunger' | 'mood' | 'energy' | 'hygiene';
@@ -68,6 +70,21 @@ export interface Chip {
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
+/** A sheet over the game with one button: a story moment, or a question. */
+export interface Overlay {
+  title: string;
+  body: string;
+  button: string;
+  /** Called after it closes, with the text typed or the choice picked, and whether the checkbox is ticked. */
+  onClose: (value: string, checked: boolean) => void;
+  /** A text field, e.g. for a name. */
+  field?: { label: string; value: string };
+  /** A choice instead of a text field: onClose gets the picked value. */
+  choices?: { options: { value: string; label: string }[]; value: string };
+  /** A checkbox under it all, e.g. agreeing to something; onClose gets whether it is ticked. */
+  check?: { label: string; checked: boolean };
+}
+
 /** The DOM overlay: status card, hint chip, toast, care dock and the reveal sheet. */
 export class Hud {
   private title = $('title');
@@ -85,11 +102,11 @@ export class Hud {
   private lights = $<HTMLButtonElement>('btn-lights');
   private lightKind: LightButton | null = null;
   private input = $<HTMLInputElement>('overlay-input');
-  private dockButtons = new Map<string, HTMLButtonElement>();
+  private dockButtons = new Map<DockAction | 'warm', HTMLButtonElement>();
   private needEls = new Map<NeedKey, { root: HTMLElement; fill: HTMLElement; label: HTMLElement }>();
   private mode: HudMode | null = null;
   private toastTimer = 0;
-  private overlayClose: ((value: string, checked: boolean) => void) | null = null;
+  private overlayClose: Overlay['onClose'] | null = null;
 
   constructor(handlers: HudHandlers) {
     this.more.innerHTML = icon('dots', 22);
@@ -162,10 +179,10 @@ export class Hud {
     $('lean-title').textContent = t('lean.title');
     $('discipline-label').textContent = t('pet.discipline');
     this.stages.querySelectorAll('.stage-label').forEach((el, i) => {
-      el.textContent = t(`stage.${i}` as TextKey);
+      el.textContent = t(STAGE_KEYS[i]);
     });
     for (const [key, els] of this.needEls) els.label.textContent = t(`need.${key}`);
-    for (const [id, b] of this.dockButtons) b.querySelector('.label')!.textContent = t(`action.${id}` as TextKey);
+    for (const [id, b] of this.dockButtons) b.querySelector('.label')!.textContent = t(`action.${id}`);
   }
 
   /** Switch the meters and dock between egg care, pet care, and nothing (game over screens). */
@@ -206,7 +223,7 @@ export class Hud {
       el.classList.toggle('done', i < index);
       el.classList.toggle('current', i === index);
     });
-    this.stages.setAttribute('aria-label', t(`stage.${index}` as TextKey));
+    this.stages.setAttribute('aria-label', t(STAGE_KEYS[index]));
   }
 
   /** Values 0…1 for the meters of the current mode. */
@@ -277,17 +294,7 @@ export class Hud {
   }
 
   /** A bottom sheet with one button; pass `field` to also ask for a short text (e.g. a name). */
-  showOverlay(
-    title: string,
-    body: string,
-    button: string,
-    onClose: (value: string, checked: boolean) => void,
-    field?: { label: string; value: string },
-    /** A choice instead of a text field: onClose gets the picked value. */
-    choices?: { options: { value: string; label: string }[]; value: string },
-    /** A checkbox under it all, e.g. agreeing to something; onClose gets whether it is ticked. */
-    check?: { label: string; checked: boolean },
-  ): void {
+  showOverlay({ title, body, button, onClose, field, choices, check }: Overlay): void {
     const box = $('overlay-check');
     box.hidden = !check;
     box.querySelector('input')!.checked = check?.checked ?? false;

@@ -19,6 +19,7 @@ if (!existsSync(join(dist, 'index.html'))) {
   process.exit(1);
 }
 const { version } = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+/** @param {string} from @param {string} to */
 const copy = (from, to) => cpSync(join(root, from), join(out, to), { recursive: true });
 
 rmSync(out, { recursive: true, force: true });
@@ -28,6 +29,7 @@ copy('dist', 'static');
 
 copy('dist', 'php');
 copy('server/php/common.php', 'php/common.php');
+copy('server/php/dojo.php', 'php/dojo.php');
 copy('server/php/relay.php', 'php/relay.php');
 copy('server/php/relay.json', 'php/relay.json');
 copy('server/php/stats.php', 'php/stats.php');
