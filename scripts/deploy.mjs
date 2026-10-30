@@ -31,6 +31,7 @@ copy('server/php/relay.php', 'php/relay.php');
 copy('server/php/relay.json', 'php/relay.json');
 copy('server/php/stats.php', 'php/stats.php');
 copy('server/php/.htaccess', 'php/.htaccess');
+copy('server/php/stats.json', 'php/stats.json');
 // The player count dashboard's token: made once, kept in .stats-token (not tracked), so every deploy keeps the same link.
 const tokenFile = join(root, '.stats-token');
 if (!existsSync(tokenFile)) writeFileSync(tokenFile, randomBytes(18).toString('hex') + '\n', { mode: 0o600 });
@@ -55,11 +56,14 @@ static/  Upload the contents to any static web server. Everything works except l
 php/     Upload the contents to web hosting with PHP 8.1 or newer. Live battles and the dojo go through
          relay.php, which keeps its state in a relay-data/ folder it creates next to itself, so PHP must be
          allowed to write there (or set PETHATCH_DATA_DIR to another folder).
-         stats.php counts open games per day from the game's update check (no cookies, no IDs, nothing stored
-         on players' devices); .htaccess routes version.json through it (needs Apache with mod_rewrite; if your
-         folder already has an .htaccess, add its lines to yours). The dashboard:
-         stats.php?view&token=${statsToken}
-         (the token is in stats-token.php and .stats-token; keep it private). Leave out .htaccess to count nothing.
+         stats.php keeps stats in three tiers, on one dashboard:
+           1. open games per day, from the update check (no cookies, IDs or device storage; .htaccess routes
+              version.json through it: needs Apache with mod_rewrite; merge it into an existing .htaccess);
+           2. pets that visit the dojo, counted by relay.php from their battle code (hashed, no names);
+           3. pet details from players who opt in (stats.json makes the game ask them).
+         The dashboard: stats.php?view&token=${statsToken}
+         (the token is in stats-token.php and .stats-token; keep it private). Leave out .htaccess or stats.json
+         to switch off tier 1 or 3. See README.md › Stats for what to put in your privacy notice.
 
 node/    Copy the folder to a server with Node 20 or newer and run: PORT=8787 npm start
          It serves the game and the live battle relay on one port. Put it behind an HTTPS reverse proxy
@@ -67,4 +71,4 @@ node/    Copy the folder to a server with Node 20 or newer and run: PORT=8787 np
 `,
 );
 console.log(`deploy/ is ready (Pet Hatch ${version}): static/, php/ and node/. See deploy/README.txt.`);
-console.log(`Player count dashboard (PHP): stats.php?view&token=${statsToken}`);
+console.log(`Stats dashboard (PHP): stats.php?view&token=${statsToken}`);

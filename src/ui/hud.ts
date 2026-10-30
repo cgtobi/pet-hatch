@@ -89,7 +89,7 @@ export class Hud {
   private needEls = new Map<NeedKey, { root: HTMLElement; fill: HTMLElement; label: HTMLElement }>();
   private mode: HudMode | null = null;
   private toastTimer = 0;
-  private overlayClose: ((value: string) => void) | null = null;
+  private overlayClose: ((value: string, checked: boolean) => void) | null = null;
 
   constructor(handlers: HudHandlers) {
     this.more.innerHTML = icon('dots', 22);
@@ -100,8 +100,9 @@ export class Hud {
       const choices = $('overlay-choices');
       const picked = choices.querySelector<HTMLInputElement>('input:checked');
       const value = !choices.hidden && picked ? picked.value : this.input.value.trim();
+      const checked = $('overlay-check').querySelector('input')!.checked;
       this.hideOverlay();
-      close?.(value);
+      close?.(value, checked);
     };
     $('overlay-button').addEventListener('click', closeOverlay);
     this.input.addEventListener('keydown', (e) => e.key === 'Enter' && closeOverlay());
@@ -280,11 +281,17 @@ export class Hud {
     title: string,
     body: string,
     button: string,
-    onClose: (value: string) => void,
+    onClose: (value: string, checked: boolean) => void,
     field?: { label: string; value: string },
     /** A choice instead of a text field: onClose gets the picked value. */
     choices?: { options: { value: string; label: string }[]; value: string },
+    /** A checkbox under it all, e.g. agreeing to something; onClose gets whether it is ticked. */
+    check?: { label: string; checked: boolean },
   ): void {
+    const box = $('overlay-check');
+    box.hidden = !check;
+    box.querySelector('input')!.checked = check?.checked ?? false;
+    box.querySelector('span')!.textContent = check?.label ?? '';
     $('overlay-title').textContent = title;
     $('overlay-body').textContent = body;
     $('overlay-button').textContent = button;

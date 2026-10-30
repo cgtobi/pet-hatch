@@ -15,6 +15,8 @@ export interface Settings {
   haptics: boolean;
   /** UI language; 'auto' follows the device. */
   language: 'auto' | Language;
+  /** Opted in to anonymous pet stats (src/net/stats.ts); missing until the player has been asked. */
+  shareStats?: boolean;
 }
 
 /** What a retired pet passes on to the egg it leaves behind. */
@@ -191,4 +193,6 @@ export interface GameState {
   family: Ancestor[];
   /** One-time tips the player no longer needs (missing in older saves). */
   learned?: { nightWake?: boolean; lightTip?: boolean };
+  /** The last pet stats report: its day and contents, so each goes out once a day or on a change. */
+  statsSent?: { day: string; key: string };
 }

@@ -60,6 +60,7 @@ import { ActivitySheet } from './ui/sheet';
 import { Training } from './ui/training';
 import { icon } from './ui/icons';
 import { watchForUpdates } from './update';
+import { findStats, report, type PetEnding } from './net/stats';
 
 const params = new URLSearchParams(location.search);
 /** Invite links for live battles: ?live=ROOM. */
@@ -656,6 +657,7 @@ function evolve(pet: PetState) {
 
 function showEnding(pet: PetState) {
   endShown = true;
+  reportStats();
   warming = false;
   sheet.close();
   const name = { name: pet.name };
@@ -690,14 +692,27 @@ function showEnding(pet: PetState) {
 }
 
 /** Every egg starts with choosing how forgiving the game is; it stays fixed until the next egg. */
-function chooseNeglect(title: string, body: string, then: (mode: NeglectMode) => void): void {
-  hud.showOverlay(title, body, t('newEgg.start'), (mode) => then(mode as NeglectMode), undefined, {
-    options: NEGLECT_MODES.map((mode) => ({ value: mode, label: t(`neglect.${mode}`) })),
-    value: state.settings.neglect,
-  });
+function chooseNeglect(
+  title: string,
+  body: string,
+  then: (mode: NeglectMode, checked: boolean) => void,
+  check?: { label: string; checked: boolean },
+): void {
+  hud.showOverlay(
+    title,
+    body,
+    t('newEgg.start'),
+    (mode, checked) => then(mode as NeglectMode, checked),
+    undefined,
+    { options: NEGLECT_MODES.map((mode) => ({ value: mode, label: t(`neglect.${mode}`) })), value: state.settings.neglect },
+    check,
+  );
 }
 
 function startNewEgg() {
+  // The current egg or pet's story ends here: it was replaced while still alive, or it already ended.
+  const alive = state.phase === 'egg' ? !state.egg.failed : state.pet?.status === 'alive';
+  reportStats(alive ? 'released' : undefined);
   chooseNeglect(t('newEgg.title'), t('newEgg.body'), (mode) => {
     layNewEgg(state, gameNow(state), undefined, mode);
     saveGame(state);
@@ -916,6 +931,16 @@ function showSettings() {
       return true;
     },
     onNewEgg: startNewEgg,
+    stats: statsUrl
+      ? {
+          on: state.settings.shareStats === true,
+          set: (on) => {
+            state.settings.shareStats = on;
+            saveGame(state);
+            reportStats();
+          },
+        }
+      : null,
     onInstall: async () => {
       await installPrompt?.prompt();
       installPrompt = null;
@@ -1051,6 +1076,7 @@ function frame(ms: number) {
     if (sleepy && Math.random() < dt / 2.5) world.effects.emit('zzz', world.egg.center(), 1);
   } else if (state.phase === 'egg' && egg.failed && !endShown) {
     endShown = true;
+    reportStats();
     updateHud();
     hud.showOverlay(t('failed.title'), t('failed.body'), t('failed.button'), startNewEgg);
   }
@@ -1105,13 +1131,62 @@ function frame(ms: number) {
 updateHud();
 requestAnimationFrame(frame);
 
-// The very first egg: welcome, and choose how forgiving the game is.
+// ---------- pet stats (opt-in) ----------
+
+/** Where anonymous pet stats go, if this server collects them (null until known, or when it doesn't). */
+let statsUrl: string | null = null;
+
+/** Send this pet's snapshot if the player opted in and it's due (a new day, or something changed). */
+function reportStats(status?: PetEnding): void {
+  if (report(statsUrl, state, __APP_VERSION__, status)) saveGame(state);
+}
+
+/** Players from before pet stats get asked once, when nothing else is on screen. */
+function askAboutStats(): void {
+  if (hud.overlayOpen || sheet.isOpen) {
+    setTimeout(askAboutStats, 5000);
+    return;
+  }
+  hud.showOverlay(
+    t('stats.askTitle'),
+    t('stats.askBody'),
+    t('stats.ok'),
+    (answer) => {
+      state.settings.shareStats = answer === 'yes';
+      saveGame(state);
+      reportStats();
+    },
+    undefined,
+    // A radio group needs a starting choice: "no", so only an active yes opts in.
+    { options: [{ value: 'yes', label: t('stats.yes') }, { value: 'no', label: t('stats.no') }], value: 'no' },
+  );
+}
+
+const statsKnown = findStats().then((url) => {
+  statsUrl = url;
+  if (url && saved && state.settings.shareStats === undefined) setTimeout(askAboutStats, 3000);
+  reportStats();
+});
+setInterval(() => reportStats(), 60_000);
+document.addEventListener('visibilitychange', () => document.hidden || reportStats());
+
+// The very first egg: welcome, choose how forgiving the game is, and (where the server collects them) whether
+// to share anonymous pet stats: unticked, so only a player who ticks it shares.
 if (!saved) {
-  chooseNeglect(t('welcome.title'), t('welcome.body'), (mode) => {
-    state.settings.neglect = mode;
-    saveGame(state);
-    updateHud();
-  });
+  void statsKnown.then(() =>
+    chooseNeglect(
+      t('welcome.title'),
+      t('welcome.body'),
+      (mode, share) => {
+        state.settings.neglect = mode;
+        if (statsUrl) state.settings.shareStats = share;
+        saveGame(state);
+        updateHud();
+        reportStats();
+      },
+      statsUrl ? { label: t('stats.share'), checked: false } : undefined,
+    ),
+  );
 }
 
 if ('serviceWorker' in navigator && import.meta.env.PROD) {

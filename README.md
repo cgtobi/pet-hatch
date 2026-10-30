@@ -85,23 +85,36 @@ PHP from the same address (behind a proxy or CDN that doesn't pass the real one 
 `0` to turn that limit off, or raise it.
 
 `npm run test:php` runs the live battle and dojo tests against it in Docker (Apache with PHP), plus its own tests
-of these limits and of the player count below.
+of these limits and of the stats below.
 
-#### Player count
+#### Stats
 
-`deploy/php/` also carries `stats.php` and an `.htaccess` that routes the game's update check (`version.json`)
-through it. It answers with the same file and counts open games per day: each browser and network once a day, as
-a hash of the IP address and browser with a salt that is replaced every day. Only today's hashes are kept, to
-count each game once; after that only the daily number and the versions in use stay (for 400 days). No cookies,
-no IDs, nothing read from or stored on players' devices, so no consent banner is needed; mention it in your
-privacy notice.
+`deploy/php/` keeps stats in three tiers, all on one dashboard at `stats.php?view&token=…`. `npm run deploy`
+makes the token once, keeps it in `.stats-token` (not tracked) and prints the link; set `PETHATCH_STATS_TOKEN`
+on the server to use another.
 
-The dashboard (games open today and per day, 7- and 30-day averages, versions in use) is at
-`stats.php?view&token=…`. `npm run deploy` makes the token once, keeps it in `.stats-token` (not tracked) and
-prints the link; set `PETHATCH_STATS_TOKEN` on the server to use another. It needs Apache with `mod_rewrite`
-and `.htaccess` files allowed; elsewhere `version.json` is served as a plain file and nothing is counted. If your
-folder already has an `.htaccess`, add these lines to it instead of overwriting it. Leave out the `.htaccess` to
-count nothing.
+1. **Open games per day** (everyone, no consent): an `.htaccess` routes the game's update check (`version.json`)
+   through `stats.php`, which answers with the same file and counts each browser and network once a day, as a hash
+   of IP address and browser with a salt replaced every day. Only today's hashes are kept; after that only daily
+   numbers and the versions in use (400 days). Needs Apache with `mod_rewrite`; merge the lines into an existing
+   `.htaccess` rather than overwriting it. Without it nothing is counted and nothing breaks.
+2. **Pets in the dojo** (everyone who uses it, no consent): `relay.php` counts pets that join the dojo from the
+   battle code they send to be matched, keyed by a secret-salted hash of its unchanging parts (type, part of the
+   seed, name; the name is never stored), with first and last visit and last stage and form, until 90 days after
+   the last visit.
+3. **Pet details** (opt-in): with `stats.json` next to the game, players are asked once (unticked on the welcome
+   screen, a one-time question for existing players, a toggle in Settings). An opted-in game sends a snapshot per
+   pet at most once a day and when something changes: a number hashed from the egg's seed, phase and stage, type,
+   form, mode, generation, stars and how its story ended. No names, no save, no IP address; kept 180 days. Leave
+   out `stats.json` and nobody is asked.
+
+Not legal advice, but your privacy notice should say, roughly: the game counts open games per day from its update
+check, using a hash of IP address and browser that is deleted daily; the dojo counts which pets visit it, by a
+hash of their battle code without names, kept 90 days after the last visit; players who agree also send anonymous
+pet details, which they can switch off in Settings; no cookies. Also say how long your host keeps its access
+logs.
+
+The Node relay and the static deploy have none of this.
 
 
 ## Docker

@@ -350,7 +350,7 @@ export const fr: Dict = {
   'dojo.left': 'Tu as quitté le dojo quand l’app est passée en arrière-plan.',
   'help.battle.title': 'Combats',
   'help.battle.body':
-    'Dès le stade Enfant, l’onglet Combat te permet d’affronter des créatures sauvages ou le compagnon d’un ami. Un combat utilise {battleEnergy} points d’énergie.\nChoisis une attaque à chaque tour. La Force augmente les dégâts, la Vitesse décide qui joue en premier, la Garde ajoute de la vie et de la défense, l’Astuce donne des coups critiques.\nUn compagnon apprend des attaques en grandissant : 2 enfant, 3 ado, 4 adulte. Ses formes décident lesquelles.\nUn compagnon peu discipliné peut ignorer tes ordres.\nLes victoires ajoutent quelques points de stats. Chaque vrai combat, gagné ou perdu, remplit la barre d’expérience ; pleine, elle donne un point, souvent dans la stat avec laquelle un adversaire t’a battu. Partage ton code ou ton lien pour que tes amis combattent une copie de ton compagnon.\nCombats en direct (si ce jeu a un serveur de combat) : lances-en un, envoie le code de salle à un ami et affrontez-vous en temps réel, chacun choisit ses attaques. Au dojo, des compagnons de force semblable venus de partout s’affrontent automatiquement, tant que tu y restes.',
+    'Dès le stade Enfant, l’onglet Combat te permet d’affronter des créatures sauvages ou le compagnon d’un ami. Un combat utilise {battleEnergy} points d’énergie.\nChoisis une attaque à chaque tour. La Force augmente les dégâts, la Vitesse décide qui joue en premier, la Garde ajoute de la vie et de la défense, l’Astuce donne des coups critiques.\nUn compagnon apprend des attaques en grandissant : 2 enfant, 3 ado, 4 adulte. Ses formes décident lesquelles.\nUn compagnon peu discipliné peut ignorer tes ordres.\nLes victoires ajoutent quelques points de stats. Chaque vrai combat, gagné ou perdu, remplit la barre d’expérience ; pleine, elle donne un point, souvent dans la stat avec laquelle un adversaire t’a battu. Partage ton code ou ton lien pour que tes amis combattent une copie de ton compagnon.\nCombats en direct (si ce jeu a un serveur de combat) : lances-en un, envoie le code de salle à un ami et affrontez-vous en temps réel, chacun choisit ses attaques. Au dojo, des compagnons de force semblable venus de partout s’affrontent automatiquement, tant que tu y restes. Le serveur peut compter quels compagnons passent au dojo, sans leur nom.',
   'help.title': 'Comment jouer',
   'help.egg.title': 'Soigner l’œuf',
   'help.egg.body':
@@ -391,6 +391,13 @@ export const fr: Dict = {
   'newEgg.start': 'Commencer',
   'welcome.title': 'Bienvenue dans Pet Hatch',
   'welcome.body': 'Un œuf t’attend. Quelle indulgence quand les soins manquent ? Ce choix vaut jusqu’à ton prochain œuf.',
+  'stats.share': 'Partager des statistiques anonymes',
+  'stats.hint': 'Une fois par jour, le jeu envoie un numéro anonyme pour ton compagnon avec son stade, son type, sa forme, le mode, la génération, les étoiles et, à la fin, comment son histoire s’est terminée. Pas de nom, pas de sauvegarde, pas d’adresse IP.',
+  'stats.askTitle': 'Partager des statistiques anonymes ?',
+  'stats.askBody': 'Cela aide à voir jusqu’où vont les compagnons. Une fois par jour, le jeu enverrait un numéro anonyme pour ton compagnon avec son stade, son type, sa forme, le mode, la génération, les étoiles et, à la fin, comment son histoire s’est terminée. Pas de nom, pas de sauvegarde, pas d’adresse IP. Tu peux changer cela dans les réglages.',
+  'stats.yes': 'Oui, partager',
+  'stats.no': 'Non merci',
+  'stats.ok': 'OK',
   'settings.sleep': 'Heure du coucher',
   'settings.sleepHint': 'Les besoins baissent à peine pendant ton sommeil. La soirée commence 4 heures avant.',
   'settings.sleepFrom': 'De',

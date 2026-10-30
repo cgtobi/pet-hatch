@@ -24,6 +24,8 @@ export interface SettingsHandlers {
   onImport(code: string): boolean;
   onNewEgg(): void;
   onInstall(): void;
+  /** Anonymous pet stats, where the server collects them (null otherwise: nothing to switch). */
+  stats: null | { on: boolean; set(on: boolean): void };
   /** Current game time, which runs ahead of the real clock after debug skips or with ?speed=. */
   now(): number;
   debug: null | {
@@ -148,6 +150,12 @@ export function openSettings(
       b.onclick = () => h.onInstall();
       app.append(el('div', { className: 'row' }, b));
     } else app.append(el('small', {}, t(install.ios ? 'settings.installIos' : 'settings.installOther')));
+    if (h.stats) {
+      const stats = h.stats;
+      const share = el('input', { type: 'checkbox', checked: stats.on });
+      share.onchange = () => stats.set((stats.on = share.checked));
+      app.append(el('label', { className: 'choice' }, share, t('stats.share')), el('small', {}, t('stats.hint')));
+    }
 
     const code = el('textarea', { placeholder: t('settings.importPlaceholder'), spellcheck: false });
     const exportBtn = el('button', { type: 'button', className: 'secondary' }, t('settings.export'));

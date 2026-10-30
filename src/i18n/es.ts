@@ -350,7 +350,7 @@ export const es: Dict = {
   'dojo.left': 'Saliste del dojo cuando la app pasó a segundo plano.',
   'help.battle.title': 'Combates',
   'help.battle.body':
-    'Desde la niñez, la pestaña Combate te deja luchar contra criaturas salvajes o la mascota de un amigo. Un combate usa {battleEnergy} puntos de energía.\nElige un movimiento cada turno. La Fuerza aumenta el daño, la Rapidez decide quién actúa primero, la Defensa añade vida y protección, la Astucia da golpes críticos.\nLa mascota aprende movimientos al crecer: 2 en la niñez, 3 de joven, 4 de adulta. Sus formas deciden cuáles.\nUna mascota con poca disciplina puede ignorar tus órdenes.\nLas victorias suman un par de puntos. Cada combate de verdad, ganado o perdido, llena la barra de experiencia; al llenarse da un punto, a menudo en la estadística con la que un rival te venció. Comparte tu código o enlace para que tus amigos combatan contra una copia de tu mascota.\nCombates en directo (si este juego tiene servidor de combate): inicia uno, envía el código de sala a un amigo y luchad en tiempo real, cada uno elige sus movimientos. En el dojo, mascotas de fuerza parecida de cualquier lugar se emparejan solas, pero solo mientras sigas allí.',
+    'Desde la niñez, la pestaña Combate te deja luchar contra criaturas salvajes o la mascota de un amigo. Un combate usa {battleEnergy} puntos de energía.\nElige un movimiento cada turno. La Fuerza aumenta el daño, la Rapidez decide quién actúa primero, la Defensa añade vida y protección, la Astucia da golpes críticos.\nLa mascota aprende movimientos al crecer: 2 en la niñez, 3 de joven, 4 de adulta. Sus formas deciden cuáles.\nUna mascota con poca disciplina puede ignorar tus órdenes.\nLas victorias suman un par de puntos. Cada combate de verdad, ganado o perdido, llena la barra de experiencia; al llenarse da un punto, a menudo en la estadística con la que un rival te venció. Comparte tu código o enlace para que tus amigos combatan contra una copia de tu mascota.\nCombates en directo (si este juego tiene servidor de combate): inicia uno, envía el código de sala a un amigo y luchad en tiempo real, cada uno elige sus movimientos. En el dojo, mascotas de fuerza parecida de cualquier lugar se emparejan solas, pero solo mientras sigas allí. El servidor puede contar qué mascotas visitan el dojo, sin sus nombres.',
   'help.title': 'Cómo se juega',
   'help.egg.title': 'Cuidar el huevo',
   'help.egg.body':
@@ -391,6 +391,13 @@ export const es: Dict = {
   'newEgg.start': 'Empezar',
   'welcome.title': 'Bienvenido a Pet Hatch',
   'welcome.body': 'Un huevo te espera. ¿Qué tan indulgente debe ser si faltan cuidados? Se mantiene hasta tu próximo huevo.',
+  'stats.share': 'Compartir estadísticas anónimas',
+  'stats.hint': 'Una vez al día, el juego envía un número anónimo de tu mascota con su etapa, tipo, forma, modo, generación, estrellas y, al final, cómo terminó su historia. Sin nombres, sin partida guardada, sin dirección IP.',
+  'stats.askTitle': '¿Compartir estadísticas anónimas?',
+  'stats.askBody': 'Ayuda a ver hasta dónde llegan las mascotas. Una vez al día, el juego enviaría un número anónimo de tu mascota con su etapa, tipo, forma, modo, generación, estrellas y, al final, cómo terminó su historia. Sin nombres, sin partida guardada, sin dirección IP. Puedes cambiarlo en Ajustes.',
+  'stats.yes': 'Sí, compartir',
+  'stats.no': 'No, gracias',
+  'stats.ok': 'OK',
   'settings.sleep': 'Hora de dormir',
   'settings.sleepHint': 'Las necesidades casi no bajan mientras duermes. La tarde empieza 4 horas antes.',
   'settings.sleepFrom': 'Desde',

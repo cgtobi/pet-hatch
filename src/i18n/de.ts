@@ -350,7 +350,7 @@ export const de: Dict = {
   'dojo.left': 'Du hast das Dojo verlassen, als die App im Hintergrund war.',
   'help.battle.title': 'Kämpfe',
   'help.battle.body':
-    'Ab dem Kindesalter kannst du im Tab Kampf gegen wilde Wesen oder das Tier von Freunden kämpfen. Ein Kampf kostet {battleEnergy} Energiepunkte.\nWähle jede Runde eine Attacke. Kraft erhöht den Schaden, Tempo entscheidet, wer zuerst angreift, Abwehr bringt Lebenspunkte und Schutz, Köpfchen sorgt für Volltreffer.\nMit dem Alter lernt es Attacken dazu: 2 als Kind, 3 als Teenie, 4 als Erwachsener. Seine Formen bestimmen, welche.\nEin Tier mit wenig Disziplin hört manchmal nicht auf dich.\nSiege bringen ein paar Punkte. Jeder echte Kampf, ob gewonnen oder verloren, füllt die Erfahrungsleiste; ist sie voll, gibt es einen Punkt, oft im Wert, mit dem dich ein Gegner geschlagen hat. Teile deinen Code oder Link, damit Freunde gegen eine Kopie deines Tiers kämpfen können.\nLive-Kämpfe (wenn dieses Spiel einen Kampfserver hat): Starte einen, schick den Raumcode und kämpft in Echtzeit, jeder wählt seine Attacken selbst. Im Dojo werden ähnlich starke Tiere von überall automatisch zusammengebracht, aber nur, solange du dort bleibst.',
+    'Ab dem Kindesalter kannst du im Tab Kampf gegen wilde Wesen oder das Tier von Freunden kämpfen. Ein Kampf kostet {battleEnergy} Energiepunkte.\nWähle jede Runde eine Attacke. Kraft erhöht den Schaden, Tempo entscheidet, wer zuerst angreift, Abwehr bringt Lebenspunkte und Schutz, Köpfchen sorgt für Volltreffer.\nMit dem Alter lernt es Attacken dazu: 2 als Kind, 3 als Teenie, 4 als Erwachsener. Seine Formen bestimmen, welche.\nEin Tier mit wenig Disziplin hört manchmal nicht auf dich.\nSiege bringen ein paar Punkte. Jeder echte Kampf, ob gewonnen oder verloren, füllt die Erfahrungsleiste; ist sie voll, gibt es einen Punkt, oft im Wert, mit dem dich ein Gegner geschlagen hat. Teile deinen Code oder Link, damit Freunde gegen eine Kopie deines Tiers kämpfen können.\nLive-Kämpfe (wenn dieses Spiel einen Kampfserver hat): Starte einen, schick den Raumcode und kämpft in Echtzeit, jeder wählt seine Attacken selbst. Im Dojo werden ähnlich starke Tiere von überall automatisch zusammengebracht, aber nur, solange du dort bleibst. Der Server zählt eventuell, welche Tiere das Dojo besuchen, ohne ihre Namen.',
   'help.title': 'So wird gespielt',
   'help.egg.title': 'Das Ei pflegen',
   'help.egg.body':
@@ -391,6 +391,13 @@ export const de: Dict = {
   'newEgg.start': 'Los geht’s',
   'welcome.title': 'Willkommen bei Pet Hatch',
   'welcome.body': 'Ein Ei wartet auf dich. Wie nachsichtig soll es sein, wenn Pflege ausfällt? Das gilt bis zu deinem nächsten Ei.',
+  'stats.share': 'Anonyme Tier-Statistik teilen',
+  'stats.hint': 'Einmal am Tag sendet das Spiel eine anonyme Nummer für dein Tier mit Phase, Typ, Form, Modus, Generation, Sternen und am Ende, wie seine Geschichte ausging. Keine Namen, kein Spielstand, keine IP-Adresse.',
+  'stats.askTitle': 'Anonyme Tier-Statistik teilen?',
+  'stats.askBody': 'So sieht man, wie weit Tiere kommen. Einmal am Tag würde das Spiel eine anonyme Nummer für dein Tier senden, mit Phase, Typ, Form, Modus, Generation, Sternen und am Ende, wie seine Geschichte ausging. Keine Namen, kein Spielstand, keine IP-Adresse. Du kannst das in den Einstellungen ändern.',
+  'stats.yes': 'Ja, teilen',
+  'stats.no': 'Nein danke',
+  'stats.ok': 'OK',
   'settings.sleep': 'Schlafenszeit',
   'settings.sleepHint': 'Bedürfnisse sinken kaum, während du schläfst. Der Abend beginnt 4 Stunden vorher.',
   'settings.sleepFrom': 'Von',

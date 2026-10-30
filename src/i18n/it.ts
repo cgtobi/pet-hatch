@@ -350,7 +350,7 @@ export const it: Dict = {
   'dojo.left': 'Sei uscito dal dojo quando l’app è andata in background.',
   'help.battle.title': 'Lotte',
   'help.battle.body':
-    'Dallo stadio Piccolo in poi, la scheda Lotta ti permette di sfidare creature selvatiche o il cucciolo di un amico. Una lotta consuma {battleEnergy} punti di energia.\nScegli una mossa a ogni turno. La Forza aumenta il danno, la Velocità decide chi attacca per primo, la Difesa dà salute e protezione, l’Ingegno regala colpi critici.\nCrescendo, il cucciolo impara nuove mosse: 2 da Piccolo, 3 da Giovane, 4 da Adulto. Le sue forme decidono quali.\nUn cucciolo con poca disciplina può ignorare i tuoi ordini.\nOgni vittoria aggiunge qualche punto alle caratteristiche. Ogni vera lotta, vinta o persa, riempie la barra dell’esperienza; quando è piena dà un punto, spesso nella caratteristica con cui un avversario ti ha battuto. Condividi il tuo codice o link così gli amici possono lottare contro una copia del tuo cucciolo.\nLotte dal vivo (se questo gioco ha un server di lotta): avviane una, manda il codice stanza a un amico e lottate in tempo reale, ognuno sceglie le sue mosse. Nel dojo, cuccioli di forza simile da ogni luogo vengono abbinati da soli, ma solo finché resti lì.',
+    'Dallo stadio Piccolo in poi, la scheda Lotta ti permette di sfidare creature selvatiche o il cucciolo di un amico. Una lotta consuma {battleEnergy} punti di energia.\nScegli una mossa a ogni turno. La Forza aumenta il danno, la Velocità decide chi attacca per primo, la Difesa dà salute e protezione, l’Ingegno regala colpi critici.\nCrescendo, il cucciolo impara nuove mosse: 2 da Piccolo, 3 da Giovane, 4 da Adulto. Le sue forme decidono quali.\nUn cucciolo con poca disciplina può ignorare i tuoi ordini.\nOgni vittoria aggiunge qualche punto alle caratteristiche. Ogni vera lotta, vinta o persa, riempie la barra dell’esperienza; quando è piena dà un punto, spesso nella caratteristica con cui un avversario ti ha battuto. Condividi il tuo codice o link così gli amici possono lottare contro una copia del tuo cucciolo.\nLotte dal vivo (se questo gioco ha un server di lotta): avviane una, manda il codice stanza a un amico e lottate in tempo reale, ognuno sceglie le sue mosse. Nel dojo, cuccioli di forza simile da ogni luogo vengono abbinati da soli, ma solo finché resti lì. Il server può contare quali cuccioli visitano il dojo, senza i loro nomi.',
   'help.title': 'Come si gioca',
   'help.egg.title': 'Prendersi cura dell’uovo',
   'help.egg.body':
@@ -391,6 +391,13 @@ export const it: Dict = {
   'newEgg.start': 'Inizia',
   'welcome.title': 'Benvenuto in Pet Hatch',
   'welcome.body': 'Un uovo ti aspetta. Quanto indulgente deve essere se mancano le cure? Resta così fino al prossimo uovo.',
+  'stats.share': 'Condividi statistiche anonime',
+  'stats.hint': 'Una volta al giorno il gioco invia un numero anonimo per il tuo cucciolo con fase, tipo, forma, modalità, generazione, stelle e, alla fine, come è finita la sua storia. Niente nomi, niente salvataggio, niente indirizzo IP.',
+  'stats.askTitle': 'Condividere statistiche anonime?',
+  'stats.askBody': 'Aiuta a capire fin dove arrivano i cuccioli. Una volta al giorno il gioco invierebbe un numero anonimo per il tuo cucciolo con fase, tipo, forma, modalità, generazione, stelle e, alla fine, come è finita la sua storia. Niente nomi, niente salvataggio, niente indirizzo IP. Puoi cambiarlo nelle Impostazioni.',
+  'stats.yes': 'Sì, condividi',
+  'stats.no': 'No, grazie',
+  'stats.ok': 'OK',
   'settings.sleep': 'Ora di dormire',
   'settings.sleepHint': 'I bisogni calano appena mentre dormi. La sera inizia 4 ore prima.',
   'settings.sleepFrom': 'Dalle',

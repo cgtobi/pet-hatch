@@ -350,7 +350,7 @@ export const nl: Dict = {
   'dojo.left': 'Je hebt de dojo verlaten toen de app op de achtergrond ging.',
   'help.battle.title': 'Gevechten',
   'help.battle.body':
-    'Vanaf het kindstadium kun je op het tabblad Gevecht vechten tegen wilde wezens of het dier van een vriend. Een gevecht kost {battleEnergy} energiepunten.\nKies elke beurt een aanval. Kracht verhoogt de schade, Snelheid bepaalt wie eerst gaat, Afweer geeft gezondheid en verdediging, Brein zorgt voor voltreffers.\nEen dier leert aanvallen terwijl het groeit: 2 als kind, 3 als tiener, 4 als volwassene. Zijn vormen bepalen welke.\nEen dier met weinig discipline luistert soms niet naar je.\nOverwinningen geven een paar waardepunten. Elk echt gevecht, gewonnen of verloren, vult de ervaringsbalk; is die vol, dan krijg je een punt, vaak in de waarde waarmee een tegenstander je versloeg. Deel je code of link zodat vrienden tegen een kopie van jouw dier kunnen vechten.\nLive gevechten (als deze game een gevechtsserver heeft): start er een, stuur je vriend de kamercode en vecht in realtime, ieder kiest zijn eigen aanvallen. In de dojo worden even sterke dieren van overal automatisch gekoppeld, maar alleen zolang je daar blijft.',
+    'Vanaf het kindstadium kun je op het tabblad Gevecht vechten tegen wilde wezens of het dier van een vriend. Een gevecht kost {battleEnergy} energiepunten.\nKies elke beurt een aanval. Kracht verhoogt de schade, Snelheid bepaalt wie eerst gaat, Afweer geeft gezondheid en verdediging, Brein zorgt voor voltreffers.\nEen dier leert aanvallen terwijl het groeit: 2 als kind, 3 als tiener, 4 als volwassene. Zijn vormen bepalen welke.\nEen dier met weinig discipline luistert soms niet naar je.\nOverwinningen geven een paar waardepunten. Elk echt gevecht, gewonnen of verloren, vult de ervaringsbalk; is die vol, dan krijg je een punt, vaak in de waarde waarmee een tegenstander je versloeg. Deel je code of link zodat vrienden tegen een kopie van jouw dier kunnen vechten.\nLive gevechten (als deze game een gevechtsserver heeft): start er een, stuur je vriend de kamercode en vecht in realtime, ieder kiest zijn eigen aanvallen. In de dojo worden even sterke dieren van overal automatisch gekoppeld, maar alleen zolang je daar blijft. De server kan tellen welke dieren de dojo bezoeken, zonder hun namen.',
   'help.title': 'Zo speel je',
   'help.egg.title': 'Zorgen voor het ei',
   'help.egg.body':
@@ -391,6 +391,13 @@ export const nl: Dict = {
   'newEgg.start': 'Beginnen',
   'welcome.title': 'Welkom bij Pet Hatch',
   'welcome.body': 'Er wacht een ei op je. Hoe vergevingsgezind moet het zijn als verzorging uitblijft? Dit blijft zo tot je volgende ei.',
+  'stats.share': 'Anonieme dierstatistieken delen',
+  'stats.hint': 'Eén keer per dag stuurt de game een anoniem nummer voor je dier met zijn fase, type, vorm, modus, generatie, sterren en aan het eind hoe zijn verhaal afliep. Geen namen, geen opgeslagen spel, geen IP-adres.',
+  'stats.askTitle': 'Anonieme dierstatistieken delen?',
+  'stats.askBody': 'Zo zie je hoe ver dieren komen. Eén keer per dag zou de game een anoniem nummer voor je dier sturen met zijn fase, type, vorm, modus, generatie, sterren en aan het eind hoe zijn verhaal afliep. Geen namen, geen opgeslagen spel, geen IP-adres. Je kunt dit wijzigen in Instellingen.',
+  'stats.yes': 'Ja, delen',
+  'stats.no': 'Nee, bedankt',
+  'stats.ok': 'OK',
   'settings.sleep': 'Bedtijd',
   'settings.sleepHint': 'Behoeften dalen nauwelijks terwijl je slaapt. De avond begint 4 uur eerder.',
   'settings.sleepFrom': 'Van',

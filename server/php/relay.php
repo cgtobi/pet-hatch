@@ -52,6 +52,12 @@ const STALE_MS = 25_000;
 
 /** Stat limits by life stage (child … elder), as in the game. */
 const STAT_CAPS = [0, 30, 60, 100, 100];
+/**
+ * Pets that visit the dojo are counted for the dashboard (stats.php), from the battle code they send anyway:
+ * a key hashed with a secret from the parts that never change (type, the seed's 16 bits, name; the name is never
+ * stored), with first and last visit and the last stage and form. Kept until this long after the last visit.
+ */
+const DOJO_PETS_KEEP_DAYS = 90;
 /** Dojo matching, as in server/dojo.mjs. */
 const DOJO_BASE_WINDOW = 0.1;
 const DOJO_GROW_WINDOW = 0.05;
@@ -363,6 +369,35 @@ function rating_from_code(mixed $code): ?int
     return array_sum($stats) + 20 * min($stage, 3);
 }
 
+/** Count a dojo visit for this battle code (already checked by rating_from_code). Never fails the visit. */
+function count_dojo_pet(string $code): void
+{
+    $bytes = array_values(unpack('C*', base64_decode(strtr($code, '-_', '+/'))));
+    array_pop($bytes);
+    $file = dirname(state_file()) . '/dojo-pets.php';
+    $handle = @fopen($file, 'c+');
+    if (!$handle || !flock($handle, LOCK_EX)) return;
+    $data = json_decode(substr((string) stream_get_contents($handle), strlen(GUARD)), true);
+    if (!is_array($data)) $data = ['secret' => bin2hex(random_bytes(32)), 'pets' => [], 'days' => []];
+    $stable = implode(',', [$bytes[1] >> 6, $bytes[8], $bytes[9], ...array_slice($bytes, 10)]);
+    $key = substr(hash_hmac('sha256', $stable, $data['secret']), 0, 16);
+    $today = gmdate('Y-m-d');
+    $pet = $data['pets'][$key] ?? ['first' => $today, 'last' => ''];
+    if ($pet['last'] !== $today) {
+        $data['days'][$today]['pets'] = ($data['days'][$today]['pets'] ?? 0) + 1;
+        if ($pet['first'] === $today) $data['days'][$today]['new'] = ($data['days'][$today]['new'] ?? 0) + 1;
+    }
+    $data['pets'][$key] = ['first' => $pet['first'], 'last' => $today, 'stage' => ($bytes[1] >> 3) & 7, 'form' => $bytes[2]];
+    $oldest = gmdate('Y-m-d', time() - DOJO_PETS_KEEP_DAYS * 86400);
+    $data['pets'] = array_filter($data['pets'], fn($p) => $p['last'] >= $oldest);
+    $data['days'] = array_filter($data['days'], fn($d) => $d >= gmdate('Y-m-d', time() - 400 * 86400), ARRAY_FILTER_USE_KEY);
+    ftruncate($handle, 0);
+    rewind($handle);
+    fwrite($handle, GUARD . json_encode($data, JSON_UNESCAPED_SLASHES));
+    flock($handle, LOCK_UN);
+    fclose($handle);
+}
+
 function match_window(int $rating, int $waitedMs): float
 {
     $share = min(DOJO_MAX_WINDOW, DOJO_BASE_WINDOW + DOJO_GROW_WINDOW * floor($waitedMs / 10_000));
@@ -471,6 +506,7 @@ switch (field($req, 'a')) {
     case 'dojo':
         $rating = rating_from_code($req['code'] ?? null);
         if ($rating === null || $id === '' || strlen($id) > 40) reply(refused('bad-request'));
+        count_dojo_pet($req['code']);
         $player = $id;
         reply(with_state(fn (array &$s, int $now) => join_dojo($s, $now, $rating, $player)));
 

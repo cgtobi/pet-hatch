@@ -207,8 +207,13 @@ button:focus:not(:focus-visible) {
   text-align: left;
 }
 
-.overlay-choices[hidden] {
+.overlay-choices[hidden],
+.overlay-check[hidden] {
   display: none;
+}
+
+.overlay-check {
+  text-align: left;
 }
 
 .overlay-field {

@@ -349,7 +349,7 @@ export const en = {
   'dojo.left': 'You left the dojo while the app was in the background.',
   'help.battle.title': 'Battles',
   'help.battle.body':
-    'From the child stage on, the Battle tab lets you fight wild creatures or a friend’s pet. A battle uses {battleEnergy} energy points.\nPick a move each turn. Power raises damage, Speed decides who goes first, Guard adds health and defense, Wits gives critical hits.\nA pet learns moves as it grows: 2 as a child, 3 as a teen, 4 as an adult. Its forms decide which.\nA pet with low discipline may ignore your orders.\nWins add a couple of stat points. Every real fight, won or lost, fills the experience bar; a full bar adds a point, often in the stat an opponent beat you with. Share your code or link so friends can battle a copy of your pet.\nLive battles (when this game has a battle server): start one, send your friend the room code, and fight in real time, each choosing your own moves. In the dojo, pets of similar strength from anywhere are matched automatically, but only while you stay there.',
+    'From the child stage on, the Battle tab lets you fight wild creatures or a friend’s pet. A battle uses {battleEnergy} energy points.\nPick a move each turn. Power raises damage, Speed decides who goes first, Guard adds health and defense, Wits gives critical hits.\nA pet learns moves as it grows: 2 as a child, 3 as a teen, 4 as an adult. Its forms decide which.\nA pet with low discipline may ignore your orders.\nWins add a couple of stat points. Every real fight, won or lost, fills the experience bar; a full bar adds a point, often in the stat an opponent beat you with. Share your code or link so friends can battle a copy of your pet.\nLive battles (when this game has a battle server): start one, send your friend the room code, and fight in real time, each choosing your own moves. In the dojo, pets of similar strength from anywhere are matched automatically, but only while you stay there. The server may count which pets visit the dojo, without their names.',
   'help.title': 'How to play',
   'help.egg.title': 'Caring for the egg',
   'help.egg.body':
@@ -390,6 +390,13 @@ export const en = {
   'newEgg.start': 'Start',
   'welcome.title': 'Welcome to Pet Hatch',
   'welcome.body': 'An egg is waiting for you. How forgiving should it be when care is missed? This stays the same until your next egg.',
+  'stats.share': 'Share anonymous pet stats',
+  'stats.hint': 'Once a day, the game sends an anonymous number for your pet with its stage, type, form, mode, generation, stars and, at the end, how its story ended. No names, no save, no IP address.',
+  'stats.askTitle': 'Share anonymous pet stats?',
+  'stats.askBody': 'It helps to see how far pets get. Once a day, the game would send an anonymous number for your pet with its stage, type, form, mode, generation, stars and, at the end, how its story ended. No names, no save, no IP address. You can change this in Settings.',
+  'stats.yes': 'Yes, share them',
+  'stats.no': 'No thanks',
+  'stats.ok': 'OK',
   'settings.sleep': 'Bedtime',
   'settings.sleepHint': 'Needs barely drop while you sleep. Evening starts 4 hours earlier.',
   'settings.sleepFrom': 'From',
