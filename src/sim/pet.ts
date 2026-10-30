@@ -5,8 +5,20 @@ import { maxEnergy } from './training';
 import type { EggState, ElementType, LifeStage, NeglectMode, PetNeed, PetState, Settings } from './types';
 
 export const LIFE_STAGES: LifeStage[] = ['baby', 'child', 'teen', 'adult', 'elder'];
-/** Hours each life stage lasts; after the last one the pet retires and leaves an egg. */
+/** Hours each life stage lasts at least; after the last one the pet retires and leaves an egg. */
 export const STAGE_HOURS: Record<LifeStage, number> = { baby: 24, child: 72, teen: 120, adult: 504, elder: 168 };
+/** Up to this many hours more as an adult and an elder, fixed per pet, so not every life lasts 37 days. */
+const EXTRA_HOURS: Partial<Record<LifeStage, [salt: number, hours: number]>> = {
+  adult: [0x5a17, 72],
+  elder: [0xe1de, 48],
+};
+
+/** How long this pet spends in a life stage. */
+export function stageHours(pet: Pick<PetState, 'seed'>, stage: LifeStage): number {
+  const extra = EXTRA_HOURS[stage];
+  if (!extra) return STAGE_HOURS[stage];
+  return STAGE_HOURS[stage] + Math.round(mulberry32(pet.seed ^ extra[0])() * extra[1]);
+}
 /** The shell left after hatching weathers away over this many days, unless the player sweeps it up first. */
 export const SHELL_DAYS = 3;
 
@@ -146,11 +158,13 @@ export function ageHours(pet: PetState, now: number): number {
 
 export function lifeStageIndex(pet: PetState, now: number): number {
   let h = ageHours(pet, now);
-  for (let i = 0; i < LIFE_STAGES.length; i++) {
-    h -= STAGE_HOURS[LIFE_STAGES[i]];
-    if (h < 0) return i;
+  let i = 0;
+  for (; i < LIFE_STAGES.length; i++) {
+    h -= stageHours(pet, LIFE_STAGES[i]);
+    if (h < 0) break;
   }
-  return LIFE_STAGES.length;
+  // Never back: a pet from before the extra adult days may already have grown further.
+  return Math.max(i, pet.stage);
 }
 
 export function lifeStage(pet: PetState, now: number): LifeStage {

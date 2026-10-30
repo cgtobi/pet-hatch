@@ -369,7 +369,7 @@ export const nl: Dict = {
     'Een roepje dat 30 minuten wordt genegeerd, een keuteltje dat een uur blijft liggen of (behalve in Knus) het een tweede keer wekken in één nacht, telt elk als een zorgfout.\nWeinig fouten als baby geven een vrolijk kind; meer fouten een slonzig kind dat wat langzamer traint.',
   'help.life.title': 'Opgroeien',
   'help.life.body':
-    'Baby (1 dag) → Kind (3 dagen) → Tiener (5 dagen) → Volwassen (3 weken) → Oudste (1 week).\nHet verandert van vorm als het kind, tiener en volwassen wordt.\nNa zijn oudste dagen gaat het op avontuur en laat het een nieuw ei voor je achter. De volgende generatie erft een voorsprong in zijn beste waarde en in elke andere waarde op 100.',
+    'Baby (1 dag) → Kind (3 dagen) → Tiener (5 dagen) → Volwassen (3 weken, soms een paar dagen meer) → Oudste (1 week of iets langer).\nHet verandert van vorm als het kind, tiener en volwassen wordt.\nNa zijn oudste dagen gaat het op avontuur en laat het een nieuw ei voor je achter. De volgende generatie erft een voorsprong in zijn beste waarde en in elke andere waarde op 100.',
   'help.train.title': 'Training',
   'help.train.body':
     'Vanaf het kindstadium biedt Train vier minigames: Kracht, Snelheid, Afweer en Brein.\nElke sessie kost {energy}% energie. Een betere score levert meer punten op, en hoe hoger een waarde, hoe langzamer die stijgt.\nElke waarde heeft een limiet per levensfase: {child} als kind, {teen} als tiener, {adult} als volwassene.\nElk type leert één waarde sneller: Gloed Kracht, Vloed Snelheid, Bloei Afweer, Astraal Brein.\nEen waarde op 100 levert een ster op.',

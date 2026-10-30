@@ -368,7 +368,7 @@ export const en = {
     'A call ignored for 30 minutes, a dropping left for an hour, or (outside Cozy) waking your pet a second time in one night each count as a care mistake.\nFew mistakes as a baby give a bright child; more give a scruffy one that trains a little slower.',
   'help.life.title': 'Growing up',
   'help.life.body':
-    'Baby (1 day) → Child (3 days) → Teen (5 days) → Adult (3 weeks) → Elder (1 week).\nIt changes form when it becomes a child, a teen and an adult.\nAfter its elder days it sets off on an adventure and leaves you a new egg. The next generation inherits a head start in its best stat, and in every other stat at 100.',
+    'Baby (1 day) → Child (3 days) → Teen (5 days) → Adult (3 weeks, sometimes a few days more) → Elder (1 week or a little more).\nIt changes form when it becomes a child, a teen and an adult.\nAfter its elder days it sets off on an adventure and leaves you a new egg. The next generation inherits a head start in its best stat, and in every other stat at 100.',
   'help.train.title': 'Training',
   'help.train.body':
     'From the child stage on, Train offers four minigames: Power, Speed, Guard and Wits.\nEach session uses {energy}% energy. A better score earns more points, and points come slower the higher a stat gets.\nEach stat has a limit per life stage: {child} as a child, {teen} as a teen, {adult} as an adult.\nEach type learns one stat faster: Ember Power, Tide Speed, Bloom Guard, Astral Wits.\nA stat at 100 earns a star.',

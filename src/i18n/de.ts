@@ -369,7 +369,7 @@ export const de: Dict = {
     'Ein 30 Minuten ignorierter Ruf, ein eine Stunde liegen gelassenes Häufchen oder (außer bei Gemütlich) ein zweites Wecken in derselben Nacht zählen jeweils als Pflegefehler.\nWenige Fehler im Babyalter ergeben ein munteres Kind, mehr ein zerzaustes, das etwas langsamer trainiert.',
   'help.life.title': 'Erwachsen werden',
   'help.life.body':
-    'Baby (1 Tag) → Kind (3 Tage) → Teenie (5 Tage) → Erwachsen (3 Wochen) → Senior (1 Woche).\nEs verändert seine Form, wenn es Kind, Teenie und erwachsen wird.\nNach seiner Seniorenzeit bricht es zu einem Abenteuer auf und lässt dir ein neues Ei da. Die nächste Generation erbt einen Vorsprung in seinem besten Wert und in jedem weiteren Wert auf 100.',
+    'Baby (1 Tag) → Kind (3 Tage) → Teenie (5 Tage) → Erwachsen (3 Wochen, manchmal ein paar Tage mehr) → Senior (1 Woche oder etwas mehr).\nEs verändert seine Form, wenn es Kind, Teenie und erwachsen wird.\nNach seiner Seniorenzeit bricht es zu einem Abenteuer auf und lässt dir ein neues Ei da. Die nächste Generation erbt einen Vorsprung in seinem besten Wert und in jedem weiteren Wert auf 100.',
   'help.train.title': 'Training',
   'help.train.body':
     'Ab dem Kindesalter bietet Training vier Minispiele: Kraft, Tempo, Abwehr und Köpfchen.\nJede Einheit kostet {energy} % Energie. Ein besseres Ergebnis bringt mehr Punkte, und je höher ein Wert, desto langsamer steigt er.\nJeder Wert hat pro Lebensphase eine Grenze: {child} als Kind, {teen} als Teenie, {adult} als Erwachsener.\nJeder Typ lernt einen Wert schneller: Glut Kraft, Flut Tempo, Blüte Abwehr, Astral Köpfchen.\nEin Wert auf 100 bringt einen Stern.',

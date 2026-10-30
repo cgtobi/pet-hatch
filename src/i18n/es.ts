@@ -369,7 +369,7 @@ export const es: Dict = {
     'Una llamada ignorada durante 30 minutos, una caca sin limpiar durante una hora o (salvo en Acogedor) despertarlo por segunda vez en una noche cuentan cada una como un descuido.\nPocos descuidos de bebé dan un niño alegre; más descuidos, uno despeinado que entrena un poco más despacio.',
   'help.life.title': 'Crecer',
   'help.life.body':
-    'Bebé (1 día) → Niñez (3 días) → Joven (5 días) → Adulto (3 semanas) → Anciano (1 semana).\nCambia de forma al llegar a la niñez, a joven y a adulto.\nTras su etapa de anciano se va de aventura y te deja un huevo nuevo. La siguiente generación hereda una ventaja en su mejor atributo y en cada otro atributo a 100.',
+    'Bebé (1 día) → Niñez (3 días) → Joven (5 días) → Adulto (3 semanas, a veces unos días más) → Anciano (1 semana o un poco más).\nCambia de forma al llegar a la niñez, a joven y a adulto.\nTras su etapa de anciano se va de aventura y te deja un huevo nuevo. La siguiente generación hereda una ventaja en su mejor atributo y en cada otro atributo a 100.',
   'help.train.title': 'Entrenamiento',
   'help.train.body':
     'Desde la niñez, Entrenar ofrece cuatro minijuegos: Fuerza, Rapidez, Defensa y Astucia.\nCada sesión usa un {energy} % de energía. Una mejor puntuación da más puntos, y cuanto más alto es un atributo, más despacio sube.\nCada atributo tiene un límite por etapa de vida: {child} en la niñez, {teen} de joven, {adult} de adulto.\nCada tipo aprende un atributo más rápido: Ascua Fuerza, Marea Rapidez, Brote Defensa, Astral Astucia.\nUn atributo a 100 gana una estrella.',

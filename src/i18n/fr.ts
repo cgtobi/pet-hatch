@@ -369,7 +369,7 @@ export const fr: Dict = {
     'Un appel ignoré pendant 30 minutes, une crotte laissée une heure ou (sauf en mode Cosy) un deuxième réveil dans la même nuit comptent chacun comme une erreur de soin.\nPeu d’erreurs quand il est bébé donnent un enfant vif ; davantage donnent un enfant ébouriffé, qui s’entraîne un peu plus lentement.',
   'help.life.title': 'Grandir',
   'help.life.body':
-    'Bébé (1 jour) → Enfant (3 jours) → Ado (5 jours) → Adulte (3 semaines) → Ancien (1 semaine).\nIl change de forme en devenant enfant, ado, puis adulte.\nAprès ses vieux jours, il part à l’aventure et te laisse un nouvel œuf. La génération suivante hérite d’une longueur d’avance dans sa meilleure stat et dans chaque autre stat à 100.',
+    'Bébé (1 jour) → Enfant (3 jours) → Ado (5 jours) → Adulte (3 semaines, parfois quelques jours de plus) → Ancien (1 semaine ou un peu plus).\nIl change de forme en devenant enfant, ado, puis adulte.\nAprès ses vieux jours, il part à l’aventure et te laisse un nouvel œuf. La génération suivante hérite d’une longueur d’avance dans sa meilleure stat et dans chaque autre stat à 100.',
   'help.train.title': 'Entraînement',
   'help.train.body':
     'Dès le stade Enfant, Entraîner propose quatre mini-jeux : Force, Vitesse, Garde et Astuce.\nChaque séance utilise {energy} % d’énergie. Un meilleur score rapporte plus de points, et plus une stat est haute, plus elle monte lentement.\nChaque stat a une limite par stade de vie : {child} enfant, {teen} ado, {adult} adulte.\nChaque type apprend plus vite une stat : Braise la Force, Marée la Vitesse, Pousse la Garde, Astral l’Astuce.\nUne stat à 100 rapporte une étoile.',

@@ -7,12 +7,14 @@ import {
   feedPet,
   giveMedicine,
   isSleeping,
+  LIFE_STAGES,
   lifeStage,
   lightSwitched,
   lowestNeed,
   migratePet,
   playWith,
   scold,
+  stageHours,
   startPowerNap,
   wakeAtNight,
 } from './pet';
@@ -56,10 +58,37 @@ describe('aging', () => {
     expect(lifeStage(s.pet, at(2, 10))).toBe('child');
     expect(lifeStage(s.pet, at(5, 10))).toBe('teen');
     expect(lifeStage(s.pet, at(10, 10))).toBe('adult');
-    expect(lifeStage(s.pet, at(31, 10))).toBe('elder');
+    // This pet's own adult and elder lengths decide when it becomes an elder and when it retires.
+    const elderAt = s.pet.hatchedAt + (24 + 72 + 120 + stageHours(s.pet, 'adult')) * HOUR;
+    const lifeEnd = elderAt + stageHours(s.pet, 'elder') * HOUR;
+    expect(lifeStage(s.pet, elderAt - HOUR)).toBe('adult');
+    expect(lifeStage(s.pet, elderAt + HOUR)).toBe('elder');
     s.settings.neglect = 'cozy';
-    advance(s, at(38, 10));
+    advance(s, lifeEnd - HOUR);
+    expect(s.pet.status).toBe('alive');
+    advance(s, lifeEnd + HOUR);
     expect(s.pet.status).toBe('retired');
+  });
+
+  it('lives 37 to 42 days: up to 3 more as an adult and 2 more as an elder, fixed per pet', () => {
+    const lives = [];
+    for (let seed = 1; seed <= 200; seed++) {
+      const pet = { seed };
+      expect(stageHours(pet, 'adult')).toBeGreaterThanOrEqual(21 * 24);
+      expect(stageHours(pet, 'adult')).toBeLessThanOrEqual(24 * 24);
+      expect(stageHours(pet, 'elder')).toBeGreaterThanOrEqual(7 * 24);
+      expect(stageHours(pet, 'elder')).toBeLessThanOrEqual(9 * 24);
+      expect(stageHours(pet, 'adult')).toBe(stageHours({ seed }, 'adult'));
+      lives.push(LIFE_STAGES.reduce((h, stage) => h + stageHours(pet, stage), 0) / 24);
+    }
+    expect(Math.min(...lives)).toBeLessThan(38);
+    expect(Math.max(...lives)).toBeGreaterThan(41);
+  });
+
+  it('never grows backwards when an older pet gets its extra adult days', () => {
+    const s = hatched();
+    s.pet.stage = 4;
+    expect(lifeStage(s.pet, s.pet.hatchedAt + 30 * 24 * HOUR)).toBe('elder');
   });
 });
 

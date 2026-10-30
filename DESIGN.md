@@ -80,9 +80,10 @@ the current mode but can't change it.
 
 ### Life stages ✅
 
-Egg 1 d → **Baby** 1 d → **Child** 3 d → **Teen** 5 d → **Adult** 3 wk → **Elder** 1 wk. The pet grows bigger at
-each stage, with a spin, flash and sparkle when it does. After the Elder stage it retires: it sets off on an
-adventure and leaves a new egg (see *Family*).
+Egg 1 d → **Baby** 1 d → **Child** 3 d → **Teen** 5 d → **Adult** 3 wk + 0–3 d → **Elder** 1 wk + 0–2 d. The extra
+adult and elder time is fixed per pet (from its seed), so a full life lasts 37 to 42 days rather than always 37.
+The pet grows bigger at each stage, with a spin, flash and sparkle when it does. After the Elder stage it retires:
+it sets off on an adventure and leaves a new egg (see *Family*).
 
 You name the baby when it hatches (a name is suggested).
 

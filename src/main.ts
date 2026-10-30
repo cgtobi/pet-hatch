@@ -43,7 +43,7 @@ import {
   startPowerNap,
   wakeAtNight,
   SHELL_DAYS,
-  STAGE_HOURS,
+  stageHours,
 } from './sim/pet';
 import { BATTLE_ENERGY, fighterFromPet, finishBattle, MOVES, wildFoe, type SideKey } from './sim/battle';
 import { findRelay } from './net/relayConfig';
@@ -936,7 +936,7 @@ function showSettings() {
               const now = gameNow(state);
               const next = lifeStageIndex(state.pet, now) + 1;
               let h = 0;
-              for (const stage of LIFE_STAGES.slice(0, next)) h += STAGE_HOURS[stage];
+              for (const stage of LIFE_STAGES.slice(0, next)) h += stageHours(state.pet, stage);
               state.clockOffset += Math.max(0, h - ageHours(state.pet, now)) * HOUR + 60_000;
             }
             updateHud();

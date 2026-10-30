@@ -369,7 +369,7 @@ export const it: Dict = {
     'Un richiamo ignorato per 30 minuti, un ricordino lasciato per un’ora o (tranne in Relax) un secondo risveglio nella stessa notte contano ognuno come un errore di cura.\nPochi errori da cucciolo danno un piccolo vivace; di più ne danno uno scarruffato che si allena un po’ più lentamente.',
   'help.life.title': 'Crescere',
   'help.life.body':
-    'Cucciolo (1 giorno) → Piccolo (3 giorni) → Giovane (5 giorni) → Adulto (3 settimane) → Anziano (1 settimana).\nCambia forma quando diventa Piccolo, Giovane e Adulto.\nDopo gli anni da anziano parte per un’avventura e ti lascia un nuovo uovo. La generazione successiva eredita un vantaggio nella sua caratteristica migliore e in ogni altra caratteristica a 100.',
+    'Cucciolo (1 giorno) → Piccolo (3 giorni) → Giovane (5 giorni) → Adulto (3 settimane, a volte qualche giorno in più) → Anziano (1 settimana o poco più).\nCambia forma quando diventa Piccolo, Giovane e Adulto.\nDopo gli anni da anziano parte per un’avventura e ti lascia un nuovo uovo. La generazione successiva eredita un vantaggio nella sua caratteristica migliore e in ogni altra caratteristica a 100.',
   'help.train.title': 'Allenamento',
   'help.train.body':
     'Dallo stadio Piccolo in poi, Allena offre quattro minigiochi: Forza, Velocità, Difesa e Ingegno.\nOgni sessione consuma il {energy}% di energia. Un punteggio migliore dà più punti, e più una caratteristica è alta, più lentamente sale.\nOgni caratteristica ha un limite per fase di vita: {child} da Piccolo, {teen} da Giovane, {adult} da Adulto.\nOgni tipo impara più in fretta una caratteristica: Brace la Forza, Onda la Velocità, Fiore la Difesa, Astrale l’Ingegno.\nUna caratteristica a 100 vale una stella.',
