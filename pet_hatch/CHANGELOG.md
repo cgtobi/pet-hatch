@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.11
+
+- How forgiving the game is (Cozy, Gentle, Classic) is now chosen when an egg starts and stays until the next
+  egg; Settings shows it but can't change it. New players pick it on a welcome screen.
+
 ## 0.3.10
 
 - Opening Training or Battle is smooth now: the camera glides back and up while the menu rises, and glides back
