@@ -1,6 +1,7 @@
 import { dayPart, HOUR, isAsleep, MINUTE } from './clock';
 import { formFor } from './evolution';
 import { mulberry32 } from './rng';
+import { maxEnergy } from './training';
 import type { EggState, ElementType, LifeStage, NeglectMode, PetNeed, PetState, Settings } from './types';
 
 export const LIFE_STAGES: LifeStage[] = ['baby', 'child', 'teen', 'adult', 'elder'];
@@ -116,6 +117,7 @@ export function createPet(egg: EggState, type: ElementType, at: number, alone: b
     shownStage: 0,
     shownForm: 'baby',
     stats: { power: 0, speed: 0, guard: 0, wits: 0, ...egg.heritage?.stats },
+    endurance: 0,
     trainings: 0,
     path: ['baby'],
     battles: { wins: 0, losses: 0 },
@@ -243,7 +245,7 @@ export function tickPet(pet: PetState, t: number, dtH: number, settings: Setting
   const rest = pet.dozing ? DOZE_REST : dark ? ENERGY_REST_DARK : ENERGY_REST_LIT;
   pet.hunger = clamp(pet.hunger - DECAY[stage].hunger * dtH * decayMul);
   pet.mood = clamp(pet.mood - DECAY[stage].mood * dtH * decayMul * (pet.sick ? 1.5 : 1));
-  pet.energy = clamp(pet.energy + (asleep ? rest : -ENERGY_DRAIN) * dtH);
+  pet.energy = clamp(pet.energy + (asleep ? rest : -ENERGY_DRAIN) * dtH, 0, maxEnergy(pet));
 
   // Digestion.
   while (pet.poopsDue.length && pet.poopsDue[0] <= t) {
@@ -377,7 +379,7 @@ export function playWith(pet: PetState, now: number, settings: Settings): PlayRe
   if (isSleeping(pet, now, settings)) return 'asleep';
   if (pet.energy < PLAY_ENERGY) return 'tired';
   pet.mood = clamp(pet.mood + PLAY_MOOD);
-  pet.energy = clamp(pet.energy - PLAY_ENERGY);
+  pet.energy = clamp(pet.energy - PLAY_ENERGY, 0, maxEnergy(pet));
   pet.hunger = clamp(pet.hunger - 4);
   return 'ok';
 }

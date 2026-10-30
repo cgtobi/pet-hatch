@@ -3,6 +3,10 @@ import { mulberry32 } from './rng';
 import type { ElementType, PetState, Settings, Stat } from './types';
 
 export const STATS: Stat[] = ['power', 'speed', 'guard', 'wits'];
+/** What a training session can raise: the four battle stats, or endurance. */
+export type TrainStat = Stat | 'endurance';
+/** Each point of endurance adds this much to the most energy a pet can have (+50 at 100). */
+const ENDURANCE_ENERGY = 0.5;
 /** Highest value each stat can reach, by life stage index (babies are too young to train). */
 export const STAT_CAPS = [0, 30, 60, 100, 100];
 /** The highest a stat can ever get; each stat there earns the pet a star. */
@@ -55,13 +59,22 @@ export function masteredStats(pet: PetState): Stat[] {
   return STATS.filter((s) => pet.stats[s] >= MAX_STAT);
 }
 
+/** The most energy the pet can have: 100, plus more with endurance. */
+export function maxEnergy(pet: PetState): number {
+  return 100 + Math.round((pet.endurance ?? 0) * ENDURANCE_ENERGY);
+}
+
+export function trainValue(pet: PetState, stat: TrainStat): number {
+  return stat === 'endurance' ? pet.endurance : pet.stats[stat];
+}
+
 export function statCap(pet: PetState): number {
   return STAT_CAPS[Math.min(pet.stage, STAT_CAPS.length - 1)];
 }
 
 /** Points a session earns before the cap: 1 … 6 by score, faster for the favorite stat, slower the higher the stat. */
-export function trainGain(pet: PetState, stat: Stat, score: number): number {
-  let gain = (1 + 5 * clamp(score, 0, 1)) * (1 - (SLOWDOWN * pet.stats[stat]) / 100);
+export function trainGain(pet: PetState, stat: TrainStat, score: number): number {
+  let gain = (1 + 5 * clamp(score, 0, 1)) * (1 - (SLOWDOWN * trainValue(pet, stat)) / 100);
   if (FAVORITE[pet.type] === stat) gain *= 1.25;
   if (pet.form === 'child.scruffy') gain *= 0.8;
   if (pet.stage >= 4) gain *= 0.5;
@@ -75,15 +88,16 @@ export interface TrainResult {
 }
 
 /** Apply a finished session: score is 0 … 1 from the minigame. */
-export function finishTraining(pet: PetState, stat: Stat, score: number): TrainResult {
+export function finishTraining(pet: PetState, stat: TrainStat, score: number): TrainResult {
   const cap = statCap(pet);
-  const gain = Math.max(0, Math.min(trainGain(pet, stat, score), cap - pet.stats[stat]));
-  pet.stats[stat] += gain;
+  const gain = Math.max(0, Math.min(trainGain(pet, stat, score), cap - trainValue(pet, stat)));
+  if (stat === 'endurance') pet.endurance += gain;
+  else pet.stats[stat] += gain;
   pet.trainings++;
-  pet.energy = clamp(pet.energy - TRAIN_ENERGY);
+  pet.energy = clamp(pet.energy - TRAIN_ENERGY, 0, maxEnergy(pet));
   pet.hunger = clamp(pet.hunger - TRAIN_HUNGER);
   pet.mood = clamp(pet.mood + (score >= 0.5 ? 6 : -3));
-  return { gain, capped: pet.stats[stat] >= cap };
+  return { gain, capped: trainValue(pet, stat) >= cap };
 }
 
 export type Grade = 'excellent' | 'great' | 'good' | 'poor';

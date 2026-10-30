@@ -1106,6 +1106,9 @@ body.sheet-open #update {
 .violet-fill {
   background: #8c76d6;
 }
+.bloom-fill {
+  background: var(--bloom);
+}
 
 .train-result {
   display: flex;
@@ -1377,6 +1380,71 @@ body.sheet-open #update {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* Endurance: jump rope. */
+.mg-rope {
+  position: absolute;
+  inset: 8px;
+  width: calc(100% - 16px);
+  height: calc(100% - 16px);
+}
+
+.mg-rope-line {
+  fill: none;
+  stroke: var(--ink-2);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.mg-rope-line.back {
+  opacity: 0.3;
+}
+
+.mg-rope-ground {
+  stroke: #ddd4e8;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.mg-rope-cue {
+  fill: var(--bloom);
+  opacity: 0;
+}
+
+.mg-rope-shadow {
+  fill: rgba(46, 42, 58, 0.15);
+}
+
+.mg-rope-hand {
+  fill: var(--ink-2);
+}
+
+.mg-rope-jumper circle {
+  fill: var(--bloom-bg);
+  stroke: var(--bloom);
+  stroke-width: 2;
+  transition: fill 0.2s;
+}
+
+.mg-rope-jumper svg {
+  color: var(--bloom-ink);
+}
+
+.mg-rope-jumper.ouch circle {
+  fill: #ffd6cc;
+  stroke: var(--coral);
+}
+
+.mg-rope-text {
+  position: absolute;
+  top: 12px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-weight: 800;
+  color: var(--muted);
+  pointer-events: none;
 }
 
 .mg-core.ouch {

@@ -3,7 +3,7 @@ import { HOUR } from './clock';
 import { formFor, speciesName, topStat } from './evolution';
 import { advance, DEFAULT_SETTINGS, hatch, newGame } from './game';
 import { feedPet, migratePet } from './pet';
-import { canTrain, finishTraining, refusalChance, startTraining, STAT_CAPS, trainGain } from './training';
+import { canTrain, finishTraining, maxEnergy, refusalChance, startTraining, STAT_CAPS, trainGain } from './training';
 import type { GameState, PetState } from './types';
 
 const at = (day: number, hour: number, min = 0) => new Date(2026, 0, day, hour, min).getTime();
@@ -163,5 +163,43 @@ describe('evolution', () => {
     const pet = migratePet(old);
     expect(pet.stats).toEqual({ power: 0, speed: 0, guard: 0, wits: 0 });
     expect(pet.form).toBe('baby');
+  });
+});
+
+describe('endurance', () => {
+  it('trains like a stat, within the same caps, without touching the battle stats', () => {
+    const s = child();
+    const before = { ...s.pet.stats };
+    const r = finishTraining(s.pet, 'endurance', 1);
+    expect(r.gain).toBeGreaterThan(0);
+    expect(s.pet.endurance).toBe(r.gain);
+    expect(s.pet.stats).toEqual(before);
+    for (let i = 0; i < 20; i++) {
+      s.pet.energy = 100;
+      finishTraining(s.pet, 'endurance', 1);
+    }
+    expect(s.pet.endurance).toBe(STAT_CAPS[1]);
+    expect(finishTraining(s.pet, 'endurance', 1)).toEqual({ gain: 0, capped: true });
+  });
+
+  it('raises the most energy a pet can have, which rest then fills', () => {
+    const s = child();
+    expect(maxEnergy(s.pet)).toBe(100);
+    s.pet.endurance = 60;
+    expect(maxEnergy(s.pet)).toBe(130);
+    s.pet.endurance = 100;
+    expect(maxEnergy(s.pet)).toBe(150);
+    // A long night's sleep fills it up, and no further.
+    s.pet.energy = 40;
+    advance(s, at(3, 6));
+    expect(s.pet.energy).toBeGreaterThan(100);
+    expect(s.pet.energy).toBeLessThanOrEqual(150);
+  });
+
+  it('starts at 0, also for pets from older saves', () => {
+    expect(child().pet.endurance).toBe(0);
+    const old = { ...child().pet } as Partial<PetState>;
+    delete old.endurance;
+    expect(migratePet(old as PetState).endurance).toBe(0);
   });
 });

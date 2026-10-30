@@ -1,6 +1,6 @@
 import { speciesName } from './evolution';
 import { mulberry32 } from './rng';
-import { STAT_CAPS, STATS } from './training';
+import { maxEnergy, STAT_CAPS, STATS } from './training';
 import type { ElementType, FormId, PetState, Stat } from './types';
 
 /**
@@ -392,7 +392,7 @@ export function lessonFrom(pet: PetState, foe: Fighter): Stat {
 export function finishBattle(pet: PetState, outcome: Outcome, seed: number, summary: BattleSummary): BattleReward {
   const rand = mulberry32(seed);
   const reward: BattleReward = { stat: null, gain: 0, xp: 0, learned: null, teacher: null };
-  pet.energy = clamp(pet.energy - BATTLE_ENERGY, 0, 100);
+  pet.energy = clamp(pet.energy - BATTLE_ENERGY, 0, maxEnergy(pet));
   pet.hunger = clamp(pet.hunger - BATTLE_HUNGER, 0, 100);
   const cap = STAT_CAPS[Math.min(pet.stage, STAT_CAPS.length - 1)];
   const open = () => STATS.filter((s) => pet.stats[s] < cap);

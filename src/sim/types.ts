@@ -159,6 +159,11 @@ export interface PetState {
   shownStage: number;
   shownForm: FormId;
   stats: Record<Stat, number>;
+  /**
+   * Trained like a stat (same caps) but not used in battle: it raises the most energy the pet can have,
+   * so it can train, play and fight longer (see maxEnergy).
+   */
+  endurance: number;
   /** Finished training sessions. */
   trainings: number;
   /** Every form taken so far, in order (the teen form decides one of the adult's moves). */

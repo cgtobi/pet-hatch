@@ -1,4 +1,4 @@
-import type { Stat } from '../sim/types';
+import type { TrainStat } from '../sim/training';
 import { icon, type IconName } from './icons';
 
 /** What a minigame reports while it runs; the pet reacts to hits and misses. */
@@ -360,5 +360,129 @@ const recall: Factory = (area, hooks, text) =>
     };
   });
 
-export const GAMES: Record<Stat, Factory> = { power: smash, speed: catchStars, guard: block, wits: recall };
-export const STAT_ICONS: Record<Stat, IconName> = { power: 'dumbbell', speed: 'wind', guard: 'shield', wits: 'bulb' };
+/**
+ * Endurance: jump the rope in rhythm. Tap to jump as the rope reaches the ground; it turns faster and faster.
+ * A jump keeps the pet in the air for a moment, and jumping off the beat costs points, so mashing doesn't pay.
+ */
+const jumpRope: Factory = (area, hooks, text) =>
+  game(area, (finish) => {
+    const JUMPS = 28;
+    /** Practice turns before the counted ones, to catch the rhythm. */
+    const LEAD = 2;
+    /** Seconds per turn of the rope: the first counted jump, and the last. */
+    const SLOW = 0.95;
+    const FAST = 0.42;
+    const FEET = 112;
+    const period = (i: number) => SLOW + (FAST - SLOW) * clamp01((i - LEAD) / (JUMPS - 1));
+    /** What a jump off the beat costs, against 1 for a clean jump. */
+    const WASTED = 0.5;
+    /** How far off the beat a jump still clears the rope. */
+    const slack = (i: number) => Math.min(0.14, 0.3 * period(i));
+    // When the rope passes under the feet; it starts turning one slow turn before the first.
+    const beats: number[] = [];
+    for (let i = 0, at = 1.2; i < LEAD + JUMPS; at += period(i), i++) beats.push(at);
+    const judged = beats.map(() => false);
+
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 200 150');
+    svg.classList.add('mg-rope');
+    svg.innerHTML = `<line class="mg-rope-ground" x1="20" y1="141" x2="180" y2="141"/>
+      <ellipse class="mg-rope-cue" cx="100" cy="141" rx="28" ry="5"/>
+      <path class="mg-rope-line back"/>
+      <ellipse class="mg-rope-shadow" cx="100" cy="141" rx="16" ry="3.5"/>
+      <g class="mg-rope-jumper"><circle r="18"/><g transform="translate(-11 -11)">${icon('bolt', 22)}</g></g>
+      <path class="mg-rope-line front"/>
+      <circle class="mg-rope-hand" cx="30" cy="70" r="5"/><circle class="mg-rope-hand" cx="170" cy="70" r="5"/>`;
+    const [back, front] = svg.querySelectorAll<SVGPathElement>('.mg-rope-line');
+    const jumper = svg.querySelector<SVGGElement>('.mg-rope-jumper')!;
+    const shadow = svg.querySelector<SVGEllipseElement>('.mg-rope-shadow')!;
+    const cue = svg.querySelector<SVGEllipseElement>('.mg-rope-cue')!;
+    const label = el('mg-rope-text', text.ready);
+    area.replaceChildren(svg, label);
+
+    let t = 0;
+    let beat = 0;
+    let jumpAt = -1;
+    let jumpLen = 0.4;
+    let cleared = 0;
+    let points = 0;
+    let ouchUntil = 0;
+    hooks.status(`0 / ${JUMPS}`);
+
+    const onTap = (e: PointerEvent) => {
+      e.preventDefault();
+      if (t < beats[0] - SLOW || t - jumpAt < jumpLen) return;
+      jumpAt = t;
+      jumpLen = Math.min(0.42, Math.max(0.26, 0.55 * period(beat)));
+      const i = beats.findIndex((b, j) => !judged[j] && Math.abs(t - b) <= slack(j));
+      if (i < 0) {
+        if (t > beats[LEAD] - slack(LEAD)) points -= WASTED;
+        return;
+      }
+      judged[i] = true;
+      if (i < LEAD) return;
+      cleared++;
+      points += Math.abs(t - beats[i]) <= slack(i) / 2 ? 1 : 0.7;
+      hooks.status(`${cleared} / ${JUMPS}`);
+      hooks.hit();
+    };
+    area.addEventListener('pointerdown', onTap);
+
+    const stopLoop = runLoop((dt) => {
+      t += dt;
+      while (beat < beats.length - 1 && t >= beats[beat]) beat++;
+      // The rope is at the bottom on each beat; it comes over the top in front and goes back up behind.
+      const from = beat === 0 ? beats[0] - SLOW : beats[beat - 1];
+      const to = beats[beat] > from ? beats[beat] : from + period(beat);
+      const turn = Math.max(0, (t - from) / (to - from));
+      const angle = 2 * Math.PI * (turn % 1);
+      const d = `M 30 70 Q 100 ${70 + 140 * Math.cos(angle)} 170 70`;
+      const inFront = angle > Math.PI;
+      front.setAttribute('d', inFront ? d : '');
+      back.setAttribute('d', inFront ? '' : d);
+
+      const air = jumpAt >= 0 && t - jumpAt < jumpLen ? Math.sin((Math.PI * (t - jumpAt)) / jumpLen) : 0;
+      jumper.setAttribute('transform', `translate(100 ${FEET - air * 26})`);
+      shadow.setAttribute('rx', String(16 - 6 * air));
+      const next = beats.find((b, j) => !judged[j] && b > t - slack(j));
+      cue.style.opacity = next === undefined ? '0' : String(0.5 * clamp01(1 - Math.abs(next - t) / 0.35));
+      if (t > beats[LEAD] - 0.5) label.textContent = '';
+
+      // A turn passed without a jump: the rope catches the pet's feet.
+      beats.forEach((b, j) => {
+        if (judged[j] || t <= b + slack(j)) return;
+        judged[j] = true;
+        if (j < LEAD) return;
+        ouchUntil = t + 0.3;
+        hooks.miss();
+      });
+      jumper.classList.toggle('ouch', t < ouchUntil);
+
+      const last = beats[beats.length - 1];
+      hooks.progress(clamp01((t - beats[LEAD]) / (last - beats[LEAD])));
+      if (t > last + slack(beats.length - 1) + 0.4) {
+        finish(Math.max(0, points) / JUMPS);
+        return false;
+      }
+      return true;
+    });
+    return () => {
+      stopLoop();
+      area.removeEventListener('pointerdown', onTap);
+    };
+  });
+
+export const GAMES: Record<TrainStat, Factory> = {
+  power: smash,
+  speed: catchStars,
+  guard: block,
+  wits: recall,
+  endurance: jumpRope,
+};
+export const STAT_ICONS: Record<TrainStat, IconName> = {
+  power: 'dumbbell',
+  speed: 'wind',
+  guard: 'shield',
+  wits: 'bulb',
+  endurance: 'bolt',
+};

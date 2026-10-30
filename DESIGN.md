@@ -27,6 +27,7 @@ Status of each part: ✅ built, 🔜 planned.
   30% with it left on, and no care mistakes count while you sleep. The **evening** is the 4 hours before it
   (`dayPart()` in `src/sim/clock.ts`).
 - ✅ **Debug:** `?debug` shows Settings › Debug (+1 h, +6 h, Ready now); `?speed=600` runs game time 600×.
+- **Feature flags** (`src/flags.ts`): `?endu=1` turns on endurance training on this device (`?endu=0` turns it off).
 
 ## Egg phase
 
@@ -159,6 +160,14 @@ island stays in view above the sheet; closing it glides back. (Every change of f
   At a 70% score a stat takes about 8 sessions to reach the child cap, 10 more for the teen cap and 25 more for
   100 (6, 8 and 18 for the favourite stat), so maxing all four takes most of the adult stage.
 - **Caps per life stage:** babies can't train; Child 30, Teen 60, Adult and Elder 100.
+- **Endurance** (behind a feature flag, `?endu=1` to switch on and remember, `?endu=0` to switch off): a fifth
+  row on the Train sheet, trained by **Jump rope**. It follows the same caps and slowdown but isn't a battle stat
+  (no star, no part in battles, evolution or inheritance). Each point adds 0.5 to the most energy the pet can have
+  (150 at 100), so it can train, play and fight longer; the energy bar shows energy against that maximum. The
+  effect applies whenever a pet has endurance, flag or not.
+  - Jump rope: tap to jump as the rope reaches the ground. Two practice turns, then 28 counted jumps while a turn
+    speeds up from 0.95 s to 0.42 s. A jump within ±0.14 s (less once fast) clears the rope, full marks for the
+    inner half of that window; a jump keeps the pet in the air for a moment, so mashing misses the next turn.
 - **Stars:** each stat at 100 earns a star: a gold ★ chip in the pet's header (one star per stat), "★ Max" on
   the Train sheet, and the stars stay with the pet in the family list. More stars also mean a bigger head start
   for the next generation (see *Family*).

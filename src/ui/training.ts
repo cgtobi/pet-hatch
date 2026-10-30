@@ -1,8 +1,18 @@
 import { t, type TextKey } from '../i18n';
 import { speciesName } from '../sim/evolution';
 import { LIFE_STAGES } from '../sim/pet';
-import { grade, MAX_STAT, STATS, statCap, TRAIN_ENERGY, type TrainCheck, type TrainResult } from '../sim/training';
-import type { PetState, Stat } from '../sim/types';
+import {
+  grade,
+  MAX_STAT,
+  STATS,
+  statCap,
+  TRAIN_ENERGY,
+  trainValue,
+  type TrainCheck,
+  type TrainResult,
+  type TrainStat,
+} from '../sim/training';
+import type { PetState } from '../sim/types';
 import { icon } from './icons';
 import { GAMES, STAT_ICONS, type GameText, type Minigame } from './minigames';
 import { esc, type ActivitySheet } from './sheet';
@@ -11,13 +21,18 @@ export interface TrainingHandlers {
   pet(): PetState;
   check(): TrainCheck;
   /** Roll for obedience; false means the pet refused (the sheet closes). */
-  start(stat: Stat): boolean;
+  start(stat: TrainStat): boolean;
   hit(): void;
   miss(): void;
-  finish(stat: Stat, score: number): TrainResult;
+  finish(stat: TrainStat, score: number): TrainResult;
+  /** Endurance training is still behind a feature flag (?endu=1). */
+  endurance(): boolean;
 }
 
-const TONES: Record<Stat, string> = { power: 'ember', speed: 'amber', guard: 'tide', wits: 'violet' };
+const TONES: Record<TrainStat, string> = { power: 'ember', speed: 'amber', guard: 'tide', wits: 'violet', endurance: 'bloom' };
+
+/** A star for each battle stat at 100; endurance has none. */
+const starred = (pet: PetState, stat: TrainStat) => stat !== 'endurance' && trainValue(pet, stat) >= MAX_STAT;
 
 /** The Training tab: stats overview, then one minigame, then the result. */
 export class Training {
@@ -47,8 +62,9 @@ export class Training {
     const cap = statCap(pet);
     const stage = Math.min(pet.stage, LIFE_STAGES.length - 1);
     const sub = `${speciesName(pet.type, pet.form)} · ${t(`life.${LIFE_STAGES[stage]}`)}`;
-    const rows = STATS.map((stat) => {
-      const v = pet.stats[stat];
+    const trainable: TrainStat[] = this.h.endurance() ? [...STATS, 'endurance'] : STATS;
+    const rows = trainable.map((stat) => {
+      const v = trainValue(pet, stat);
       const maxed = cap > 0 && v >= cap;
       const disabled = check !== 'ok' || maxed;
       return `<button type="button" class="train-row" data-stat="${stat}" ${disabled ? 'disabled' : ''}>
@@ -56,7 +72,7 @@ export class Training {
         <span class="train-row-main">
           <span class="train-row-top">
             <b>${t(`stat.${stat}`)}</b><span class="muted">${t(`game.${stat}`)}</span>
-            <span class="train-val">${maxed ? `${v >= MAX_STAT ? '<span class="star">★</span> ' : ''}${t('train.max')}` : `${v} / ${cap}`}</span>
+            <span class="train-val">${maxed ? `${starred(pet, stat) ? '<span class="star">★</span> ' : ''}${t('train.max')}` : `${v} / ${cap}`}</span>
           </span>
           <span class="track"><span class="fill ${TONES[stat]}-fill" style="width:${cap ? (v / cap) * 100 : 0}%"></span></span>
         </span>
@@ -71,7 +87,7 @@ export class Training {
     this.s.bindHead();
     this.sheet.querySelectorAll<HTMLButtonElement>('.train-row').forEach((b) =>
       b.addEventListener('click', () => {
-        const stat = b.dataset.stat as Stat;
+        const stat = b.dataset.stat as TrainStat;
         if (this.h.start(stat)) this.intro(stat);
         else this.s.close();
       }),
@@ -80,7 +96,7 @@ export class Training {
   }
 
   /** How to play, and a start button, so the game never begins before the player is ready. */
-  private intro(stat: Stat): void {
+  private intro(stat: TrainStat): void {
     this.sheet.innerHTML = `${this.s.head({ title: t(`game.${stat}`), sub: t(`stat.${stat}`), closeLabel: t('train.quit') })}
       <div class="track mg-progress"><div class="fill ${TONES[stat]}-fill"></div></div>
       <div class="mg-area mg-${stat}">
@@ -95,7 +111,7 @@ export class Training {
     this.s.layout();
   }
 
-  private play(stat: Stat): void {
+  private play(stat: TrainStat): void {
     const area = this.sheet.querySelector<HTMLElement>('.mg-area')!;
     const bar = this.sheet.querySelector<HTMLElement>('.mg-progress .fill')!;
     const sub = this.sheet.querySelector<HTMLElement>('.train-sub')!;
@@ -127,13 +143,13 @@ export class Training {
     });
   }
 
-  private result(stat: Stat, score: number, r: TrainResult): void {
+  private result(stat: TrainStat, score: number, r: TrainResult): void {
     const name = t(`stat.${stat}`);
     const again = this.h.check() === 'ok' && !r.capped;
     const gain = r.gain > 0 ? `<p class="train-gain ${TONES[stat]}">${t('train.gain', { stat: name, n: r.gain })}</p>` : '';
     const pet = this.h.pet();
     const capped = r.capped
-      ? `<p class="train-goal">${t(pet.stats[stat] >= MAX_STAT ? 'train.star' : 'train.capped', { stat: name })}</p>`
+      ? `<p class="train-goal">${t(starred(pet, stat) ? 'train.star' : 'train.capped', { stat: name })}</p>`
       : '';
     this.sheet.innerHTML = `<div class="train-result">
         <span class="bubble ${TONES[stat]}-btn">${icon(STAT_ICONS[stat], 34)}</span>
