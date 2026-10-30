@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.19
+
+- The battle server limits how many connections one visitor can hold (IPv6 counted by network), so nobody can
+  take every room or dojo place.
+
 ## 0.3.18
 
 - Security fixes: a malformed web address can no longer stop the app, and an opponent can no longer fake a
