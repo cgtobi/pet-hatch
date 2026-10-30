@@ -367,7 +367,7 @@ export const nl: Dict = {
     'Baby (1 dag) → Kind (3 dagen) → Tiener (5 dagen) → Volwassen (3 weken) → Oudste (1 week).\nHet verandert van vorm als het kind, tiener en volwassen wordt.\nNa zijn oudste dagen gaat het op avontuur en laat het een nieuw ei voor je achter. De volgende generatie erft een voorsprong in zijn beste waarde.',
   'help.train.title': 'Training',
   'help.train.body':
-    'Vanaf het kindstadium biedt Train vier minigames: Kracht, Snelheid, Afweer en Brein.\nElke sessie kost {energy}% energie. Een betere score levert meer punten op.\nElke waarde heeft een limiet per levensfase: {child} als kind, {teen} als tiener, {adult} als volwassene.\nElk type leert één waarde sneller: Gloed Kracht, Vloed Snelheid, Bloei Afweer, Astraal Brein.',
+    'Vanaf het kindstadium biedt Train vier minigames: Kracht, Snelheid, Afweer en Brein.\nElke sessie kost {energy}% energie. Een betere score levert meer punten op, en hoe hoger een waarde, hoe langzamer die stijgt.\nElke waarde heeft een limiet per levensfase: {child} als kind, {teen} als tiener, {adult} als volwassene.\nElk type leert één waarde sneller: Gloed Kracht, Vloed Snelheid, Bloei Afweer, Astraal Brein.',
   'help.evolve.title': 'Evolutie',
   'help.evolve.body':
     'Kindvorm: bepaald door hoe goed je voor de baby hebt gezorgd.\nTienervorm: Kracht- en Snelheidstraining maken een sportieve tiener, Afweer en Brein een slimme.\nVolwassen vorm: bepaald door zijn beste waarde. Ouderen houden hun volwassen vorm.',

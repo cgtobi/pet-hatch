@@ -367,7 +367,7 @@ export const de: Dict = {
     'Baby (1 Tag) → Kind (3 Tage) → Teenie (5 Tage) → Erwachsen (3 Wochen) → Senior (1 Woche).\nEs verändert seine Form, wenn es Kind, Teenie und erwachsen wird.\nNach seiner Seniorenzeit bricht es zu einem Abenteuer auf und lässt dir ein neues Ei da. Die nächste Generation erbt einen Vorsprung in seinem besten Wert.',
   'help.train.title': 'Training',
   'help.train.body':
-    'Ab dem Kindesalter bietet Training vier Minispiele: Kraft, Tempo, Abwehr und Köpfchen.\nJede Einheit kostet {energy} % Energie. Ein besseres Ergebnis bringt mehr Punkte.\nJeder Wert hat pro Lebensphase eine Grenze: {child} als Kind, {teen} als Teenie, {adult} als Erwachsener.\nJeder Typ lernt einen Wert schneller: Glut Kraft, Flut Tempo, Blüte Abwehr, Astral Köpfchen.',
+    'Ab dem Kindesalter bietet Training vier Minispiele: Kraft, Tempo, Abwehr und Köpfchen.\nJede Einheit kostet {energy} % Energie. Ein besseres Ergebnis bringt mehr Punkte, und je höher ein Wert, desto langsamer steigt er.\nJeder Wert hat pro Lebensphase eine Grenze: {child} als Kind, {teen} als Teenie, {adult} als Erwachsener.\nJeder Typ lernt einen Wert schneller: Glut Kraft, Flut Tempo, Blüte Abwehr, Astral Köpfchen.',
   'help.evolve.title': 'Entwicklung',
   'help.evolve.body':
     'Kindform: hängt davon ab, wie gut du dich um das Baby gekümmert hast.\nTeenieform: Kraft- und Tempotraining machen einen sportlichen Teenie, Abwehr und Köpfchen einen schlauen.\nErwachsene Form: geprägt von seinem besten Wert. Senioren behalten ihre erwachsene Form.',

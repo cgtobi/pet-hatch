@@ -15,6 +15,8 @@ const OBEY_DISCIPLINE = 40;
 const MAX_REFUSAL = 0.3;
 /** A pet woken at night is grumpy and refuses this much more often. */
 const UP_LATE_REFUSAL = 0.25;
+/** Gains shrink as a stat climbs: full at 0, about half at 60, a quarter at 100. */
+const SLOWDOWN = 0.75;
 
 export type TrainCheck = 'ok' | 'baby' | 'asleep' | 'sick' | 'tired' | 'hungry';
 
@@ -50,9 +52,9 @@ export function statCap(pet: PetState): number {
   return STAT_CAPS[Math.min(pet.stage, STAT_CAPS.length - 1)];
 }
 
-/** Points a session earns before the cap: 1 … 6 by score, faster for the favorite stat. */
+/** Points a session earns before the cap: 1 … 6 by score, faster for the favorite stat, slower the higher the stat. */
 export function trainGain(pet: PetState, stat: Stat, score: number): number {
-  let gain = 1 + 5 * clamp(score, 0, 1);
+  let gain = (1 + 5 * clamp(score, 0, 1)) * (1 - (SLOWDOWN * pet.stats[stat]) / 100);
   if (FAVORITE[pet.type] === stat) gain *= 1.25;
   if (pet.form === 'child.scruffy') gain *= 0.8;
   if (pet.stage >= 4) gain *= 0.5;

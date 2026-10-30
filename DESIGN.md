@@ -146,6 +146,9 @@ Four stats, each trained by its own 15–30 s minigame from the **Train** sheet 
 
 - A session costs 20% energy and a little food; a score of 0–100% earns 1–6 points. Each type learns one stat
   25% faster (Ember Power, Tide Speed, Bloom Guard, Astral Wits); scruffy children learn 20% slower, elders 50%.
+- **Slower at the top:** gains shrink as the stat climbs (×1 at 0, ×0.55 at 60, ×0.25 at 100; at least 1 point).
+  At a 70% score a stat takes about 8 sessions to reach the child cap, 10 more for the teen cap and 25 more for
+  100 (6, 8 and 18 for the favourite stat), so maxing all four takes most of the adult stage.
 - **Caps per life stage:** babies can't train; Child 30, Teen 60, Adult and Elder 100.
 - Training needs the pet awake, healthy, with ≥ 20% energy and not starving.
 - **Disobedience:** below 40 discipline the pet may refuse (up to 30% at 0) and throw a tantrum instead, which

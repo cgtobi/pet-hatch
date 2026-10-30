@@ -367,7 +367,7 @@ export const es: Dict = {
     'Bebé (1 día) → Niñez (3 días) → Joven (5 días) → Adulto (3 semanas) → Anciano (1 semana).\nCambia de forma al llegar a la niñez, a joven y a adulto.\nTras su etapa de anciano se va de aventura y te deja un huevo nuevo. La siguiente generación hereda una ventaja en su mejor atributo.',
   'help.train.title': 'Entrenamiento',
   'help.train.body':
-    'Desde la niñez, Entrenar ofrece cuatro minijuegos: Fuerza, Rapidez, Defensa y Astucia.\nCada sesión usa un {energy} % de energía. Una mejor puntuación da más puntos.\nCada atributo tiene un límite por etapa de vida: {child} en la niñez, {teen} de joven, {adult} de adulto.\nCada tipo aprende un atributo más rápido: Ascua Fuerza, Marea Rapidez, Brote Defensa, Astral Astucia.',
+    'Desde la niñez, Entrenar ofrece cuatro minijuegos: Fuerza, Rapidez, Defensa y Astucia.\nCada sesión usa un {energy} % de energía. Una mejor puntuación da más puntos, y cuanto más alto es un atributo, más despacio sube.\nCada atributo tiene un límite por etapa de vida: {child} en la niñez, {teen} de joven, {adult} de adulto.\nCada tipo aprende un atributo más rápido: Ascua Fuerza, Marea Rapidez, Brote Defensa, Astral Astucia.',
   'help.evolve.title': 'Evolución',
   'help.evolve.body':
     'Forma de niñez: depende de lo bien que cuidaste al bebé.\nForma joven: entrenar Fuerza y Rapidez da un joven deportista, Defensa y Astucia, uno listo.\nForma adulta: moldeada por su mejor atributo. Los ancianos conservan su forma adulta.',

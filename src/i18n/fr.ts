@@ -367,7 +367,7 @@ export const fr: Dict = {
     'Bébé (1 jour) → Enfant (3 jours) → Ado (5 jours) → Adulte (3 semaines) → Ancien (1 semaine).\nIl change de forme en devenant enfant, ado, puis adulte.\nAprès ses vieux jours, il part à l’aventure et te laisse un nouvel œuf. La génération suivante hérite d’une longueur d’avance dans sa meilleure stat.',
   'help.train.title': 'Entraînement',
   'help.train.body':
-    'Dès le stade Enfant, Entraîner propose quatre mini-jeux : Force, Vitesse, Garde et Astuce.\nChaque séance utilise {energy} % d’énergie. Un meilleur score rapporte plus de points.\nChaque stat a une limite par stade de vie : {child} enfant, {teen} ado, {adult} adulte.\nChaque type apprend plus vite une stat : Braise la Force, Marée la Vitesse, Pousse la Garde, Astral l’Astuce.',
+    'Dès le stade Enfant, Entraîner propose quatre mini-jeux : Force, Vitesse, Garde et Astuce.\nChaque séance utilise {energy} % d’énergie. Un meilleur score rapporte plus de points, et plus une stat est haute, plus elle monte lentement.\nChaque stat a une limite par stade de vie : {child} enfant, {teen} ado, {adult} adulte.\nChaque type apprend plus vite une stat : Braise la Force, Marée la Vitesse, Pousse la Garde, Astral l’Astuce.',
   'help.evolve.title': 'Évolution',
   'help.evolve.body':
     'Forme enfant : décidée par la qualité des soins donnés au bébé.\nForme ado : l’entraînement en Force et en Vitesse donne un ado sportif, en Garde et en Astuce un ado malin.\nForme adulte : façonnée par sa meilleure stat. Les anciens gardent leur forme adulte.',

@@ -54,6 +54,17 @@ describe('training', () => {
     expect(s.pet.trainings).toBe(1);
   });
 
+  it('learns more slowly the higher a stat already is', () => {
+    const s = child();
+    const fresh = trainGain(s.pet, 'speed', 0.8);
+    s.pet.stats.speed = 60;
+    const trained = trainGain(s.pet, 'speed', 0.8);
+    s.pet.stats.speed = 99;
+    expect(trained).toBeLessThan(fresh);
+    expect(trainGain(s.pet, 'speed', 0.8)).toBeLessThan(trained);
+    expect(trainGain(s.pet, 'speed', 0)).toBe(1);
+  });
+
   it('learns its type’s favorite stat faster', () => {
     const s = child();
     s.pet.type = 'ember';

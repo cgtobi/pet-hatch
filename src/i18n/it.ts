@@ -367,7 +367,7 @@ export const it: Dict = {
     'Cucciolo (1 giorno) → Piccolo (3 giorni) → Giovane (5 giorni) → Adulto (3 settimane) → Anziano (1 settimana).\nCambia forma quando diventa Piccolo, Giovane e Adulto.\nDopo gli anni da anziano parte per un’avventura e ti lascia un nuovo uovo. La generazione successiva eredita un vantaggio nella sua caratteristica migliore.',
   'help.train.title': 'Allenamento',
   'help.train.body':
-    'Dallo stadio Piccolo in poi, Allena offre quattro minigiochi: Forza, Velocità, Difesa e Ingegno.\nOgni sessione consuma il {energy}% di energia. Un punteggio migliore dà più punti.\nOgni caratteristica ha un limite per fase di vita: {child} da Piccolo, {teen} da Giovane, {adult} da Adulto.\nOgni tipo impara più in fretta una caratteristica: Brace la Forza, Onda la Velocità, Fiore la Difesa, Astrale l’Ingegno.',
+    'Dallo stadio Piccolo in poi, Allena offre quattro minigiochi: Forza, Velocità, Difesa e Ingegno.\nOgni sessione consuma il {energy}% di energia. Un punteggio migliore dà più punti, e più una caratteristica è alta, più lentamente sale.\nOgni caratteristica ha un limite per fase di vita: {child} da Piccolo, {teen} da Giovane, {adult} da Adulto.\nOgni tipo impara più in fretta una caratteristica: Brace la Forza, Onda la Velocità, Fiore la Difesa, Astrale l’Ingegno.',
   'help.evolve.title': 'Evoluzione',
   'help.evolve.body':
     'Forma da Piccolo: dipende da quanto ti sei preso cura del cucciolo.\nForma da Giovane: allenare Forza e Velocità crea un giovane sportivo, Difesa e Ingegno uno scaltro.\nForma adulta: plasmata dalla sua caratteristica migliore. Gli anziani mantengono la forma adulta.',
