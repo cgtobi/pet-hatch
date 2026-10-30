@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.0
+
+- Fairer live battles: moves are locked in with a stronger seal, so a modified game can't pick its move after
+  seeing yours, and a dojo opponent must fight with the very pet it was matched with.
+- Live battles only work between games of this version or later; older games are asked to reload.
+- Too many wrong room codes in a row are turned away for a while.
+
 ## 0.3.19
 
 - The battle server limits how many connections one visitor can hold (IPv6 counted by network), so nobody can
