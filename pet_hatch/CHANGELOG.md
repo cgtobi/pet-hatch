@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.4
+
+- The light has a purpose now: evenings get dark and the pet dozes off unless the light is on. It switches
+  itself off in the evening and on in the morning, and a dark night gives a happy morning.
+- During the day the round button is Nap (or Wake up), independent of the light.
+- At night, with the light on, feeding, playing or training wakes the pet for an hour: grumpy, and
+  costly if it happens more than once a night. Turn the light off to send it back to bed.
+- The egg no longer needs the light.
+- Smash training is harder, so strength no longer grows faster than guard and wits.
+- Settings shows the app version at the bottom, and its scrollbar stays inside the rounded corners.
+
 ## 0.3.3
 
 - The home screen icon shows up again on web servers that reserve /icons/ (such as Apache).
