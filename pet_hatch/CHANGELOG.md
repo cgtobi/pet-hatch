@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.7.0
+
+- Classic mode gets a health potion: each egg comes with one. If the egg or pet runs out of health, it collapses
+  and fades for 24 hours instead of being lost at once. Give it the potion in time and it comes back weak (and it
+  counts as 2 care mistakes). The egg and the pet that hatches from it share the one potion.
+- You get an alert when it collapses and a reminder 4 hours before it's too late. Pets saved by the potion are
+  marked in the family list. Pets you already have get a potion too.
+
 ## 0.6.1
 
 - Shorter naps: a power nap lasts at most an hour, and a pet that ran out of energy naps for about an hour and a
