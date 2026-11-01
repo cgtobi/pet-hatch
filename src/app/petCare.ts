@@ -241,6 +241,12 @@ export function createPetCare(g: Game, moments: Pick<Moments, 'evolve' | 'showEn
       view.setLook({ sleeping: false, sick: false, calling: false, mood: 0, fading: true });
       return;
     }
+    // At day care it isn't on the island; growing up while away plays once it is back.
+    view.group.visible = !g.away();
+    if (g.away()) {
+      if (g.sheet.isOpen) g.sheet.close();
+      return;
+    }
     if (pet.stage > pet.shownStage && pet.revealSeen && !g.hud.overlayOpen && !g.sheet.isOpen) moments.evolve(pet);
     const sleeping = isSleeping(pet, now, g.state.settings);
     view.setLook({ sleeping, sick: pet.sick, calling: pet.call !== null && !g.sheet.isOpen, mood: pet.mood });

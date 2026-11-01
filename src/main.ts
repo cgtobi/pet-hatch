@@ -5,14 +5,14 @@ import '@fontsource/nunito/latin-700.css';
 import '@fontsource/nunito/latin-800.css';
 import './style.css';
 
-import { setHapticsEnabled, setMusicEnabled, setMusicMode, setSoundEnabled, suspendAudio, unlockAudio } from './feedback';
+import { setHapticsEnabled, setMusicEnabled, setMusicMode, setSoundEnabled, sfx, suspendAudio, unlockAudio } from './feedback';
 import { setLang, t, type TextKey } from './i18n';
 import { attachGestures } from './input/gestures';
 import { World } from './scene/world';
 import { dayPart, HOUR, isAsleep, localHour } from './sim/clock';
 import { sunAt } from './sim/sun';
 import { careLeaning, hatchStage, hoursUntilTurn, TURN_INTERVAL_H } from './sim/egg';
-import { advance, gameNow, newGame } from './sim/game';
+import { advance, gameNow, isAway, newGame, pickUp } from './sim/game';
 import { ageHours, hygiene, isSleeping, LIFE_STAGES, lifeStageIndex, napCheck, SHELL_DAYS, stageHours } from './sim/pet';
 import { findRelay } from './net/relayConfig';
 import { CHALLENGE_PARAM } from './sim/battlecode';
@@ -69,7 +69,8 @@ const hud = new Hud({
   onWarm: (active) => eggCare.setWarming(active),
   onAction: (action) => {
     unlockAudio();
-    if (state.phase === 'egg') eggCare.action(action);
+    if (action === 'pickup') pickUpEarly();
+    else if (state.phase === 'egg') eggCare.action(action);
     else petCare.action(action);
   },
   onLightButton: () => {
@@ -84,9 +85,10 @@ const sheet = new ActivitySheet(() => {
   updateHud();
 });
 
-const eggActive = () => state.phase === 'egg' && !state.egg.failed && !state.egg.fading;
+const away = () => isAway(state, gameNow(state));
+const eggActive = () => state.phase === 'egg' && !state.egg.failed && !state.egg.fading && !away();
 const livePet = (): PetState | null =>
-  state.phase === 'hatched' && state.pet?.status === 'alive' && !state.pet.fading ? state.pet : null;
+  state.phase === 'hatched' && state.pet?.status === 'alive' && !state.pet.fading && !away() ? state.pet : null;
 
 /** What the parts of the game share (see src/app/). */
 const game: Game = {
@@ -97,6 +99,7 @@ const game: Game = {
   now: () => gameNow(state),
   livePet,
   eggActive,
+  away,
   save: () => saveGame(state),
   refresh: () => updateHud(),
   petCenter: () => world.pet?.center() ?? world.egg.center(),
@@ -120,18 +123,29 @@ function formatAge(hours: number): string {
   return d > 0 ? t('dur.dh', { d, h }) : t('dur.h', { h });
 }
 
+/** When day care ends today, for the hint while the egg or pet is there. */
+const schoolEnds = () => `${String(state.settings.school?.to ?? 0).padStart(2, '0')}:00`;
+
 function updateHud() {
   const now = gameNow(state);
   const egg = state.egg;
+  const atSchool = away();
   if (state.phase === 'egg') {
     const stage = hatchStage(egg);
     const day = Math.floor((now - egg.laidAt) / (24 * HOUR)) + 1;
     const asleep = isAsleep(now, state.settings);
-    hud.setMode(egg.failed ? 'none' : egg.fading ? 'fading' : 'egg');
+    hud.setMode(egg.failed ? 'none' : egg.fading ? 'fading' : atSchool ? 'away' : 'egg');
     const h = egg.heritage;
+    const mood = egg.fading
+      ? t('egg.fading')
+      : atSchool
+        ? t('school.status')
+        : asleep
+          ? t('egg.sleeping')
+          : t(EGG_MOODS[stage]);
     hud.setHeader(
       h ? t('egg.titleFrom', { name: h.parentName }) : t('egg.title'),
-      `${t('egg.day', { n: day })} · ${egg.fading ? t('egg.fading') : asleep ? t('egg.sleeping') : t(EGG_MOODS[stage])}`,
+      `${t('egg.day', { n: day })} · ${mood}`,
       h ? [{ text: t('gen', { n: h.generation }), tone: 'neutral' }] : [],
     );
     hud.setStage(stage);
@@ -143,7 +157,8 @@ function updateHud() {
     });
     hud.setLeaning(careLeaning(egg));
     const hint = eggHint(egg, now, state.settings, eggCare.rush());
-    hud.setHint(egg.failed ? '' : t(hint.key, hint.params), hint.urgent);
+    if (atSchool && !egg.fading) hud.setHint(t('hint.school.egg', { time: schoolEnds() }));
+    else hud.setHint(egg.failed ? '' : t(hint.key, hint.params), hint.urgent);
     hud.setDockState({ turn: hoursUntilTurn(egg, now) < 0.5, vial: !!egg.fading });
     world.egg.draw({
       crack: crackLevel(egg, eggCare.rush()),
@@ -156,11 +171,12 @@ function updateHud() {
     const stage = Math.min(pet.shownStage, LIFE_STAGES.length - 1);
     const sleeping = isSleeping(pet, now, state.settings);
     const feel = petFeel(pet, now, state.settings);
-    hud.setMode(pet.fading ? 'fading' : 'pet');
+    hud.setMode(pet.fading ? 'fading' : atSchool ? 'away' : 'pet');
     const species = speciesName(pet.type, pet.shownForm);
     const age = t('pet.age', { age: formatAge(ageHours(pet, now)) });
     const stars = masteredStats(pet).length;
-    hud.setHeader(pet.name, `${species} · ${age} · ${t(`pet.feel.${feel}`)}`, [
+    const status = atSchool && !pet.fading ? t('school.status') : t(`pet.feel.${feel}`);
+    hud.setHeader(pet.name, `${species} · ${age} · ${status}`, [
       { text: t(`type.${pet.type}`), tone: pet.type },
       { text: t(`life.${LIFE_STAGES[stage]}`), tone: 'neutral' },
       ...(pet.generation > 1 ? [{ text: t('gen', { n: pet.generation }), tone: 'neutral' as const }] : []),
@@ -181,7 +197,8 @@ function updateHud() {
       knowsNightWake: !!state.learned?.nightWake,
       tapped: petCare.tapped(),
     });
-    hud.setHint(t(hint.key, hint.params), hint.urgent);
+    if (atSchool && !pet.fading) hud.setHint(t('hint.school', { name: pet.name, time: schoolEnds() }));
+    else hud.setHint(t(hint.key, hint.params), hint.urgent);
     hud.setDockState(
       {
         feed: pet.hunger < 30 && !sleeping,
@@ -205,6 +222,31 @@ function updateHud() {
     insetKey = key;
     world.setInsets(insets);
   }
+}
+
+// ---------- school time ----------
+
+/** Bring the egg or pet home from day care before school ends. */
+function pickUpEarly() {
+  pickUp(state, gameNow(state));
+  saveGame(state);
+  updateHud();
+}
+
+let wasAway = away();
+
+/** Back from day care (school ended, or picked up early) while the game is open: say so. */
+function watchSchool() {
+  const now = away();
+  if (now === wasAway) return;
+  wasAway = now;
+  if (now || moments.endShown()) return;
+  if (state.phase === 'egg') hud.toast(t('toast.schoolBack.egg'));
+  else if (livePet()) {
+    hud.toast(t('toast.schoolBack', { name: livePet()!.name }));
+    setTimeout(() => world.pet?.hop(), 300);
+  }
+  sfx.toggle();
 }
 
 // ---------- settings & install ----------
@@ -386,6 +428,7 @@ function frame(ms: number) {
   eggCare.frame(dt, now);
   if (state.phase === 'egg' && state.egg.failed && !moments.endShown()) moments.eggFailed();
   petCare.frame(dt, now);
+  watchSchool();
 
   world.egg.update(dt, { warmth: state.egg.warmth, ready: eggCare.rush().left !== null });
   const lit = state.phase !== 'egg' && state.egg.lightsOn && dayPart(now, state.settings) !== 'day';

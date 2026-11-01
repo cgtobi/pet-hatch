@@ -15,10 +15,15 @@ export interface Game {
   readonly sheet: ActivitySheet;
   /** Current game time. */
   now(): number;
-  /** The pet while it's hatched, alive and awake to the world (null for an egg, while fading, or after its story ended). */
+  /**
+   * The pet while it's hatched, alive and awake to the world (null for an egg, while fading or at day care, or after
+   * its story ended).
+   */
   livePet(): PetState | null;
-  /** An egg that is still being cared for (not hatched, not fading, not lost). */
+  /** An egg that is still being cared for (not hatched, not fading or at day care, not lost). */
   eggActive(): boolean;
+  /** The egg or pet is at day care (School time). */
+  away(): boolean;
   save(): void;
   /** Redraw the status card, hint and dock. */
   refresh(): void;

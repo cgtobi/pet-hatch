@@ -1,4 +1,4 @@
-import { dayPart, HOUR, MINUTE } from './clock';
+import { atSchool, dayPart, HOUR, MINUTE } from './clock';
 import { createEgg, eggType, HATCH_WAIT_H, tickEgg } from './egg';
 import { topStat } from './evolution';
 import { createPet, tickPet } from './pet';
@@ -57,16 +57,27 @@ export function advance(state: GameState, to: number): void {
     const after = dayPart(state.simTime, state.settings);
     // Evening makes it dark (the player switches the light on to keep the pet up); morning makes it light again.
     if (after !== before && after !== 'night') state.egg.lightsOn = after === 'day';
+    const away = isAway(state, state.simTime);
     if (state.phase === 'hatched' && state.pet) {
-      tickPet(state.pet, state.simTime, dt / HOUR, state.settings, state.egg.lightsOn);
+      tickPet(state.pet, state.simTime, dt / HOUR, state.settings, state.egg.lightsOn, away);
     } else if (state.phase === 'egg') {
-      tickEgg(state.egg, state.simTime, dt / HOUR, state.settings);
+      tickEgg(state.egg, state.simTime, dt / HOUR, state.settings, away);
       const { readyAt } = state.egg;
       if (readyAt !== null && !state.egg.fading && state.simTime - readyAt >= HATCH_WAIT_H * HOUR) {
         hatch(state, state.simTime, true);
       }
     }
   }
+}
+
+/** Whether the egg or pet is at day care (School time) at game time t. */
+export function isAway(state: GameState, t: number): boolean {
+  return atSchool(t, state.settings, state.pickedUpAt);
+}
+
+/** Bring the egg or pet home from day care early: the rest of today's school time is off. */
+export function pickUp(state: GameState, now: number): void {
+  state.pickedUpAt = now;
 }
 
 /** Whether the egg is ready and waiting for the player to help it out. */

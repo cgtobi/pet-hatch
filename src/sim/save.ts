@@ -85,8 +85,17 @@ export function isSound(s: GameState): boolean {
     [o.sound, o.music, o.haptics].every((b) => typeof b === 'boolean') &&
     isOneOf(o.language, ['auto', ...LANGUAGES]) &&
     (o.shareStats === undefined || typeof o.shareStats === 'boolean') &&
-    (o.alerts === undefined || typeof o.alerts === 'boolean');
-  const game = isNum(s.simTime) && isNum(s.clockOffset) && (s.phase === 'egg' || pet !== null);
+    (o.alerts === undefined || typeof o.alerts === 'boolean') &&
+    (o.school === undefined ||
+      (typeof o.school.on === 'boolean' &&
+        isList(o.school.days, 7, (d: number) => isInt(d, 0, 6)) &&
+        isInt(o.school.from, 0, 23) &&
+        isInt(o.school.to, 0, 23)));
+  const game =
+    isNum(s.simTime) &&
+    isNum(s.clockOffset) &&
+    (s.phase === 'egg' || pet !== null) &&
+    (s.pickedUpAt === undefined || isNum(s.pickedUpAt));
   const family = isList(s.family, 10_000, (a: GameState['family'][number]) =>
     isName(a.name) &&
     isOneOf(a.type, TYPES) &&

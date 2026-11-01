@@ -93,12 +93,23 @@ export function hoursUntilTurn(egg: EggState, now: number): number {
   return Math.max(0, TURN_INTERVAL_H - hoursSinceTurn(egg, now));
 }
 
-/** Advance the egg by dtH game hours, ending at game time t. */
-export function tickEgg(egg: EggState, t: number, dtH: number, settings: Settings): void {
+/** Advance the egg by dtH game hours, ending at game time t; `away`: at day care (School time). */
+export function tickEgg(egg: EggState, t: number, dtH: number, settings: Settings, away = false): void {
   if (egg.failed) return;
   // Fading: nothing else happens until the vial is given or the time is up.
   if (egg.fading) {
     if (t - egg.fading.since >= FADE_H * HOUR) egg.failed = true;
+    return;
+  }
+  // At day care it is looked after: its needs and the turning clock wait. It keeps developing, and once ready
+  // it waits for the player instead of hatching on its own.
+  if (away) {
+    egg.lastTurnedAt += dtH * HOUR;
+    if (egg.readyAt !== null) egg.readyAt += dtH * HOUR;
+    else {
+      egg.devHours += dtH;
+      if (egg.devHours >= egg.baseHours) egg.readyAt = t;
+    }
     return;
   }
   const asleep = isAsleep(t, settings);

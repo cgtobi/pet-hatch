@@ -203,8 +203,8 @@ function wouldDoze(pet: PetState, lightsOn: boolean): boolean {
   return !lightsOn && !pet.napping && pet.hunger >= CALL_THRESHOLD && !pet.sick;
 }
 
-/** Advance the pet by dtH game hours, ending at game time t. */
-export function tickPet(pet: PetState, t: number, dtH: number, settings: Settings, lightsOn: boolean): void {
+/** Advance the pet by dtH game hours, ending at game time t; `away`: at day care (School time). */
+export function tickPet(pet: PetState, t: number, dtH: number, settings: Settings, lightsOn: boolean, away = false): void {
   if (pet.status !== 'alive') return;
   // Fading: it lies still, needs and all, until the vial is given or the time is up.
   if (pet.fading) {
@@ -254,6 +254,18 @@ export function tickPet(pet: PetState, t: number, dtH: number, settings: Setting
     }
     pet.darkSleepH = 0;
     pet.nightWakes = 0;
+  }
+
+  // At day care it is looked after: needs, droppings and calls all wait (an open call goes without a mistake).
+  // It only grows.
+  if (away) {
+    pet.call = null;
+    pet.powerNap = null;
+    pet.napping = false;
+    pet.dozing = false;
+    pet.nextFakeCallAt += dtH * HOUR;
+    pet.poopsDue = pet.poopsDue.map((at) => at + dtH * HOUR);
+    return;
   }
 
   // Needs. Power naps and evening dozing rest the pet but only halve the drain: no shortcut around care.

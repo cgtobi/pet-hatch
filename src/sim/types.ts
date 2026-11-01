@@ -19,6 +19,18 @@ export interface Settings {
   shareStats?: boolean;
   /** Turned on alerts while the game is closed (src/net/push.ts). */
   alerts?: boolean;
+  /** Day care during school (not in Classic); missing until it is first set up. */
+  school?: SchoolTime;
+}
+
+/** The weekdays and hours the egg or pet spends at day care while the player is at school. */
+export interface SchoolTime {
+  on: boolean;
+  /** Weekdays, 0 = Sunday … 6 = Saturday. */
+  days: number[];
+  /** Local hours (0–23): from the start of `from` until the start of `to`. */
+  from: number;
+  to: number;
 }
 
 /** What a retired pet passes on to the egg it leaves behind. */
@@ -213,4 +225,6 @@ export interface GameState {
   learned?: { nightWake?: boolean; lightTip?: boolean };
   /** The last pet stats report: its day and contents, so each goes out once a day or on a change. */
   statsSent?: { day: string; key: string };
+  /** Game time the egg or pet was last picked up early from day care: the rest of that school day is off. */
+  pickedUpAt?: number;
 }

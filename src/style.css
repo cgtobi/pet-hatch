@@ -793,6 +793,35 @@ button:focus:not(:focus-visible) {
   accent-color: var(--coral);
 }
 
+.days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.days button {
+  min-width: 42px;
+  height: 36px;
+  padding: 0 8px;
+  border: 1.5px solid #e1d9ea;
+  border-radius: 12px;
+  background: #fff;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.days button.on {
+  border-color: var(--coral);
+  background: var(--coral);
+  color: #fff;
+}
+
+.days button:disabled {
+  opacity: 0.5;
+}
+
 .row {
   display: flex;
   gap: 10px;

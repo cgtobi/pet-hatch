@@ -36,6 +36,13 @@ Status of each part: ✅ built, 🔜 planned.
 - ✅ **Sleep window** (default 22:00–07:00, set in Settings). Needs drain at 10% with the light off,
   30% with it left on, and no care mistakes count while you sleep. The **evening** is the 4 hours before it
   (`dayPart()` in `src/sim/clock.ts`).
+- ✅ **School time** (Cozy and Gentle; set in Settings, off until set up): on the chosen weekdays and hours
+  (Monday to Friday, 8–13 by default, at most 10 hours) the egg or pet is at **day care**. Its needs, the turning
+  clock, droppings and calls all wait, an open call goes without a mistake, and no alerts are sent; it keeps
+  growing (an egg keeps developing, and once ready waits instead of hatching on its own). The pet leaves the
+  island, the dock offers only Pick up (the rest of that day's school time is off), and coming back says so. The
+  night wins where the two overlap. Not in Classic, where the pet needs the player every day (`atSchool()` in
+  `src/sim/clock.ts`).
 - ✅ **Debug** (dev server only; built games ignore it): `?debug` shows Settings › Debug (+1 h, +6 h, Ready now);
   `?speed=600` runs game time 600×.
 
@@ -147,7 +154,8 @@ You name the baby when it hatches (a name is suggested).
   turning due within 30 min), is ready to hatch, or collapsed in Classic (see the health potion). Closing the game runs a copy of the simulation 24 h ahead
   (`src/sim/alerts.ts`: exact, since its chances come from the seed and the time) and sends the times to
   `push.php`; opening it clears them. At least 30 min apart, at most 6 unanswered in a row, and whatever starts
-  at night waits for the morning. The server never learns the pet's name: the push message names only the kind,
+  at night waits for the morning. Nothing is sent while the egg or pet is at day care (School time); what still
+  needs the player alerts when it is back. The server never learns the pet's name: the push message names only the kind,
   and the service worker takes the words from a cache the game fills in the player's language.
 
 ### Endings ✅

@@ -6,7 +6,7 @@
  */
 import { HOUR, isAsleep, MINUTE } from './clock';
 import { fadeHoursLeft, hoursUntilTurn } from './egg';
-import { advance, gameNow, isReadyToHatch } from './game';
+import { advance, gameNow, isAway, isReadyToHatch } from './game';
 import type { EggState, GameState } from './types';
 
 /**
@@ -37,6 +37,8 @@ function eggNeedsCare(egg: EggState, t: number): boolean {
  * and fading (0 not, 1 fading, 2 close to the end).
  */
 function watch(s: GameState): { call: number | null; egg: boolean; hatch: boolean; fading: number } {
+  // At day care nothing needs the player; what still does afterwards alerts when it comes back.
+  if (isAway(s, s.simTime)) return { call: null, egg: false, hatch: false, fading: 0 };
   const pet = s.phase === 'hatched' && s.pet?.status === 'alive' ? s.pet : null;
   const egg = s.phase === 'egg' && !s.egg.failed;
   const fading = (egg ? s.egg.fading : pet?.fading) ?? null;
@@ -50,7 +52,8 @@ function watch(s: GameState): { call: number | null; egg: boolean; hatch: boolea
 
 /**
  * The alerts for the next ALERT_HORIZON_H hours if the player doesn't come back, in real time. Something that
- * starts during the player's sleep window is saved for the morning; nothing is sent at night.
+ * starts during the player's sleep window is saved for the morning; nothing is sent at night, nor while the egg
+ * or pet is at day care.
  */
 export function predictAlerts(state: GameState, realNow: number): Alert[] {
   const sim = structuredClone(state);
@@ -75,8 +78,9 @@ export function predictAlerts(state: GameState, realNow: number): Alert[] {
               : null;
     was = now;
     pending = kind ?? pending;
-    // Saved for the morning, but it was too late by then.
-    if (pending === 'fading' && !now.fading) pending = null;
+    // Saved for the morning, but it was too late by then; or the morning starts at day care, and whatever still
+    // needs the player alerts again when it comes back.
+    if ((pending === 'fading' && !now.fading) || isAway(sim, t)) pending = null;
     if (!pending || isAsleep(t, sim.settings)) continue;
     const at = t - sim.clockOffset;
     const last = alerts.at(-1);

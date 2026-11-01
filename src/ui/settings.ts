@@ -3,7 +3,8 @@ import { LANGUAGE_NAMES, LANGUAGES, t } from '../i18n';
 import { BATTLE_ENERGY } from '../sim/battle';
 import { STAT_CAPS, TRAIN_ENERGY } from '../sim/training';
 import { speciesName } from '../sim/evolution';
-import type { Ancestor, Settings } from '../sim/types';
+import { DEFAULT_SCHOOL, SCHOOL_MAX_H } from '../sim/clock';
+import type { Ancestor, SchoolTime, Settings } from '../sim/types';
 import { icon } from './icons';
 
 export interface InstallState {
@@ -121,6 +122,72 @@ export function openSettings(
         hourSelect(settings.sleepEnd, (v) => h.onChange({ sleepEnd: (settings.sleepEnd = v) }), t('settings.sleepTo')),
       ),
       el('small', {}, t('settings.sleepHint')),
+    );
+
+    // Day care during school: no calls, alerts or care mistakes while the player is in class. Not in Classic, where
+    // the pet needs the player every day.
+    const school: SchoolTime = { ...DEFAULT_SCHOOL, ...settings.school, days: [...(settings.school?.days ?? DEFAULT_SCHOOL.days)] };
+    const classic = settings.neglect === 'classic';
+    const saveSchool = () => h.onChange({ school: (settings.school = { ...school, days: [...school.days] }) });
+    const schoolOn = el('input', { type: 'checkbox', checked: school.on, disabled: classic });
+    const days = el('div', { className: 'days' });
+    const dayName = new Intl.DateTimeFormat(document.documentElement.lang || undefined, { weekday: 'short' });
+    for (const d of [1, 2, 3, 4, 5, 6, 0]) {
+      const b = el('button', { type: 'button', className: school.days.includes(d) ? 'on' : '', disabled: classic });
+      // 4 January 2026 was a Sunday.
+      b.textContent = dayName.format(new Date(2026, 0, 4 + d));
+      b.ariaPressed = String(school.days.includes(d));
+      b.onclick = () => {
+        school.days = school.days.includes(d) ? school.days.filter((x) => x !== d) : [...school.days, d].sort();
+        b.classList.toggle('on', school.days.includes(d));
+        b.ariaPressed = String(school.days.includes(d));
+        saveSchool();
+      };
+      days.append(b);
+    }
+    // From the start of one hour to the start of a later one, at most SCHOOL_MAX_H hours apart.
+    const hours = (value: number, lo: number, hi: number, label: string) => {
+      const sel = el('select', { ariaLabel: label, disabled: classic });
+      for (let i = lo; i <= hi; i++) sel.append(el('option', { value: String(i), selected: i === value }, hourLabel(i)));
+      return sel;
+    };
+    const from = hours(school.from, 0, 22, t('settings.sleepFrom'));
+    const to = hours(school.to, 1, 23, t('settings.sleepTo'));
+    from.onchange = () => {
+      school.from = Number(from.value);
+      school.to = Math.min(23, Math.max(school.from + 1, Math.min(school.to, school.from + SCHOOL_MAX_H)));
+      to.value = String(school.to);
+      saveSchool();
+    };
+    to.onchange = () => {
+      school.to = Number(to.value);
+      school.from = Math.max(0, Math.min(school.to - 1, Math.max(school.from, school.to - SCHOOL_MAX_H)));
+      from.value = String(school.from);
+      saveSchool();
+    };
+    const schoolTimes = el(
+      'div',
+      { className: 'field', hidden: !school.on || classic },
+      days,
+      el(
+        'div',
+        { className: 'row' },
+        el('label', { className: 'choice' }, t('settings.sleepFrom'), from),
+        el('label', { className: 'choice' }, t('settings.sleepTo'), to),
+      ),
+    );
+    schoolOn.onchange = () => {
+      school.on = schoolOn.checked;
+      schoolTimes.hidden = !school.on;
+      saveSchool();
+    };
+    const schoolField = el(
+      'div',
+      { className: 'field' },
+      el('span', { className: 'field-title' }, t('settings.school')),
+      el('label', { className: 'choice' }, schoolOn, t('settings.schoolToggle')),
+      schoolTimes,
+      el('small', {}, t(classic ? 'settings.schoolClassic' : 'settings.schoolHint')),
     );
 
     // Collapsed topics; each body line becomes a bullet.
@@ -246,6 +313,7 @@ export function openSettings(
       help,
       neglect,
       sleep,
+      schoolField,
       sound,
       app,
       ...(h.family.length ? [family] : []),
