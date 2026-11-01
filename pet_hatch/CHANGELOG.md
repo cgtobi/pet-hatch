@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.0
+
+- School time (Cozy and Gentle): in Settings, choose the school days and hours. During them the egg or pet is at
+  day care: its needs wait, nothing calls, no care mistakes count and no alerts are sent, while it keeps growing.
+  A ready egg waits for you instead of hatching on its own. Pick up brings it home early for the rest of the day.
+  Classic stays as it is.
+
 ## 0.7.0
 
 - Classic mode gets a health potion: each egg comes with one. If the egg or pet runs out of health, it collapses
