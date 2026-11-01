@@ -6,6 +6,7 @@ import {
   endPowerNap,
   feedPet,
   giveMedicine,
+  giveVial,
   isSleeping,
   LIFE_STAGES,
   lifeStage,
@@ -215,6 +216,56 @@ describe('sickness and neglect modes', () => {
 
   it('Classic: a neglected pet gets sick and can die', () => {
     expect(neglect('classic', 72).status).toBe('died');
+  });
+
+  /** Neglect a Classic pet until it collapses; returns the game at that minute. */
+  function collapse() {
+    const s = hatched('classic');
+    for (let t = s.simTime; !s.pet.fading && s.pet.status === 'alive'; t += 10 * 60_000) advance(s, t);
+    return s;
+  }
+
+  it('Classic: a collapsed pet fades for 24 hours, then dies', () => {
+    const s = collapse();
+    expect(s.pet.status).toBe('alive');
+    expect(s.simTime - s.pet.fading!.since).toBeLessThan(10 * 60_000);
+    expect(s.pet.health).toBe(0);
+    expect(s.pet.call).toBeNull();
+    const { hunger, mood, careMistakes } = s.pet;
+    advance(s, s.pet.fading!.since + 23.9 * HOUR);
+    // It lies still: nothing drains, nothing counts.
+    expect(s.pet.status).toBe('alive');
+    expect([s.pet.hunger, s.pet.mood, s.pet.careMistakes]).toEqual([hunger, mood, careMistakes]);
+    advance(s, s.pet.fading!.since + 24 * HOUR);
+    expect(s.pet.status).toBe('died');
+  });
+
+  it('Classic: the potion brings a fading pet back, once', () => {
+    const s = collapse();
+    const mistakes = s.pet.careMistakes;
+    expect(giveVial(s.pet, s.simTime + HOUR)).toBe(true);
+    expect(s.pet.fading).toBeNull();
+    expect(s.pet.vialUsed).toBe(true);
+    expect(s.pet.health).toBe(25);
+    expect(s.pet.sick).toBe(false);
+    expect(s.pet.careMistakes).toBe(mistakes + 2);
+    expect(giveVial(s.pet, s.simTime + HOUR)).toBe(false);
+    // Neglected again, there's no second chance.
+    s.simTime += HOUR;
+    for (let t = s.simTime; s.pet.status === 'alive'; t += 10 * 60_000) {
+      advance(s, t);
+      expect(s.pet.fading).toBeNull();
+    }
+    expect(s.pet.status).toBe('died');
+  });
+
+  it('the potion does nothing for a pet that is not fading', () => {
+    const s = hatched('classic');
+    expect(giveVial(s.pet, s.simTime)).toBe(false);
+    expect(s.pet.vialUsed).toBe(false);
+    // Pets from before the potion have theirs too.
+    const { vialUsed: _, fading: __, ...old } = s.pet;
+    expect(migratePet(old).vialUsed).toBe(false);
   });
 
   it('Gentle: a neglected pet never dies but eventually runs away', () => {

@@ -220,7 +220,12 @@ export function openSettings(
               ...(a.stars ? [el('span', { className: 'stars', title: t('family.stars', { n: a.stars }) }, '★'.repeat(a.stars))] : []),
               ` · ${speciesName(a.type, a.form)}`,
             ),
-            el('small', {}, `${t(`family.${a.ending}`)} · ${t('family.days', { d: days })} · ${t('family.wins', { n: a.wins })}`),
+            el(
+              'small',
+              {},
+              `${t(`family.${a.ending}`)} · ${t('family.days', { d: days })} · ${t('family.wins', { n: a.wins })}` +
+                (a.saved ? ` · ${t('family.saved')}` : ''),
+            ),
           ),
         ),
       );

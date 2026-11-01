@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ALERT_GAP, MAX_ALERTS, predictAlerts } from './alerts';
+import { ALERT_GAP, FADE_REMINDER_H, MAX_ALERTS, predictAlerts } from './alerts';
 import { HOUR, MINUTE } from './clock';
 import { advance, DEFAULT_SETTINGS, hatch, newGame } from './game';
 import type { GameState } from './types';
@@ -70,6 +70,21 @@ describe('alerts', () => {
     state.egg.lastTurnedAt = at(1, 9);
     const hatchAlert = predictAlerts(state, at(1, 9)).find(([, kind]) => kind === 'hatch');
     expect(hatchAlert).toBeDefined();
+  });
+
+  it('alerts when the pet collapses (Classic), and again near the end', () => {
+    const state = petGame();
+    state.settings.neglect = 'classic';
+    state.pet!.sick = true;
+    state.pet!.health = 1;
+    const alerts = predictAlerts(state, at(1, 9));
+    const real = structuredClone(state);
+    advance(real, at(1, 10));
+    const since = real.pet!.fading!.since;
+    expect(alerts.filter(([, kind]) => kind !== 'fading').every(([t]) => t < since)).toBe(true);
+    const fading = alerts.filter(([, kind]) => kind === 'fading').map(([t]) => t);
+    // The reminder comes FADE_REMINDER_H before the end, or in the morning if that's at night.
+    expect(fading).toEqual([since, Math.max(since + (24 - FADE_REMINDER_H) * HOUR, at(2, 7))]);
   });
 
   it('has nothing to say once the pet’s story ended', () => {

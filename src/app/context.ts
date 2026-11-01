@@ -15,9 +15,9 @@ export interface Game {
   readonly sheet: ActivitySheet;
   /** Current game time. */
   now(): number;
-  /** The pet while it's hatched and alive (null for an egg, or after its story ended). */
+  /** The pet while it's hatched, alive and awake to the world (null for an egg, while fading, or after its story ended). */
   livePet(): PetState | null;
-  /** An egg that is still being cared for (not hatched, not lost). */
+  /** An egg that is still being cared for (not hatched, not fading, not lost). */
   eggActive(): boolean;
   save(): void;
   /** Redraw the status card, hint and dock. */

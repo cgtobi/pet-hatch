@@ -30,6 +30,16 @@ const GENTLE_HEALTH_FLOOR = 10;
 const LAPSE_RESET = 20;
 /** How long a ready egg waits for the player before hatching on its own. */
 export const HATCH_WAIT_H = 12;
+/**
+ * The vial (Classic): an egg or pet that reaches 0 health collapses and fades for this many hours instead of
+ * being lost at once. Giving it the vial brings it back with this much health, at the cost of this many care
+ * mistakes; there is one per egg, and without it (or once the time is up) the egg is lost or the pet dies.
+ */
+export const FADE_H = 24;
+export const VIAL_HEALTH = 25;
+export const VIAL_MISTAKES = 2;
+/** A revived egg's needs are at least this full, so it doesn't collapse again before the player can help. */
+const VIAL_NEEDS = 50;
 
 const MIN_HATCH_H = 20;
 const HATCH_SPREAD_H = 8;
@@ -86,6 +96,11 @@ export function hoursUntilTurn(egg: EggState, now: number): number {
 /** Advance the egg by dtH game hours, ending at game time t. */
 export function tickEgg(egg: EggState, t: number, dtH: number, settings: Settings): void {
   if (egg.failed) return;
+  // Fading: nothing else happens until the vial is given or the time is up.
+  if (egg.fading) {
+    if (t - egg.fading.since >= FADE_H * HOUR) egg.failed = true;
+    return;
+  }
   const asleep = isAsleep(t, settings);
   const decayMul = asleep ? SLEEP_DECAY : 1;
 
@@ -127,7 +142,9 @@ export function tickEgg(egg: EggState, t: number, dtH: number, settings: Setting
   }
   egg.health = clamp(egg.health, settings.neglect === 'gentle' ? GENTLE_HEALTH_FLOOR : 0);
   if (settings.neglect === 'classic' && egg.health <= 0) {
-    egg.failed = true;
+    egg.health = 0;
+    if (egg.vialUsed) egg.failed = true;
+    else egg.fading = { since: t };
     return;
   }
 
@@ -137,6 +154,27 @@ export function tickEgg(egg: EggState, t: number, dtH: number, settings: Setting
     egg.devHours += rate * dtH;
     if (egg.devHours >= egg.baseHours) egg.readyAt = t;
   }
+}
+
+/** Hours left to give the vial to a fading egg or pet. */
+export function fadeHoursLeft(fading: { since: number }, now: number): number {
+  return Math.max(0, FADE_H - (now - fading.since) / HOUR);
+}
+
+/** Give a fading egg the vial: it warms up again, weak. Returns false if it isn't fading. */
+export function giveEggVial(egg: EggState, now: number): boolean {
+  if (!egg.fading || egg.failed) return false;
+  egg.fading = null;
+  egg.vialUsed = true;
+  egg.health = VIAL_HEALTH;
+  egg.careMistakes += VIAL_MISTAKES;
+  for (const need of ['warmth', 'humidity', 'bond'] as const) {
+    egg[need] = Math.max(egg[need], VIAL_NEEDS);
+    egg.lapsed[need] = false;
+  }
+  egg.lastTurnedAt = now;
+  egg.lapsed.turn = false;
+  return true;
 }
 
 export interface CareResult {

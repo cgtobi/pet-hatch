@@ -84,7 +84,7 @@ the current mode but can't change it.
 |---|---|
 | Cozy | No health loss. Neglect only shapes the outcome. |
 | Gentle (default) | Health loss, floored at 10%. It always hatches, just more slowly. |
-| Classic | 1.5× health loss. At 0 the egg is lost and you start a new one. |
+| Classic | 1.5× health loss. At 0 the egg goes cold; without the health potion (below) it's lost and you start a new one. |
 
 ## Life after hatching
 
@@ -144,7 +144,7 @@ You name the baby when it hatches (a name is suggested).
 - **Night:** calls pause, droppings don't age, and needs drain at 10% (light off) or 30% (light on).
 - **Alerts** ✅ (PHP hosting with a cron job; opt-in in Settings): while the game is closed, the phone says when
   the pet calls ("Pip is calling!", the same for needs and tantrums), the egg needs care (a need below 20% or
-  turning due within 30 min) or is ready to hatch. Closing the game runs a copy of the simulation 24 h ahead
+  turning due within 30 min), is ready to hatch, or collapsed in Classic (see the health potion). Closing the game runs a copy of the simulation 24 h ahead
   (`src/sim/alerts.ts`: exact, since its chances come from the seed and the time) and sends the times to
   `push.php`; opening it clears them. At least 30 min apart, at most 6 unanswered in a row, and whatever starts
   at night waits for the morning. The server never learns the pet's name: the push message names only the kind,
@@ -156,9 +156,23 @@ You name the baby when it hatches (a name is suggested).
 |---|---|
 | Cozy | Nothing bad: no sickness, health never below 50%. |
 | Gentle (default) | Health floor 10%; after 24 awake hours of total neglect (starving *and* miserable) the pet **runs away**. |
-| Classic | 1.5× health loss; at 0 the pet **dies**. |
+| Classic | 1.5× health loss; at 0 the pet collapses, and without the health potion it **dies**. |
 
 After any ending, a new egg starts.
+
+**The health potion** ✅ (Classic; `vial` in the code): every egg comes with one, and it lasts the whole egg-to-elder
+story, so if it saves the egg, the pet that hatches has none left.
+
+- At 0 health an egg or pet with its potion doesn't end at once: it **fades** for 24 hours (night included). It lies
+  still, pale and cold, and nothing else happens: needs don't drain and no mistakes are counted. The dock shows only
+  the Potion button, and the hint counts the hours down.
+- Giving the potion brings it back weak: 25% health, a pet's sickness cured, an egg's needs at least half full and
+  freshly turned. The collapse counts as 2 care mistakes (a baby can still turn out *scruffy*).
+- If the 24 hours run out, or it collapses a second time, the egg is lost or the pet dies as before.
+- The family list remembers a pet that was saved ("Saved by the potion").
+- Alerts: "collapsed" when it happens and again 4 hours before the end (held until morning at night, and dropped if
+  it was too late by then); this alert replaces a call alert sent less than 30 minutes before.
+- Older saves get a potion too: a missing field means it's still there.
 
 ### Training and stats ✅
 

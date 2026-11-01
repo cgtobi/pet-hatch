@@ -62,7 +62,7 @@ export function advance(state: GameState, to: number): void {
     } else if (state.phase === 'egg') {
       tickEgg(state.egg, state.simTime, dt / HOUR, state.settings);
       const { readyAt } = state.egg;
-      if (readyAt !== null && state.simTime - readyAt >= HATCH_WAIT_H * HOUR) {
+      if (readyAt !== null && !state.egg.fading && state.simTime - readyAt >= HATCH_WAIT_H * HOUR) {
         hatch(state, state.simTime, true);
       }
     }
@@ -71,7 +71,7 @@ export function advance(state: GameState, to: number): void {
 
 /** Whether the egg is ready and waiting for the player to help it out. */
 export function isReadyToHatch(state: GameState): boolean {
-  return state.phase === 'egg' && state.egg.readyAt !== null && !state.egg.failed;
+  return state.phase === 'egg' && state.egg.readyAt !== null && !state.egg.failed && !state.egg.fading;
 }
 
 export function hatch(state: GameState, at: number, alone: boolean): PetState {
@@ -113,6 +113,7 @@ export function layNewEgg(state: GameState, now: number, seed = randomSeed(), ne
       ending: pet.status === 'alive' ? 'released' : pet.status,
       wins: pet.battles.wins,
       stars: masteredStats(pet).length,
+      ...(pet.vialUsed ? { saved: true } : {}),
       hatchedAt: pet.hatchedAt,
       endedAt: now,
     });

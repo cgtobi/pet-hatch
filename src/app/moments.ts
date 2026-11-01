@@ -1,14 +1,15 @@
 /**
- * The big moments of a pet's story: hatching and naming it, growing up and evolving, how its story ends, and
- * starting a new egg (with the choice of how forgiving the game is).
+ * The big moments of a pet's story: hatching and naming it, growing up and evolving, the vial that saves it once,
+ * how its story ends, and starting a new egg (with the choice of how forgiving the game is).
  */
 import { haptic, sfx } from '../feedback';
 import { listOf, t } from '../i18n';
 import type { PetEnding } from '../net/stats';
 import { cleanName } from '../sim/battlecode';
+import { giveEggVial } from '../sim/egg';
 import { speciesName } from '../sim/evolution';
 import { hatch, heritageOf, layNewEgg, NEGLECT_MODES } from '../sim/game';
-import { LIFE_STAGES } from '../sim/pet';
+import { giveVial, LIFE_STAGES } from '../sim/pet';
 import type { FormId, NeglectMode, PetState, Stat } from '../sim/types';
 import type { Game } from './context';
 
@@ -18,6 +19,8 @@ export interface Moments {
   /** The pet bursts out (also when it hatched on its own while nobody looked), then gets its name. */
   burstAndReveal(pet: PetState, alone: boolean): void;
   evolve(pet: PetState): void;
+  /** Give the fading egg or pet the vial (Classic): it comes back, weak. */
+  vial(): void;
   showEnding(pet: PetState): void;
   eggFailed(): void;
   chooseNeglect(
@@ -116,6 +119,32 @@ export function createMoments(g: Game, deps: { reportStats(status?: PetEnding): 
     );
   }
 
+  function vial() {
+    const now = g.now();
+    const pet = g.state.phase === 'hatched' ? g.state.pet : null;
+    const saved = pet ? giveVial(pet, now) : g.state.phase === 'egg' && giveEggVial(g.state.egg, now);
+    if (!saved) return;
+    g.save();
+    g.world.effects.emit('spark', g.petCenter(), 30);
+    g.world.effects.emit('heart', g.petCenter(), 4);
+    sfx.cure();
+    haptic('celebrate');
+    g.refresh();
+    if (pet) setTimeout(() => g.world.pet?.hop(), 900);
+    else g.world.egg.jump(1.2);
+    const which = pet ? 'pet' : 'egg';
+    setTimeout(
+      () =>
+        g.hud.showOverlay({
+          title: t(`vial.${which}.title`, { name: pet?.name ?? '' }),
+          body: t(`vial.${which}.body`, { name: pet?.name ?? '' }),
+          button: t('vial.button'),
+          onClose: () => g.refresh(),
+        }),
+      1400,
+    );
+  }
+
   function showEnding(pet: PetState) {
     endShown = true;
     deps.reportStats();
@@ -188,6 +217,7 @@ export function createMoments(g: Game, deps: { reportStats(status?: PetEnding): 
     hatchNow,
     burstAndReveal,
     evolve,
+    vial,
     showEnding,
     eggFailed,
     chooseNeglect,

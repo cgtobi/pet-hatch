@@ -5,7 +5,7 @@
 import type { MusicMode } from '../feedback';
 import type { TextKey } from '../i18n';
 import { dayPart, isAsleep } from '../sim/clock';
-import { careLeaning, hatchStage, hoursUntilTurn, isTurnOverdue } from '../sim/egg';
+import { careLeaning, fadeHoursLeft, hatchStage, hoursUntilTurn, isTurnOverdue } from '../sim/egg';
 import { POWER_NAP_BELOW } from '../sim/pet';
 import { canTrain } from '../sim/training';
 import type { EggState, GameState, PetState, Settings } from '../sim/types';
@@ -25,6 +25,7 @@ export interface Rush {
 }
 
 export function eggHint(egg: EggState, now: number, settings: Settings, rush: Rush): Hint {
+  if (egg.fading) return { key: 'hint.egg.fading', params: { h: Math.ceil(fadeHoursLeft(egg.fading, now)) }, urgent: true };
   if (rush.left !== null) return rush.left < rush.taps ? { key: 'hint.rush', params: { n: rush.left } } : { key: 'hint.ready' };
   if (isAsleep(now, settings)) return { key: 'hint.sleep' };
   if (egg.warmth < 20) return { key: 'hint.cold', urgent: true };
@@ -48,6 +49,9 @@ export interface PetContext {
 /** The most pressing thing to say about the pet, in order of importance. */
 export function petHint(pet: PetState, now: number, c: PetContext): Hint {
   const params = { name: pet.name };
+  if (pet.fading) {
+    return { key: 'hint.pet.fading', params: { ...params, h: Math.ceil(fadeHoursLeft(pet.fading, now)) }, urgent: true };
+  }
   if (pet.upLate) return { key: 'hint.pet.upLate', params };
   if (isAsleep(now, c.settings)) {
     if (!c.lightsOn) return { key: 'hint.sleep' };
@@ -69,10 +73,11 @@ export function petHint(pet: PetState, now: number, c: PetContext): Hint {
   return { key: c.tapped ? 'hint.pet.fine' : 'hint.pet.tap', params };
 }
 
-export type Feel = 'sick' | 'upLate' | 'sleeping' | 'napping' | 'dozing' | 'happy' | 'ok' | 'sad';
+export type Feel = 'fading' | 'sick' | 'upLate' | 'sleeping' | 'napping' | 'dozing' | 'happy' | 'ok' | 'sad';
 
 /** How the pet feels, for the status line. */
 export function petFeel(pet: PetState, now: number, settings: Settings): Feel {
+  if (pet.fading) return 'fading';
   if (pet.sick) return 'sick';
   if (pet.upLate) return 'upLate';
   if (isAsleep(now, settings)) return 'sleeping';

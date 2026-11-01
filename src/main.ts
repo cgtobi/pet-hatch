@@ -84,8 +84,9 @@ const sheet = new ActivitySheet(() => {
   updateHud();
 });
 
-const eggActive = () => state.phase === 'egg' && !state.egg.failed;
-const livePet = (): PetState | null => (state.phase === 'hatched' && state.pet?.status === 'alive' ? state.pet : null);
+const eggActive = () => state.phase === 'egg' && !state.egg.failed && !state.egg.fading;
+const livePet = (): PetState | null =>
+  state.phase === 'hatched' && state.pet?.status === 'alive' && !state.pet.fading ? state.pet : null;
 
 /** What the parts of the game share (see src/app/). */
 const game: Game = {
@@ -101,7 +102,11 @@ const game: Game = {
   petCenter: () => world.pet?.center() ?? world.egg.center(),
 };
 const moments = createMoments(game, { reportStats: (status) => reportStats(status), stopWarming: () => eggCare.stopWarming() });
-const eggCare = createEggCare(game, () => moments.hatchNow());
+const eggCare = createEggCare(
+  game,
+  () => moments.hatchNow(),
+  () => moments.vial(),
+);
 const petCare = createPetCare(game, moments);
 const arena = setUpBattles(game);
 
@@ -122,11 +127,11 @@ function updateHud() {
     const stage = hatchStage(egg);
     const day = Math.floor((now - egg.laidAt) / (24 * HOUR)) + 1;
     const asleep = isAsleep(now, state.settings);
-    hud.setMode(egg.failed ? 'none' : 'egg');
+    hud.setMode(egg.failed ? 'none' : egg.fading ? 'fading' : 'egg');
     const h = egg.heritage;
     hud.setHeader(
       h ? t('egg.titleFrom', { name: h.parentName }) : t('egg.title'),
-      `${t('egg.day', { n: day })} · ${asleep ? t('egg.sleeping') : t(EGG_MOODS[stage])}`,
+      `${t('egg.day', { n: day })} · ${egg.fading ? t('egg.fading') : asleep ? t('egg.sleeping') : t(EGG_MOODS[stage])}`,
       h ? [{ text: t('gen', { n: h.generation }), tone: 'neutral' }] : [],
     );
     hud.setStage(stage);
@@ -139,14 +144,19 @@ function updateHud() {
     hud.setLeaning(careLeaning(egg));
     const hint = eggHint(egg, now, state.settings, eggCare.rush());
     hud.setHint(egg.failed ? '' : t(hint.key, hint.params), hint.urgent);
-    hud.setDockState({ turn: hoursUntilTurn(egg, now) < 0.5 });
-    world.egg.draw({ crack: crackLevel(egg, eggCare.rush()), leaning: careLeaning(egg), failed: egg.failed });
+    hud.setDockState({ turn: hoursUntilTurn(egg, now) < 0.5, vial: !!egg.fading });
+    world.egg.draw({
+      crack: crackLevel(egg, eggCare.rush()),
+      leaning: careLeaning(egg),
+      failed: egg.failed,
+      fading: !!egg.fading,
+    });
   } else if (state.pet && !moments.endShown()) {
     const pet = state.pet;
     const stage = Math.min(pet.shownStage, LIFE_STAGES.length - 1);
     const sleeping = isSleeping(pet, now, state.settings);
     const feel = petFeel(pet, now, state.settings);
-    hud.setMode('pet');
+    hud.setMode(pet.fading ? 'fading' : 'pet');
     const species = speciesName(pet.type, pet.shownForm);
     const age = t('pet.age', { age: formatAge(ageHours(pet, now)) });
     const stars = masteredStats(pet).length;
@@ -178,6 +188,7 @@ function updateHud() {
         clean: pet.droppings.length > 0,
         play: pet.mood < 30 && !sleeping,
         medicine: pet.sick,
+        vial: !!pet.fading,
       });
     const kind = lightButtonKind(pet, now, state.settings);
     const canNap = napCheck(pet, now, state.settings) === 'ok';
@@ -448,6 +459,10 @@ function alertTexts(): AlertTexts {
     call: { title: t('alert.call.title', { name }), body: t('alert.call.body') },
     egg: { title: t('alert.egg.title'), body: t('alert.egg.body') },
     hatch: { title: t('alert.hatch.title'), body: t('alert.hatch.body') },
+    fading:
+      state.phase === 'egg'
+        ? { title: t('alert.fading.egg.title'), body: t('alert.fading.body') }
+        : { title: t('alert.fading.pet.title', { name }), body: t('alert.fading.body') },
   };
 }
 

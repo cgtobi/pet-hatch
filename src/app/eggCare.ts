@@ -42,8 +42,11 @@ export interface EggCare {
   rush(): Rush;
 }
 
-/** @param onHatch called once the last tap breaks the shell */
-export function createEggCare(g: Game, onHatch: () => void): EggCare {
+/**
+ * @param onHatch called once the last tap breaks the shell
+ * @param onVial the vial was given to the fading egg
+ */
+export function createEggCare(g: Game, onHatch: () => void, onVial: () => void): EggCare {
   let warming = false;
   let warmFx = 0;
   /** Pampering given during the current hold of Warm, for the toast when it ends. */
@@ -55,7 +58,8 @@ export function createEggCare(g: Game, onHatch: () => void): EggCare {
   let lastStage = hatchStage(g.state.egg);
 
   function eggAction(action: DockAction) {
-    if (action === 'mist') mist();
+    if (action === 'vial') onVial();
+    else if (action === 'mist') mist();
     else if (action === 'sing') sing();
     else if (action === 'turn') turn(Math.random() < 0.5 ? 1 : -1);
   }

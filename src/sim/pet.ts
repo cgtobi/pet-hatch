@@ -1,4 +1,5 @@
 import { dayPart, HOUR, isAsleep, MINUTE } from './clock';
+import { FADE_H, VIAL_HEALTH, VIAL_MISTAKES } from './egg';
 import { formFor } from './evolution';
 import { mulberry32 } from './rng';
 import { maxEnergy } from './training';
@@ -140,6 +141,8 @@ export function createPet(egg: EggState, type: ElementType, at: number, alone: b
     battleXp: 0,
     lessons: [],
     generation: egg.heritage?.generation ?? 1,
+    vialUsed: !!egg.vialUsed,
+    fading: null,
   };
 }
 
@@ -203,6 +206,11 @@ function wouldDoze(pet: PetState, lightsOn: boolean): boolean {
 /** Advance the pet by dtH game hours, ending at game time t. */
 export function tickPet(pet: PetState, t: number, dtH: number, settings: Settings, lightsOn: boolean): void {
   if (pet.status !== 'alive') return;
+  // Fading: it lies still, needs and all, until the vial is given or the time is up.
+  if (pet.fading) {
+    if (t - pet.fading.since >= FADE_H * HOUR) pet.status = 'died';
+    return;
+  }
   const stageIndex = lifeStageIndex(pet, t);
   if (stageIndex >= LIFE_STAGES.length) {
     pet.status = 'retired';
@@ -316,7 +324,17 @@ export function tickPet(pet: PetState, t: number, dtH: number, settings: Setting
   pet.health = clamp(pet.health, settings.neglect === 'gentle' ? GENTLE_HEALTH_FLOOR : 0);
   if (settings.neglect === 'cozy') pet.health = Math.max(pet.health, 50);
   if (settings.neglect === 'classic' && pet.health <= 0) {
-    pet.status = 'died';
+    pet.health = 0;
+    if (pet.vialUsed) {
+      pet.status = 'died';
+      return;
+    }
+    pet.fading = { since: t };
+    pet.call = null;
+    pet.napping = false;
+    pet.powerNap = null;
+    pet.dozing = false;
+    pet.upLate = null;
     return;
   }
 
@@ -413,6 +431,24 @@ export function giveMedicine(pet: PetState): MedicineResult {
   pet.sick = false;
   if (pet.call?.kind === 'need' && lowestNeed(pet) === null) pet.call = null;
   return 'cured';
+}
+
+/**
+ * Give a fading pet the vial: it wakes up weak (VIAL_HEALTH) but cured, and the collapse counts as VIAL_MISTAKES
+ * care mistakes. Returns false if it isn't fading.
+ */
+export function giveVial(pet: PetState, now: number): boolean {
+  if (!pet.fading || pet.status !== 'alive') return false;
+  pet.fading = null;
+  pet.vialUsed = true;
+  pet.health = VIAL_HEALTH;
+  pet.sick = false;
+  pet.sickDoses = 0;
+  pet.call = null;
+  for (let i = 0; i < VIAL_MISTAKES; i++) mistake(pet, now);
+  // No tantrum the moment it opens its eyes: its next one was due while it lay there.
+  pet.nextFakeCallAt = Math.max(pet.nextFakeCallAt, now + FAKE_CALL_EVERY_H[0] * HOUR);
+  return true;
 }
 
 /** Scolding fixes tantrums; scolding a pet with a real need, or for nothing, just upsets it. */

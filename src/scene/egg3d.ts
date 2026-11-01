@@ -24,6 +24,8 @@ export interface EggLook {
   crack: number;
   leaning: Leaning;
   failed: boolean;
+  /** Collapsed and waiting for the vial: pale and cold. */
+  fading?: boolean;
 }
 
 /** Old shells slowly turn mossy before they crumble away. */
@@ -199,7 +201,7 @@ export class Egg3D {
     const l = look.leaning;
     const segs = this.cracks.reduce((n, c) => n + c.length - 1, 0);
     const shown = Math.round(look.crack * segs);
-    const key = `${shown}|${l.label}|${l.ember.toFixed(2)}|${l.tide.toFixed(2)}|${look.failed}`;
+    const key = `${shown}|${l.label}|${l.ember.toFixed(2)}|${l.tide.toFixed(2)}|${look.failed}|${!!look.fading}`;
     if (key === this.lookKey) return;
     this.lookKey = key;
 
@@ -249,7 +251,7 @@ export class Egg3D {
         }
       }
     }
-    this.mesh.material.color.set(look.failed ? '#a7a3b4' : '#ffffff');
+    this.mesh.material.color.set(look.failed ? '#a7a3b4' : look.fading ? '#c4cadf' : '#ffffff');
     this.tex.needsUpdate = true;
     this.emTex.needsUpdate = true;
   }

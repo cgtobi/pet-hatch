@@ -11,6 +11,7 @@ const WANDER_RADIUS = 1.9;
 export const SHELL: Obstacle = [0.95, 0.35, 1.0];
 const SICK_TINT = new THREE.Color('#a8b88a');
 const ELDER_TINT = new THREE.Color('#d9d2c8');
+const FADING_TINT = new THREE.Color('#b8b7c8');
 
 type Anim = 'hop' | 'eat' | 'cower' | 'dance' | 'evolve' | 'pop' | 'lunge' | 'hurt';
 
@@ -20,6 +21,8 @@ export interface PetLook {
   calling: boolean;
   /** 0 … 100 */
   mood: number;
+  /** Collapsed and waiting for the vial: lies on its side, pale, eyes closed. */
+  fading?: boolean;
 }
 
 /** Body plan of each form; the type adds its own colors, crest and accents. */
@@ -423,7 +426,7 @@ export class Pet3D {
   }
 
   setLook(look: PetLook): void {
-    const changed = look.sick !== this.look.sick;
+    const changed = look.sick !== this.look.sick || !!look.fading !== !!this.look.fading;
     this.look = look;
     if (changed) this.applyTint();
   }
@@ -433,6 +436,7 @@ export class Pet3D {
       mat.color.copy(base);
       if (this.stage === 4) mat.color.lerp(ELDER_TINT, 0.25);
       if (this.look.sick) mat.color.lerp(SICK_TINT, 0.4);
+      if (this.look.fading) mat.color.lerp(FADING_TINT, 0.55);
     }
   }
 
@@ -510,6 +514,7 @@ export class Pet3D {
 
   update(dt: number, time: number): void {
     const { sleeping, sick, calling, mood } = this.look;
+    const down = this.fainted || !!this.look.fading;
     let hopY = 0;
     let spin = 0;
     let squash = Math.sin(time * (sleeping ? 1.2 : 3.2)) * (sleeping ? 0.05 : 0.03);
@@ -580,7 +585,7 @@ export class Pet3D {
     // Wandering.
     const pos = this.group.position;
     let walking = false;
-    if (!this.anim && !sleeping && !this.fainted) {
+    if (!this.anim && !sleeping && !down) {
       if (this.target) {
         const dx = this.target.x - pos.x;
         const dz = this.target.y - pos.z;
@@ -615,7 +620,7 @@ export class Pet3D {
 
     this.group.scale.setScalar(this.scale * scaleMul);
     this.body.position.set(Math.sin(this.heading) * lunge + shake, hopY, Math.cos(this.heading) * lunge);
-    const roll = this.fainted ? 1.35 : walking ? Math.sin(this.walkPhase) * 0.1 : 0;
+    const roll = down ? 1.35 : walking ? Math.sin(this.walkPhase) * 0.1 : 0;
     this.body.rotation.set(tilt, this.heading + spin, roll);
     this.body.scale.set(1 + squash, 1 - squash, 1 + squash);
 
@@ -626,11 +631,11 @@ export class Pet3D {
 
     // Face.
     this.blinkIn -= dt;
-    const closed = sleeping || this.fainted || this.blinkIn < 0.12 || this.anim?.kind === 'cower';
+    const closed = sleeping || down || this.blinkIn < 0.12 || this.anim?.kind === 'cower';
     for (const e of this.eyes) e.scale.y = closed ? 0.15 : 1.15 * this.eyeOpen;
     if (this.blinkIn < 0) this.blinkIn = 2 + this.rand() * 3;
     const happy = mood >= 60 && !sick;
-    const sad = mood < 30 || sick || this.fainted || this.anim?.kind === 'cower' || this.anim?.kind === 'hurt';
+    const sad = mood < 30 || sick || down || this.anim?.kind === 'cower' || this.anim?.kind === 'hurt';
     this.smile.visible = happy && !sad;
     this.frown.visible = sad;
     this.flat.visible = !this.smile.visible && !this.frown.visible;

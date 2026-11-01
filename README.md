@@ -147,7 +147,7 @@ on the Home Screen (Safari only offers push there).
 - **How:** the game works out from its own simulation when the next calls will come and, each time it is closed,
   sends those times (the next day's, at most 6 in a row, none at night); opening it clears them. Alerts only go to
   the push services of Chrome, Safari, Firefox and Edge.
-- **Stored per phone:** its push address and keys, the alert times with their kind (call, egg, hatch), the site's
+- **Stored per phone:** its push address and keys, the alert times with their kind (call, egg, hatch, fading), the site's
   address, a hash of the IP address that signed it up (at most 20 phones each) and when it last checked in.
   Nothing about the pet; the words, with its name, stay on the phone. Forgotten when the player turns alerts off,
   when the push service says the address is gone, or after 30 days without the game being opened.

@@ -2,10 +2,11 @@ import { t, type TextKey } from '../i18n';
 import type { Leaning } from '../sim/egg';
 import { icon, type IconName } from './icons';
 
-export type HudMode = 'egg' | 'pet' | 'none';
+/** 'fading': an egg or pet that collapsed (Classic); the dock only offers the vial. */
+export type HudMode = 'egg' | 'pet' | 'fading' | 'none';
 export type EggAction = 'mist' | 'sing' | 'turn';
 export type PetAction = 'feed' | 'clean' | 'play' | 'train' | 'medicine' | 'scold';
-export type DockAction = EggAction | PetAction;
+export type DockAction = EggAction | PetAction | 'vial';
 /** The egg's visible stages, in order. */
 const STAGE_KEYS = ['stage.0', 'stage.1', 'stage.2', 'stage.3', 'stage.4'] as const satisfies readonly TextKey[];
 /** What the round button beside More does: Nap or Wake up by day, the light in the evening and at night. */
@@ -61,6 +62,8 @@ const PET_DOCK: DockDef[] = [
   { id: 'medicine', icon: 'pill', tone: 'amber-btn' },
   { id: 'scold', icon: 'scold', tone: 'violet-btn' },
 ];
+
+const FADING_DOCK: DockDef[] = [{ id: 'vial', icon: 'vial', tone: 'rose-btn' }];
 
 export interface Chip {
   text: string;
@@ -142,7 +145,7 @@ export class Hud {
       });
     }
 
-    for (const d of [...EGG_DOCK, ...PET_DOCK]) {
+    for (const d of [...EGG_DOCK, ...PET_DOCK, ...FADING_DOCK]) {
       const b = document.createElement('button');
       b.type = 'button';
       b.innerHTML = `<span class="bubble ${d.tone}">${icon(d.icon)}<span class="dot"></span></span><span class="label"></span>`;
@@ -190,11 +193,11 @@ export class Hud {
     if (mode === this.mode) return;
     this.mode = mode;
     const needs = mode === 'egg' ? EGG_NEEDS : mode === 'pet' ? PET_NEEDS : [];
-    const dock = mode === 'egg' ? EGG_DOCK : mode === 'pet' ? PET_DOCK : [];
+    const dock = mode === 'egg' ? EGG_DOCK : mode === 'pet' ? PET_DOCK : mode === 'fading' ? FADING_DOCK : [];
     this.needs.replaceChildren(...needs.map((n) => this.needEls.get(n.key)!.root));
     this.dock.replaceChildren(...dock.map((d) => this.dockButtons.get(d.id)!));
     this.dock.style.setProperty('--cols', String(dock.length || 5));
-    this.needs.hidden = mode === 'none';
+    this.needs.hidden = mode === 'none' || mode === 'fading';
     this.stages.hidden = mode !== 'egg';
     this.leaning.hidden = mode !== 'egg';
     this.vitals.hidden = mode !== 'pet';

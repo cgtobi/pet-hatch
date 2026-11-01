@@ -90,7 +90,7 @@ describe.skipIf(!url || !origin)('PHP alerts (push.php)', () => {
   it('sends an alert when it is due, encrypted for the phone and signed by the server', async () => {
     const p = phone('pip');
     const now = Date.now();
-    expect((await post({ sub: p.sub, alerts: [[now - MIN, 'call'], [now + 60 * MIN, 'egg']] })).status).toBe(204);
+    expect((await post({ sub: p.sub, alerts: [[now - MIN, 'call'], [now + 60 * MIN, 'fading']] })).status).toBe(204);
     expect(await tick()).toEqual({ status: 200, text: 'sent 1, failed 0, gone 0' });
 
     const got = received.filter((r) => r.path === p.path);

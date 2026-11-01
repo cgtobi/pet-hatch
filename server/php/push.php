@@ -6,7 +6,7 @@
  * The game works out from its own simulation when its egg or pet will next need the player (src/sim/alerts.ts)
  * and sends those times here whenever it's closed; opening it again clears them. A cron job runs the tick every
  * minute, which sends whatever is due. Kept per phone: its push address and keys, the alert times and their kind
- * (call, egg, hatch), and when it last checked in. No names, no save, nothing else about the pet; the message
+ * (call, egg, hatch, fading), and when it last checked in. No names, no save, nothing else about the pet; the message
  * only says the kind, and the game on the phone puts the words to it.
  *
  *   POST push.php  {"sub": {"endpoint", "keys": {"p256dh", "auth"}}, "alerts": [[time ms, kind], …]}  → 204
@@ -26,7 +26,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/common.php';
 require_once __DIR__ . '/webpush.php';
 
-const KINDS = ['call', 'egg', 'hatch'];
+const KINDS = ['call', 'egg', 'hatch', 'fading'];
 const MAX_BODY = 2048;
 /** Alerts kept per phone (the game sends the next day's at most, a gap apart). */
 const MAX_ALERTS = 16;

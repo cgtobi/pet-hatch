@@ -66,6 +66,9 @@ const isName = (v: unknown) => typeof v === 'string' && v.length <= MAX_NAME;
 const isOneOf = <T>(v: unknown, list: readonly T[]) => list.includes(v as T);
 const isList = (v: unknown, max: number, item: (x: never) => boolean) =>
   Array.isArray(v) && v.length <= max && v.every((x) => item(x as never));
+/** A vial and fading state (see EggState.vialUsed, EggState.fading); both may be missing. */
+const isVial = (o: { vialUsed?: unknown; fading?: { since: unknown } | null }) =>
+  (o.vialUsed === undefined || typeof o.vialUsed === 'boolean') && (o.fading == null || isNum(o.fading.since));
 const isStats = (v: unknown, max: number) =>
   typeof v === 'object' && v !== null && Object.entries(v).every(([k, n]) => isOneOf(k, STATS) && isNum(n, 0, max));
 
@@ -92,6 +95,7 @@ export function isSound(s: GameState): boolean {
     isOneOf(a.ending, ENDINGS) &&
     isInt(a.wins, 0, 1e6) &&
     (a.stars === undefined || isInt(a.stars, 0, STATS.length)) &&
+    (a.saved === undefined || typeof a.saved === 'boolean') &&
     isNum(a.hatchedAt) &&
     isNum(a.endedAt),
   );
@@ -100,6 +104,7 @@ export function isSound(s: GameState): boolean {
     [egg.warmth, egg.humidity, egg.bond, egg.health].every((n) => isNum(n, -1, 101)) &&
     [egg.devHours, egg.baseHours, egg.laidAt, egg.lastTurnedAt].every((n) => isNum(n)) &&
     isInt(egg.seed, 0, 2 ** 32) &&
+    isVial(egg) &&
     (h === null ||
       (isName(h.parentName) && isOneOf(h.parentType, TYPES) && isStats(h.stats, 100) && isInt(h.generation, 1, 1e6)));
   const petOk =
@@ -121,6 +126,7 @@ export function isSound(s: GameState): boolean {
       (pet.battles.champions === undefined || isInt(pet.battles.champions, 0, 1e6)) &&
       (pet.wildHeat === undefined || isInt(pet.wildHeat, -10, 10)) &&
       isInt(pet.generation, 1, 1e6) &&
+      isVial(pet) &&
       isInt(pet.trainings, 0, 1e7) &&
       isNum(pet.battleXp, 0, 1000) &&
       isList(pet.lessons, 100, (l: PetState['lessons'][number]) => isOneOf(l.stat, STATS) && isName(l.from)) &&

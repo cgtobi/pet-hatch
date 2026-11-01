@@ -41,6 +41,8 @@ export interface Ancestor {
   wins: number;
   /** Stats it had at 100, shown as stars (missing in older saves). */
   stars?: number;
+  /** Saved once by the vial (as an egg or as a pet; missing: never). */
+  saved?: boolean;
   hatchedAt: number;
   endedAt: number;
 }
@@ -74,6 +76,13 @@ export interface EggState {
   /** The light on the island (kept with the egg, but it serves the pet): off makes evenings and nights dark. */
   lightsOn: boolean;
   failed: boolean;
+  /**
+   * The vial (Classic): every egg comes with one, and the pet that hatches keeps it if it wasn't needed. Missing:
+   * still there.
+   */
+  vialUsed?: boolean;
+  /** Collapsed at 0 health (Classic, with the vial still there): lies still until it's given, or FADE_H passes. */
+  fading?: { since: number } | null;
   heritage: Heritage | null;
 }
 
@@ -182,6 +191,10 @@ export interface PetState {
   lessons: { stat: Stat; from: string }[];
   /** 1 for a first pet; each retired parent's egg adds one. */
   generation: number;
+  /** The vial, carried over from the egg (see EggState.vialUsed); missing: still there. */
+  vialUsed?: boolean;
+  /** Collapsed at 0 health (Classic), see EggState.fading. */
+  fading?: { since: number } | null;
 }
 
 export interface GameState {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { HOUR } from './clock';
-import { careLeaning, comfortEgg, createEgg, eggType, hatchStage, mistEgg, turnEgg, warmEgg } from './egg';
-import { advance, DEFAULT_SETTINGS, newGame } from './game';
+import { careLeaning, comfortEgg, createEgg, eggType, giveEggVial, hatchStage, mistEgg, turnEgg, warmEgg } from './egg';
+import { advance, DEFAULT_SETTINGS, hatch, isReadyToHatch, newGame } from './game';
 import type { GameState, NeglectMode } from './types';
 
 // Local-time timestamps, so the sleep window (22:00–07:00) is deterministic.
@@ -105,10 +105,35 @@ describe('neglect modes', () => {
     expect(s.egg.readyAt).not.toBeNull();
   });
 
-  it('classic can lose the egg', () => {
+  it('classic can lose the egg, after it fades for 24 hours', () => {
     const s = game('classic');
-    advance(s, at(3, 9));
+    for (let t = s.simTime; !s.egg.fading; t += 10 * 60_000) advance(s, t);
+    const since = s.egg.fading!.since;
+    expect(s.egg.health).toBe(0);
+    advance(s, since + 23.9 * HOUR);
+    expect(s.egg.failed).toBe(false);
+    advance(s, since + 24 * HOUR);
     expect(s.egg.failed).toBe(true);
+  });
+
+  it('classic: the potion saves the egg once, and the pet has none left', () => {
+    const s = game('classic');
+    for (let t = s.simTime; !s.egg.fading; t += 10 * 60_000) advance(s, t);
+    const mistakes = s.egg.careMistakes;
+    expect(giveEggVial(s.egg, s.simTime)).toBe(true);
+    expect(s.egg).toMatchObject({ fading: null, vialUsed: true, health: 25, careMistakes: mistakes + 2 });
+    expect(Math.min(s.egg.warmth, s.egg.humidity, s.egg.bond)).toBeGreaterThanOrEqual(50);
+    expect(giveEggVial(s.egg, s.simTime)).toBe(false);
+    expect(hatch(s, s.simTime, false).vialUsed).toBe(true);
+  });
+
+  it('a fading egg doesn’t hatch', () => {
+    const s = game('classic');
+    s.egg.readyAt = s.simTime;
+    s.egg.fading = { since: s.simTime };
+    expect(isReadyToHatch(s)).toBe(false);
+    advance(s, s.simTime + 13 * HOUR);
+    expect(s.phase).toBe('egg');
   });
 });
 

@@ -36,7 +36,7 @@ export interface PetCare {
   tapped(): boolean;
 }
 
-export function createPetCare(g: Game, moments: Pick<Moments, 'evolve' | 'showEnding' | 'endShown'>): PetCare {
+export function createPetCare(g: Game, moments: Pick<Moments, 'evolve' | 'showEnding' | 'endShown' | 'vial'>): PetCare {
   let tapped = false;
 
   /** Nap or Wake up by day; in the evening and at night, the light. */
@@ -105,6 +105,10 @@ export function createPetCare(g: Game, moments: Pick<Moments, 'evolve' | 'showEn
   }
 
   function petAction(action: DockAction) {
+    if (action === 'vial') {
+      moments.vial();
+      return;
+    }
     const pet = g.livePet();
     if (!pet) return;
     const now = g.now();
@@ -229,6 +233,12 @@ export function createPetCare(g: Game, moments: Pick<Moments, 'evolve' | 'showEn
     if (g.state.phase !== 'hatched' || !pet || !view) return;
     if (pet.status !== 'alive') {
       if (!moments.endShown() && pet.revealSeen) moments.showEnding(pet);
+      return;
+    }
+    if (pet.fading) {
+      // Collapsed: it lies still until the vial is given; training or a battle can't go on.
+      if (g.sheet.isOpen) g.sheet.close();
+      view.setLook({ sleeping: false, sick: false, calling: false, mood: 0, fading: true });
       return;
     }
     if (pet.stage > pet.shownStage && pet.revealSeen && !g.hud.overlayOpen && !g.sheet.isOpen) moments.evolve(pet);
