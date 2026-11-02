@@ -77,6 +77,20 @@ describe.skipIf(!url || !token)('PHP stats', () => {
     expect(html).not.toContain('<script>');
   });
 
+  it('1: moves a game that updates during the day to its new version, still counting it once', async () => {
+    const inUse = (html: string, version: string) =>
+      Number(new RegExp(`<span>${version.replace(/\./g, '\\.')}</span><i[^>]*></i><b>(\\d+)</b>`).exec(html)?.[1] ?? 0);
+    const before = kpi(await dashboard(), 1, 'today');
+    await check('Updating Browser', '9.9.1');
+    await check('Staying Browser', '9.9.1');
+    expect(inUse(await dashboard(), '9.9.1')).toBe(2);
+    await check('Updating Browser', '9.9.2');
+    const html = await dashboard();
+    expect(inUse(html, '9.9.1')).toBe(1);
+    expect(inUse(html, '9.9.2')).toBe(1);
+    expect(kpi(html, 1, 'today')).toBe(before + 2);
+  });
+
   it('2: counts a dojo pet once a day however it grows, and tells pets apart', async () => {
     const before = kpi(await dashboard(), 2, 'today');
     await visitDojo({ seed: 4242, name: 'Mochi' });

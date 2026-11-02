@@ -107,7 +107,8 @@ them (Apache), and so does PHP while it runs.
 
 1. **Open games per day** (everyone, no consent): an `.htaccess` routes the game's update check (`version.json`)
    through `stats.php`, which answers with the same file and counts each browser and network once a day, as a hash
-   of IP address and browser with a salt replaced every day. Only today's hashes are kept; after that only daily
+   of IP address and browser with a salt replaced every day. A game that updates moves to its new version at its next
+   check, so the dashboard's versions in use are up to date. Only today's hashes are kept; after that only daily
    numbers and the versions in use (400 days). One visitor counts for at most 8 games a day, whatever browser it
    claims. Needs Apache with `mod_rewrite`; merge the lines into an existing
    `.htaccess` rather than overwriting it. Without it nothing is counted and nothing breaks.

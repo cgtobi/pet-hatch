@@ -5,7 +5,8 @@
  * 1. Open games (everyone, no consent needed): every open game asks for version.json (src/update.ts: on start,
  *    on coming back, hourly). On Apache the .htaccess next to the game sends that request here; this answers with
  *    the same file and counts the game once a day as a hash of IP address and browser with a salt made fresh every
- *    day. Only today's hashes are kept; after that only the number stays, with the versions in use.
+ *    day. A game that updates during the day moves to its new version, so today's versions are the ones in use
+ *    right now. Only today's hashes are kept; after that only the number stays, with the versions in use.
  * 2. Dojo pets (everyone who visits the dojo): relay.php counts pets from the battle code they send to be matched
  *    (see count_dojo_pet() there) into dojo-pets.php; this only shows it.
  * 3. Pet details (players who opted in): POSTed snapshots (src/net/stats.ts), one log file per day for
@@ -94,13 +95,25 @@ function count_game(mixed &$c, string $version): void
     }
     $game = substr(hash('sha256', $c['salt'] . '|' . visitor_address() . '|'
         . substr((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 300)), 0, 16);
-    if (isset($c['seen'][$game]) || count($c['seen']) >= MAX_GAMES_PER_DAY) return;
+    $versions = &$c['days'][$day]['versions'];
+    if (isset($c['seen'][$game])) {
+        // Already counted today: if it has updated (or gone back) since, it counts for the version it runs now.
+        $was = $c['seen'][$game];
+        if (is_string($was) && $was !== $version) {
+            if (($versions[$was] ?? 0) > 1) $versions[$was]--;
+            else unset($versions[$was]);
+            $versions[$version] = ($versions[$version] ?? 0) + 1;
+        }
+        $c['seen'][$game] = $version;
+        return;
+    }
+    if (count($c['seen']) >= MAX_GAMES_PER_DAY) return;
     $visitor = visitor_hash($c['salt']);
     if (($c['visitors'][$visitor] ?? 0) >= MAX_GAMES_PER_VISITOR) return;
     $c['visitors'][$visitor] = ($c['visitors'][$visitor] ?? 0) + 1;
-    $c['seen'][$game] = 1;
+    $c['seen'][$game] = $version;
     $c['days'][$day]['games'] = ($c['days'][$day]['games'] ?? 0) + 1;
-    $c['days'][$day]['versions'][$version] = ($c['days'][$day]['versions'][$version] ?? 0) + 1;
+    $versions[$version] = ($versions[$version] ?? 0) + 1;
 }
 
 // ---------- 3. pet details (opt-in) ----------
@@ -275,7 +288,8 @@ function dashboard(): never
     [$gameKpis, $gameChart, $gamePeak, $gamePeakDay] = series_card($gameSeries, $games ? min(array_keys($games)) : '9999');
     $todayKey = gmdate('Y-m-d');
     $yesterdayKey = gmdate('Y-m-d', time() - 86400);
-    $versionDay = array_sum($games[$todayKey]['versions'] ?? []) >= 10 || !isset($games[$yesterdayKey]) ? $todayKey : $yesterdayKey;
+    // Today's games, each under the version it ran at its latest check; yesterday's until a game checks in today.
+    $versionDay = !empty($games[$todayKey]['versions']) || !isset($games[$yesterdayKey]) ? $todayKey : $yesterdayKey;
     $versions = $games[$versionDay]['versions'] ?? [];
     uksort($versions, fn($a, $b) => version_compare($b === 'older' ? '0' : $b, $a === 'older' ? '0' : $a));
 
