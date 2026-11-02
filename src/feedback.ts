@@ -198,13 +198,13 @@ export const sfx = {
   mist: () => noise(now(), 0.4, 0.22, 3500, 0.7),
   /** Sweeping up: two strokes, back and forth, then a little sparkle to say it's tidy. */
   sweep: () => {
-    brush(now(), 0.22, 0.3, 2000, 4500);
-    brush(now() + 0.27, 0.3, 0.28, 4500, 2200);
-    chime(note(19), now() + 0.47, 0.04);
-    chime(note(24), now() + 0.57, 0.035);
+    brush(now(), 0.22, 0.24, 2000, 4500);
+    brush(now() + 0.27, 0.3, 0.224, 4500, 2200);
+    chime(note(19), now() + 0.47, 0.032);
+    chime(note(24), now() + 0.57, 0.028);
   },
   /** Nothing to sweep: one soft stroke, no sparkle. */
-  brush: () => brush(now(), 0.26, 0.2, 2000, 4000),
+  brush: () => brush(now(), 0.26, 0.16, 2000, 4000),
   turn: () => {
     tone(330, now(), 0.22, { type: 'triangle', vol: 0.09, slideTo: 520 });
     noise(now(), 0.18, 0.08, 900);
