@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.2
+
+- The cleaning sweep is louder again, so it can be heard on a phone and over the music.
+
 ## 0.8.1
 
 - Cleaning up sounds like a soft broom sweep instead of a slap.
