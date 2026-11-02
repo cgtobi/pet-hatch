@@ -147,7 +147,7 @@ export function createPetCare(g: Game, moments: Pick<Moments, 'evolve' | 'showEn
             g.world.effects.emit('drop', p.clone().setY(p.y - 1), 4);
           }
           g.world.setDroppings(pet.droppings);
-          sfx.mist();
+          sfx.sweep();
           haptic('tap');
           g.hud.toast(t('toast.cleaned'));
         } else g.hud.toast(t('toast.alreadyClean'));

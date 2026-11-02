@@ -156,6 +156,37 @@ function noise(at: number, dur: number, vol: number, filterFreq: number, q = 1):
   src.start(t0);
 }
 
+/**
+ * One broom stroke: hiss that swells in and trails off (no hard attack, so it doesn't sound like a slap),
+ * with little bristle ticks on top and a filter that moves along with the stroke.
+ */
+function brush(at: number, dur: number, vol: number, from: number, to: number): void {
+  if (!ctx || !sfxBus) return;
+  const t0 = Math.max(ctx.currentTime, at);
+  const buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * dur), ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  const tickLen = Math.ceil(ctx.sampleRate * 0.0015);
+  let tick = 0;
+  for (let i = 0; i < data.length; i++) {
+    const x = i / data.length;
+    const env = x < 0.4 ? Math.sin(((x / 0.4) * Math.PI) / 2) : Math.pow(1 - (x - 0.4) / 0.6, 1.5);
+    if (tick > 0) tick--;
+    else if (Math.random() < 0.0012) tick = tickLen;
+    data[i] = (Math.random() * 2 - 1) * env * (tick > 0 ? 2.2 : 1);
+  }
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.Q.value = 0.7;
+  filter.frequency.setValueAtTime(from, t0);
+  filter.frequency.exponentialRampToValueAtTime(to, t0 + dur);
+  const gain = ctx.createGain();
+  gain.gain.value = vol;
+  src.connect(filter).connect(gain).connect(sfxBus);
+  src.start(t0);
+}
+
 const now = () => ctx?.currentTime ?? 0;
 const C5 = 523.25;
 /** Semitones above C5. */
@@ -165,6 +196,13 @@ export const sfx = {
   tap: () => tone(700, now(), 0.07, { type: 'triangle', vol: 0.09, slideTo: 980 }),
   warm: () => tone(220, now(), 0.35, { vol: 0.05, slideTo: 280, attack: 0.08 }),
   mist: () => noise(now(), 0.4, 0.22, 3500, 0.7),
+  /** Sweeping up: two strokes, back and forth, then a little sparkle to say it's tidy. */
+  sweep: () => {
+    brush(now(), 0.22, 0.2, 1600, 3200);
+    brush(now() + 0.27, 0.3, 0.22, 3200, 1700);
+    chime(note(19), now() + 0.47, 0.03);
+    chime(note(24), now() + 0.57, 0.025);
+  },
   turn: () => {
     tone(330, now(), 0.22, { type: 'triangle', vol: 0.09, slideTo: 520 });
     noise(now(), 0.18, 0.08, 900);
