@@ -203,6 +203,8 @@ export const sfx = {
     chime(note(19), now() + 0.47, 0.04);
     chime(note(24), now() + 0.57, 0.035);
   },
+  /** Nothing to sweep: one soft stroke, no sparkle. */
+  brush: () => brush(now(), 0.26, 0.2, 2000, 4000),
   turn: () => {
     tone(330, now(), 0.22, { type: 'triangle', vol: 0.09, slideTo: 520 });
     noise(now(), 0.18, 0.08, 900);

@@ -150,7 +150,10 @@ export function createPetCare(g: Game, moments: Pick<Moments, 'evolve' | 'showEn
           sfx.sweep();
           haptic('tap');
           g.hud.toast(t('toast.cleaned'));
-        } else g.hud.toast(t('toast.alreadyClean'));
+        } else {
+          sfx.brush();
+          g.hud.toast(t('toast.alreadyClean'));
+        }
         break;
       }
       case 'play': {
