@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.1
+
+- Cleaning up sounds like a soft broom sweep instead of a slap.
+
 ## 0.8.0
 
 - School time (Cozy and Gentle): in Settings, choose the school days and hours. During them the egg or pet is at
