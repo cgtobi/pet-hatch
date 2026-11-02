@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.3
+
+- Cleaning an island that is already clean plays one soft broom stroke instead of nothing.
+
 ## 0.8.2
 
 - The cleaning sweep is louder again, so it can be heard on a phone and over the music.
