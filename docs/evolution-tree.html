@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pet Hatch Evolution Tree</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@400;600;700&display=swap">
+<!--
+  Every form a pet can grow into, per element, with the rule that decides each step.
+  Rules and names follow src/sim/evolution.ts and src/sim/battle.ts; the pictures in
+  evolution-tree/ are renders of src/scene/pet3d.ts. Update both when forms change.
+-->
+<style>
+  /* Layout: one element at a time, its tree drawn left to right by life stage, a path planner above it. */
+  :root {
+    --bg: #eef3f5;
+    --panel: #ffffff;
+    --ink: #22303a;
+    --muted: #64737d;
+    --line: #c6d2d8;
+    --soft: #dfe7eb;
+    --el: #ff9a5c;
+    --el-ink: #b4521a;
+    --el-wash: #ffe8da;
+    --display: "Baloo 2", "Trebuchet MS", system-ui, sans-serif;
+    --body: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #121a22;
+      --panel: #1b2630;
+      --ink: #e4edf1;
+      --muted: #93a3ad;
+      --line: #344550;
+      --soft: #24323d;
+      color-scheme: dark;
+    }
+  }
+  :root[data-el="ember"]  { --el: #ff9a5c; --el-ink: #b4521a; --el-wash: #ffe8da; }
+  :root[data-el="tide"]   { --el: #6ec3f0; --el-ink: #1f6f9c; --el-wash: #ddf1fc; }
+  :root[data-el="bloom"]  { --el: #86d7a0; --el-ink: #2c7d48; --el-wash: #def5e5; }
+  :root[data-el="astral"] { --el: #b8a2ff; --el-ink: #6648c8; --el-wash: #ece6ff; }
+  @media (prefers-color-scheme: dark) {
+    :root[data-el="ember"]  { --el-ink: #ffb68a; --el-wash: #3a271d; }
+    :root[data-el="tide"]   { --el-ink: #92d3f6; --el-wash: #1b3240; }
+    :root[data-el="bloom"]  { --el-ink: #a2e3b6; --el-wash: #1d3526; }
+    :root[data-el="astral"] { --el-ink: #cbbaff; --el-wash: #2a2445; }
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 15px/1.5 var(--body);
+  }
+  .wrap {
+    max-width: 1140px;
+    margin: 0 auto;
+    padding-block: 28px 48px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    display: grid;
+    gap: 22px;
+  }
+  h1, h2, h3 { font-family: var(--display); line-height: 1.1; margin: 0; text-wrap: balance; }
+  h1 { font-size: clamp(30px, 5vw, 44px); font-weight: 800; }
+  h2 { font-size: 26px; font-weight: 800; }
+  h3 { font-size: 18px; font-weight: 700; }
+  p { margin: 0; }
+  .lede { color: var(--muted); max-width: 64ch; }
+  .label {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+  }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  button:focus-visible, .card:focus-visible { outline: 3px solid var(--el); outline-offset: 2px; }
+
+  /* Element tabs */
+  .tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tab {
+    display: flex; align-items: center; gap: 8px;
+    border: 2px solid var(--line); background: var(--panel);
+    border-radius: 999px; padding: 4px 14px 4px 4px; font-weight: 700;
+  }
+  .tab img { width: 34px; height: 34px; border-radius: 50%; background: var(--soft); }
+  .tab[aria-selected="true"] { border-color: var(--el); background: var(--el-wash); }
+
+  /* Element summary + path planner */
+  .top { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 16px; }
+  @media (max-width: 820px) { .top { grid-template-columns: minmax(0, 1fr); } }
+  .panel { background: var(--panel); border-radius: 18px; padding: 18px 20px; display: grid; gap: 12px; align-content: start; }
+  .facts { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; }
+  .facts dt { color: var(--muted); }
+  .facts dd { margin: 0; font-weight: 700; }
+  .planner { display: grid; gap: 10px; }
+  .q { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 10px; align-items: center; }
+  @media (max-width: 520px) { .q { grid-template-columns: minmax(0, 1fr); gap: 4px; } }
+  .seg { display: flex; flex-wrap: wrap; gap: 6px; }
+  .seg button {
+    border: 1.5px solid var(--line); background: transparent; border-radius: 10px; padding: 4px 10px; font-size: 14px;
+  }
+  .seg button[aria-pressed="true"] { background: var(--el); border-color: var(--el); color: #1d1d1d; font-weight: 700; }
+  .result { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-weight: 700; min-height: 30px; }
+  .result .arrow { color: var(--muted); font-weight: 400; }
+  .result .open { color: var(--muted); font-weight: 400; }
+  .reset { justify-self: start; border: 0; background: none; color: var(--el-ink); font-weight: 700; padding: 0; }
+
+  /* The tree */
+  .scroll { overflow-x: auto; background: var(--panel); border-radius: 18px; }
+  .tree {
+    position: relative;
+    display: grid;
+    grid-template-columns: 120px 150px 150px 230px 120px;
+    grid-template-rows: auto 1fr;
+    column-gap: 60px;
+    row-gap: 14px;
+    padding: 20px 24px 26px;
+    width: max-content;
+    margin: 0 auto;
+  }
+  .tree svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+  .colhead { display: grid; gap: 2px; align-content: start; }
+  .colhead .rule { font-size: 13px; color: var(--muted); line-height: 1.35; }
+  .col { display: flex; flex-direction: column; justify-content: center; gap: 16px; position: relative; z-index: 1; }
+
+  .card {
+    border: 2px solid var(--soft); background: var(--panel); border-radius: 16px;
+    padding: 8px 10px 10px; text-align: center; display: grid; gap: 2px; justify-items: center;
+    transition: opacity .2s, border-color .2s, transform .2s;
+  }
+  .card img { width: 92px; height: 92px; border-radius: 50%; background: var(--el-wash); }
+  .card .name { font-family: var(--display); font-weight: 800; font-size: 18px; line-height: 1.1; }
+  .card .how { font-size: 12.5px; color: var(--muted); line-height: 1.3; }
+  .card.wide { grid-template-columns: 64px minmax(0, 1fr); text-align: left; justify-items: start; column-gap: 10px; align-items: center; padding: 8px 10px; }
+  .card.wide img { width: 64px; height: 64px; grid-row: span 3; }
+  .card.elder { padding: 6px; }
+  .card.elder img { width: 58px; height: 58px; filter: saturate(0.55) brightness(1.05); opacity: 0.85; }
+  .card.elder .name { font-size: 14px; color: var(--muted); }
+  .chip {
+    display: inline-block; font-size: 12px; font-weight: 700; border-radius: 999px;
+    padding: 1px 8px; background: var(--el-wash); color: var(--el-ink);
+  }
+  .fav { font-size: 11px; color: var(--el-ink); font-weight: 700; }
+  .tree.picking .card { opacity: 0.28; }
+  .tree.picking .card.on { opacity: 1; border-color: var(--el); }
+  .card.focus { transform: scale(1.04); }
+  .edge { fill: none; stroke: var(--line); stroke-width: 2; transition: stroke .2s, opacity .2s; }
+  .edge.likely { stroke-width: 3; }
+  .edge.unlikely { stroke-dasharray: 4 5; }
+  .tree.picking .edge { opacity: 0.25; }
+  .tree.picking .edge.on { opacity: 1; stroke: var(--el); stroke-width: 3.5; stroke-dasharray: none; }
+  .tree.picking .edge.on.unlikely { stroke-dasharray: 6 6; }
+
+  .key { display: flex; flex-wrap: wrap; gap: 6px 20px; font-size: 13px; color: var(--muted); }
+  .key svg { vertical-align: middle; margin-right: 6px; }
+
+  /* Detail of the picked form */
+  .detail { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 18px; align-items: start; }
+  @media (max-width: 520px) { .detail { grid-template-columns: minmax(0, 1fr); } }
+  .detail img { width: 120px; height: 120px; border-radius: 50%; background: var(--el-wash); }
+  .moves { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+  .moves li { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 10px; }
+  .moves b { font-family: var(--display); font-size: 16px; }
+  .moves span { color: var(--muted); }
+  .moves .new b::after { content: " new"; font-family: var(--body); font-size: 11px; color: var(--el-ink); }
+
+  /* Overview of all 36 */
+  .grid-scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; min-width: 760px; }
+  th, td { padding: 6px 8px; text-align: left; font-size: 13.5px; }
+  thead th { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+  tbody tr { border-top: 1px solid var(--soft); }
+  tbody th { font-family: var(--display); font-size: 16px; }
+  td button { border: 0; background: none; padding: 0; text-align: left; font-weight: 600; }
+  td button:hover { color: var(--el-ink); text-decoration: underline; }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+
+  .battle { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+  .cycle { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-weight: 700; }
+  .cycle .arrow { color: var(--muted); font-weight: 400; }
+  .note { color: var(--muted); font-size: 13.5px; }
+
+  @media (prefers-reduced-motion: reduce) { .card, .edge { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header style="display:grid;gap:8px">
+    <span class="label">Pet Hatch · evolution</span>
+    <h1>Evolution tree</h1>
+    <p class="lede">Every pet hatches as a baby and grows through five life stages. Care decides the child, training the teen, and the best stat the adult. Pick an element, then choose how the pet was raised or click any form to see its paths.</p>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="Element" id="tabs"></nav>
+
+  <section class="top">
+    <div class="panel" id="summary"></div>
+    <div class="panel planner" aria-label="Plan a path">
+      <h3>Plan a path</h3>
+      <div class="q"><span class="label">Baby care</span><div class="seg" data-q="care"></div></div>
+      <div class="q"><span class="label">Training so far</span><div class="seg" data-q="train"></div></div>
+      <div class="q"><span class="label">Best stat as adult</span><div class="seg" data-q="best"></div></div>
+      <div class="result" id="result" aria-live="polite"></div>
+      <button class="reset" id="reset" type="button">Show all paths</button>
+    </div>
+  </section>
+
+  <section style="display:grid;gap:10px">
+    <div class="scroll"><div class="tree" id="tree"></div></div>
+    <div class="key">
+      <span><svg width="34" height="8"><line x1="0" y1="4" x2="34" y2="4" stroke="var(--line)" stroke-width="3"/></svg>usual way</span>
+      <span><svg width="34" height="8"><line x1="0" y1="4" x2="34" y2="4" stroke="var(--line)" stroke-width="2" stroke-dasharray="4 5"/></svg>possible if training changes course</span>
+    </div>
+  </section>
+
+  <section class="panel" id="detail"></section>
+
+  <section class="panel">
+    <h2>All 36 species</h2>
+    <div class="grid-scroll"><table id="all"></table></div>
+  </section>
+
+  <section class="panel">
+    <h2>How forms meet in battle</h2>
+    <div class="battle">
+      <div style="display:grid;gap:8px">
+        <h3>Adult forms counter each other</h3>
+        <div class="cycle">Power <span class="arrow">beats</span> Guard <span class="arrow">beats</span> Speed <span class="arrow">beats</span> Wits <span class="arrow">beats</span> Power</div>
+        <p class="note">Each adult move answers one other form: Power Slam breaks Shell Up, Shell Up hurts Flurry's many hits, Flurry makes a slow thinker flinch, and Mind Trick turns a strong pet's Power against it. Opposite forms are about even.</p>
+      </div>
+      <div style="display:grid;gap:8px">
+        <h3>Elements</h3>
+        <div class="cycle">Tide <span class="arrow">beats</span> Ember <span class="arrow">beats</span> Bloom <span class="arrow">beats</span> Tide</div>
+        <p class="note">An element move does ×1.2 against the element it beats and ×0.83 the other way. Astral has no strength or weakness.</p>
+      </div>
+      <div style="display:grid;gap:8px">
+        <h3>Growing stronger</h3>
+        <p class="note">Health is 74 + 15 per life stage up to adult + 0.2 × Guard. Stats are capped at 30 for a child, 60 for a teen and 100 from adult on. A child knows 2 moves, a teen 3, an adult 4.</p>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+const IMG = 'evolution-tree/';
+const ELEMENTS = {
+  ember:  { name: 'Ember',  move: 'Ember Spit', fav: 'power', beats: 'Bloom', weak: 'Tide' },
+  tide:   { name: 'Tide',   move: 'Splash Jet', fav: 'speed', beats: 'Ember', weak: 'Bloom' },
+  bloom:  { name: 'Bloom',  move: 'Vine Whip',  fav: 'guard', beats: 'Tide',  weak: 'Ember' },
+  astral: { name: 'Astral', move: 'Star Ray',   fav: 'wits',  beats: null,    weak: null },
+};
+const SPECIES = {
+  ember:  { baby: 'Sparkit',   'child.bright': 'Cindle',   'child.scruffy': 'Sootling', 'teen.physical': 'Blazepaw', 'teen.technical': 'Kilnix',   'adult.power': 'Pyrollo',  'adult.speed': 'Flarewing',  'adult.guard': 'Magmarmor',   'adult.wits': 'Lumensage' },
+  tide:   { baby: 'Dropple',   'child.bright': 'Splashy',  'child.scruffy': 'Murklet',  'teen.physical': 'Surfin',   'teen.technical': 'Bubblort', 'adult.power': 'Tsunamaw', 'adult.speed': 'Rippledart', 'adult.guard': 'Shellwarden', 'adult.wits': 'Mistoracle' },
+  bloom:  { baby: 'Sproutle',  'child.bright': 'Petalpip', 'child.scruffy': 'Thistlet', 'teen.physical': 'Thornhop', 'teen.technical': 'Budwick',  'adult.power': 'Oakrush',  'adult.speed': 'Zephyrleaf', 'adult.guard': 'Barkshield',  'adult.wits': 'Sagebloom' },
+  astral: { baby: 'Twinklet',  'child.bright': 'Starbit',  'child.scruffy': 'Dimmet',   'teen.physical': 'Cometcub', 'teen.technical': 'Orbix',    'adult.power': 'Novaram',  'adult.speed': 'Meteorine',  'adult.guard': 'Eclipsar',    'adult.wits': 'Cosmora' },
+};
+const STATS = ['power', 'speed', 'guard', 'wits'];
+const STAT = { power: 'Power', speed: 'Speed', guard: 'Guard', wits: 'Wits' };
+const ADULT_MOVE = { power: 'crush', speed: 'flurry', guard: 'shell', wits: 'trick' };
+const COUNTERS = { power: 'guard', guard: 'speed', speed: 'wits', wits: 'power' };
+const MOVES = {
+  tackle: { name: 'Tackle', info: 'Power 45' },
+  element: { name: null, info: 'Power 47 · element' },
+  rush: { name: 'Rush', info: 'Power 70 · may miss' },
+  focus: { name: 'Focus', info: 'Power 20 · next hit ×1.2' },
+  crush: { name: 'Power Slam', info: 'Power 50 · element · breaks Shell Up' },
+  flurry: { name: 'Flurry', info: '3 × 15 · first if faster · makes the foe flinch' },
+  shell: { name: 'Shell Up', info: 'Heals · raises Guard · hurts attackers' },
+  trick: { name: 'Mind Trick', info: 'Power 50 · hits with the stronger Power · may daze' },
+};
+const STAGES = [
+  { key: 'baby', title: 'Baby', rule: 'Hatches from the egg. Can’t train or battle yet.' },
+  { key: 'child', title: 'Child', rule: 'Decided by baby care. Stats up to 30.' },
+  { key: 'teen', title: 'Teen', rule: 'Power + Speed vs. Guard + Wits trained so far. Stats up to 60.' },
+  { key: 'adult', title: 'Adult', rule: 'The best stat. Ties go to the element’s favorite. Stats up to 100.' },
+  { key: 'elder', title: 'Elder', rule: 'Keeps its adult form, slightly faded.' },
+];
+const CHOICES = {
+  care: [['bright', '≤ 2 care mistakes'], ['scruffy', '3 or more']],
+  train: [['physical', 'Power + Speed'], ['technical', 'Guard + Wits']],
+  best: STATS.map((s) => [s, STAT[s]]),
+};
+
+let el = 'ember';
+const pick = { care: null, train: null, best: null };
+let focusId = 'baby';
+
+/** Every node of one element's tree; `when` is the planner choice the node stands for. */
+function nodes() {
+  const sp = SPECIES[el];
+  const fav = ELEMENTS[el].fav;
+  return [
+    { id: 'baby', col: 0, form: 'baby', name: sp.baby, how: 'Hatches' },
+    { id: 'child.bright', col: 1, form: 'child.bright', name: sp['child.bright'], how: 'Bright · ≤ 2 baby care mistakes', when: ['care', 'bright'] },
+    { id: 'child.scruffy', col: 1, form: 'child.scruffy', name: sp['child.scruffy'], how: 'Scruffy · 3+ baby care mistakes', when: ['care', 'scruffy'] },
+    { id: 'teen.physical', col: 2, form: 'teen.physical', name: sp['teen.physical'], how: 'Sporty · Power + Speed ≥ Guard + Wits', when: ['train', 'physical'] },
+    { id: 'teen.technical', col: 2, form: 'teen.technical', name: sp['teen.technical'], how: 'Clever · Guard + Wits ahead', when: ['train', 'technical'] },
+    ...STATS.map((s) => ({
+      id: `adult.${s}`, col: 3, form: `adult.${s}`, name: sp[`adult.${s}`], wide: true, when: ['best', s],
+      how: `Best stat: ${STAT[s]}`, fav: s === fav, move: ADULT_MOVE[s],
+    })),
+    ...STATS.map((s) => ({ id: `elder.${s}`, col: 4, form: `adult.${s}`, name: sp[`adult.${s}`], elder: true, when: ['best', s] })),
+  ];
+}
+
+/** Edges between stages. Training usually carries a sporty teen to Power or Speed, a clever one to Guard or Wits. */
+function edges() {
+  const list = [['baby', 'child.bright', 'likely'], ['baby', 'child.scruffy', 'likely']];
+  for (const c of ['child.bright', 'child.scruffy']) for (const t of ['teen.physical', 'teen.technical']) list.push([c, t, 'likely']);
+  for (const s of STATS) {
+    const physical = s === 'power' || s === 'speed';
+    list.push(['teen.physical', `adult.${s}`, physical ? 'likely' : 'unlikely']);
+    list.push(['teen.technical', `adult.${s}`, physical ? 'unlikely' : 'likely']);
+    list.push([`adult.${s}`, `elder.${s}`, 'likely']);
+  }
+  return list;
+}
+
+const picking = () => Object.values(pick).some(Boolean);
+const matches = (n) => !n.when || !pick[n.when[0]] || pick[n.when[0]] === n.when[1];
+
+function render() {
+  document.documentElement.dataset.el = el;
+  try { history.replaceState(null, '', '#' + el); } catch {}
+
+  document.getElementById('tabs').innerHTML = Object.entries(ELEMENTS).map(([k, e]) =>
+    `<button class="tab" role="tab" type="button" data-el="${k}" aria-selected="${k === el}">
+       <img src="${IMG}${k}-baby.png" alt="">${e.name}</button>`).join('');
+
+  const e = ELEMENTS[el];
+  document.getElementById('summary').innerHTML = `
+    <h2>${e.name} pets</h2>
+    <dl class="facts">
+      <dt>Element move</dt><dd>${e.move}</dd>
+      <dt>Favorite stat</dt><dd>${STAT[e.fav]} <span class="note">(wins a tie for the adult form)</span></dd>
+      <dt>Strong against</dt><dd>${e.beats ?? 'nothing'}</dd>
+      <dt>Weak against</dt><dd>${e.weak ?? 'nothing'}</dd>
+    </dl>`;
+
+  for (const seg of document.querySelectorAll('.seg')) {
+    const q = seg.dataset.q;
+    seg.innerHTML = CHOICES[q].map(([v, label]) =>
+      `<button type="button" data-q="${q}" data-v="${v}" aria-pressed="${pick[q] === v}">${label}</button>`).join('');
+  }
+
+  const list = nodes();
+  const byId = Object.fromEntries(list.map((n) => [n.id, n]));
+  const tree = document.getElementById('tree');
+  tree.classList.toggle('picking', picking());
+  tree.innerHTML = STAGES.map((s) => `<div class="colhead"><h3>${s.title}</h3><p class="rule">${s.rule}</p></div>`).join('')
+    + [0, 1, 2, 3, 4].map((col) => `<div class="col">${list.filter((n) => n.col === col).map(card).join('')}</div>`).join('')
+    + '<svg aria-hidden="true"></svg>';
+  for (const n of list) {
+    const node = tree.querySelector(`[data-id="${n.id}"]`);
+    node.classList.toggle('on', matches(n));
+    node.classList.toggle('focus', n.id === focusId);
+  }
+  drawEdges(byId);
+
+  const chosen = ['care', 'train', 'best'].map((q) => pick[q]);
+  const path = [SPECIES[el].baby,
+    chosen[0] ? SPECIES[el][`child.${chosen[0]}`] : null,
+    chosen[1] ? SPECIES[el][`teen.${chosen[1]}`] : null,
+    chosen[2] ? SPECIES[el][`adult.${chosen[2]}`] : null];
+  document.getElementById('result').innerHTML = picking()
+    ? path.map((p) => p ?? '<span class="open">either</span>').join(' <span class="arrow">→</span> ')
+    : '<span class="open">Choose any step to follow one pet’s path.</span>';
+
+  renderDetail(byId[focusId] ?? byId.baby);
+  renderAll();
+}
+
+function card(n) {
+  const img = `<img src="${IMG}${el}-${n.form}.png" alt="" loading="lazy">`;
+  if (n.elder) return `<button type="button" class="card elder" data-id="${n.id}" aria-label="Elder ${n.name}">${img}<span class="name">${n.name}</span></button>`;
+  if (n.wide) return `<button type="button" class="card wide" data-id="${n.id}">${img}
+      <span class="name">${n.name}</span><span class="how">${n.how}${n.fav ? ' <span class="fav">★ favorite</span>' : ''}</span>
+      <span class="chip">${MOVES[n.move].name}</span></button>`;
+  return `<button type="button" class="card" data-id="${n.id}">${img}<span class="name">${n.name}</span><span class="how">${n.how}</span></button>`;
+}
+
+function drawEdges(byId) {
+  const tree = document.getElementById('tree');
+  const svg = tree.querySelector('svg');
+  const box = tree.getBoundingClientRect();
+  const at = (id) => tree.querySelector(`[data-id="${id}"]`).getBoundingClientRect();
+  svg.setAttribute('viewBox', `0 0 ${box.width} ${box.height}`);
+  svg.innerHTML = edges().map(([a, b, kind]) => {
+    const ra = at(a), rb = at(b);
+    const x1 = ra.right - box.left, y1 = ra.top + ra.height / 2 - box.top;
+    const x2 = rb.left - box.left, y2 = rb.top + rb.height / 2 - box.top;
+    const mid = (x1 + x2) / 2;
+    const on = picking() && matches(byId[a]) && matches(byId[b]);
+    return `<path class="edge ${kind}${on ? ' on' : ''}" d="M${x1},${y1} C${mid},${y1} ${mid},${y2} ${x2},${y2}"/>`;
+  }).join('');
+}
+
+function stageOf(n) {
+  return n.elder ? 4 : n.col;
+}
+
+function renderDetail(n) {
+  const e = ELEMENTS[el];
+  const stage = stageOf(n);
+  const st = STAGES[stage];
+  const known = stage >= 1 ? ['tackle', 'element'] : [];
+  const teen = stage === 2 ? n.form.split('.')[1] : pick.train;
+  if (stage >= 2) known.push(teen === 'technical' ? 'focus' : teen === 'physical' ? 'rush' : null);
+  if (stage >= 3) known.push(ADULT_MOVE[n.form.split('.')[1]]);
+  const newMove = { 1: ['tackle', 'element'], 2: [known[2]], 3: [known[3]] }[stage] ?? [];
+  const hp = stage === 0 ? null : 74 + 15 * Math.min(stage, 3);
+  const lines = [];
+  if (stage === 0) lines.push('A baby can’t train or battle. Fewer than three care mistakes before it grows up make a bright child.');
+  if (stage === 1) lines.push(`Health ${hp} + 0.2 × Guard. Training sets the teen form: more Power + Speed than Guard + Wits makes ${SPECIES[el]['teen.physical']}, otherwise ${SPECIES[el]['teen.technical']}.`);
+  if (stage === 2) lines.push(`Health ${hp} + 0.2 × Guard. Its best stat at the next birthday decides which of the four adults it becomes. The teen form only sets its third move.`);
+  if (stage >= 3) {
+    const s = n.form.split('.')[1];
+    lines.push(`Health ${hp} + 0.2 × Guard. ${STAT[s]} form: it beats ${STAT[COUNTERS[s]]} pets and struggles against ${STAT[Object.keys(COUNTERS).find((k) => COUNTERS[k] === s)]} pets.`);
+    if (stage === 4) lines.push('As an elder it keeps this form and its moves until it retires.');
+  }
+  // A teen's third move depends on its teen form, which an adult can have taken either way.
+  const moveRows = known.map((m, i) => {
+    if (!m) return `<li><b>Rush or Focus</b><span>Rush from a sporty teen, Focus from a clever one</span></li>`;
+    const mv = MOVES[m];
+    return `<li class="${newMove.includes(m) || (i === 2 && stage === 2) ? 'new' : ''}"><b>${mv.name ?? e.move}</b><span>${mv.info}</span></li>`;
+  }).join('');
+  document.getElementById('detail').innerHTML = `
+    <div class="detail">
+      <img src="${IMG}${el}-${n.form}.png" alt="${n.name}">
+      <div style="display:grid;gap:10px;min-width:0">
+        <div><span class="label">${e.name} · ${st.title}</span><h2>${n.name}</h2></div>
+        ${lines.map((l) => `<p>${l}</p>`).join('')}
+        ${known.length ? `<ul class="moves">${moveRows}</ul>` : ''}
+      </div>
+    </div>`;
+}
+
+function renderAll() {
+  const forms = ['baby', 'child.bright', 'child.scruffy', 'teen.physical', 'teen.technical', ...STATS.map((s) => `adult.${s}`)];
+  const heads = ['Baby', 'Bright child', 'Scruffy child', 'Sporty teen', 'Clever teen', 'Power', 'Speed', 'Guard', 'Wits'];
+  const colors = { ember: '#ff9a5c', tide: '#6ec3f0', bloom: '#86d7a0', astral: '#b8a2ff' };
+  document.getElementById('all').innerHTML = `<thead><tr><th></th>${heads.map((h) => `<th>${h}</th>`).join('')}</tr></thead><tbody>`
+    + Object.keys(ELEMENTS).map((k) => `<tr><th><span class="dot" style="background:${colors[k]}"></span>${ELEMENTS[k].name}</th>`
+      + forms.map((f) => `<td><button type="button" data-goto="${k}" data-form="${f}">${SPECIES[k][f]}</button></td>`).join('') + '</tr>').join('')
+    + '</tbody>';
+}
+
+/** Clicking a form picks the choice it stands for, or clears it when it is already picked. */
+document.addEventListener('click', (ev) => {
+  const t = ev.target.closest('button');
+  if (!t) return;
+  if (t.dataset.el) { el = t.dataset.el; }
+  else if (t.dataset.q) { pick[t.dataset.q] = pick[t.dataset.q] === t.dataset.v ? null : t.dataset.v; focusFromPick(); }
+  else if (t.dataset.id) {
+    const n = nodes().find((x) => x.id === t.dataset.id);
+    const again = focusId === n.id;
+    focusId = n.id;
+    if (!n.when) Object.keys(pick).forEach((q) => (pick[q] = null));
+    else if (again && pick[n.when[0]] === n.when[1]) { pick[n.when[0]] = null; focusFromPick(); }
+    else pick[n.when[0]] = n.when[1];
+  } else if (t.dataset.goto) {
+    el = t.dataset.goto;
+    focusId = t.dataset.form;
+    window.scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  } else if (t.id === 'reset') { Object.keys(pick).forEach((q) => (pick[q] = null)); focusId = 'baby'; }
+  else return;
+  render();
+});
+
+/** The detail panel follows the furthest step chosen in the planner. */
+function focusFromPick() {
+  focusId = pick.best ? `adult.${pick.best}` : pick.train ? `teen.${pick.train}` : pick.care ? `child.${pick.care}` : 'baby';
+}
+
+addEventListener('resize', () => drawEdges(Object.fromEntries(nodes().map((n) => [n.id, n]))));
+document.addEventListener('load', (ev) => { if (ev.target.tagName === 'IMG') drawEdges(Object.fromEntries(nodes().map((n) => [n.id, n]))); }, true);
+document.fonts?.ready.then(() => drawEdges(Object.fromEntries(nodes().map((n) => [n.id, n]))));
+
+const start = location.hash.slice(1);
+if (ELEMENTS[start]) el = start;
+render();
+</script>
+</body>
+</html>

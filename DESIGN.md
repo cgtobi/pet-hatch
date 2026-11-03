@@ -227,6 +227,8 @@ shell, orbs, plus the type's color, crest and accent). Each has its own species 
 | Adult | Best stat → *power* / *speed* / *guard* / *wits* form (ties go to the type's favorite) |
 | Elder | Keeps its adult form, slightly faded |
 
+[docs/evolution-tree.html](docs/evolution-tree.html) draws the whole tree per element, with renders of all 36 forms.
+
 Evolution happens in the simulation, so it also happens while you're away; the animation and an explanation
 ("…its strongest side, Power, shaped its adult form") play the next time you look.
 
