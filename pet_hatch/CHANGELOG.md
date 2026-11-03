@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.9.0
+
+- Battles are rebalanced: no form wins most fights any more. With the same stat points, Power, Speed, Guard and
+  Wits adults each win about half their fights, where Guard used to win almost all and Wits almost none.
+- Each adult move now works best against one other form: Power Slam breaks Shell Up, Shell Up hurts attackers
+  (bad news for Flurry's many hits), Flurry makes a slower foe flinch out of Focus and Mind Trick, and Mind Trick
+  hits with the stronger of both pets' Power.
+- Speed makes moving first likelier instead of certain, critical hits go through Shell Up, Focus is a light hit
+  that powers up the next one, and elements matter a little less. Fights are a bit shorter.
+- The computer opponent now uses Shell Up and picks moves by what they do. Live battles need both players on
+  this version.
+
 ## 0.8.4
 
 - The cleaning sweep is a little quieter.
