@@ -240,28 +240,36 @@ discipline, care mistakes, growing up, training, evolution, battles, neglect mod
 Train › **Battle** tab (from the child stage on). Battles happen on the island: the opponent pops in, both creatures
 line up, and a bottom sheet shows HP bars, a log line and the move buttons. 1v1, turn-based, one move per turn.
 
-- **Stats in battle:** HP = 60 + 15 per life stage (up to adult) + Guard. Power raises damage, Guard lowers damage
-  taken, Speed decides who acts first (and gives a small dodge chance), Wits raises the critical-hit chance.
-- **Type triangle:** Tide › Ember › Bloom › Tide: ×1.5 when strong, ×0.67 when weak. Only element moves use it.
+- **Stats in battle:** HP = 74 + 15 per life stage (up to adult) + 0.2 × Guard. Power raises damage, Guard lowers
+  damage taken, Speed makes moving first likelier (each point ahead adds 1/80 to the chance, between 10% and 90%) and
+  dodges up to 20% of attacks, Wits raises the critical-hit chance (5% + Wits/200) for double damage that goes
+  straight through Shell Up.
+- **Type triangle:** Tide › Ember › Bloom › Tide: ×1.2 when strong, ×0.83 when weak. Only element moves use it.
   Astral has no strength and no weakness.
 - **Moves** grow with the pet: a child knows 2, a teen 3, an adult 4. The teen form decides the third move, the
   adult form the fourth.
 
 | Move | Learned | Effect |
 |---|---|---|
-| Tackle | always | Power 35 |
-| Element move (Ember Spit / Splash Jet / Vine Whip / Star Ray) | always | Power 45, element |
-| Rush | sporty teen | Power 60, 85% accuracy |
-| Focus | clever teen | Heals 20%; next hit ×1.5 |
-| Power Slam | Power adult | Power 80, element, 80% accuracy |
-| Flurry | Speed adult | 3 × 18, always strikes first |
-| Shell Up | Guard adult | Heals 15%; raises Guard (twice at most) |
-| Mind Trick | Wits adult | Power 40, element; 50% chance the foe loses its next turn |
+| Tackle | always | Power 45 |
+| Element move (Ember Spit / Splash Jet / Vine Whip / Star Ray) | always | Power 47, element |
+| Rush | sporty teen | Power 70, 85% accuracy |
+| Focus | clever teen | Power 20; the next hit does ×1.2 |
+| Power Slam | Power adult | Power 50, element, 80% accuracy; goes through Shell Up and breaks it |
+| Flurry | Speed adult | 3 × 15; strikes first if faster, and a foe hit before it moved flinches: its Focus and Mind Trick's daze fail |
+| Shell Up | Guard adult | Heals 22%; a layer of +8% Guard and +80 defence (two at most, one wears off each time it attacks); each hit that lands on it costs the attacker 2 health |
+| Mind Trick | Wits adult | Power 50, element, hits with the stronger of both pets' Power; 34% chance the foe loses its next turn |
+
+- **Form counters:** each adult move beats one other form: Power › Guard › Speed › Wits › Power, about 60–70% with
+  even stats; the opposite forms are about even. The numbers were tuned by simulation (thousands of fights between
+  pets raised in different ways) so that pets with the same stat points win about 45–55% of the time whatever they
+  grew into, and fights last about 6 rounds. Known edges: pets whose stats are all close together do a little better
+  as Speed or Wits than as Guard, and a double counter (form and element both favoring one side) can reach about 85%.
 
 - **Disobedience:** below 50 discipline a pet may ignore an order (up to 40% at 0): it either loafs or uses a move of
   its own choosing. This applies to a friend's pet too, so their discipline matters when you battle their code.
-- **Opponent AI:** heals when low, sometimes sets up a daze or focus, otherwise picks the hardest-hitting move (with
-  some randomness).
+- **Opponent AI:** shells up when hurt, sometimes sets up a daze or focus, otherwise picks the move that should do
+  the most damage, counting its extra effect (with some randomness).
 - **Wild creatures** match your pet's life stage and are built from its own stats (with a floor so untrained pets
   still meet real foes), in four **ranks** (`WILD_RANKS` in `src/sim/battle.ts`):
 

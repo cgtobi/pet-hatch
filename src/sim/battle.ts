@@ -33,34 +33,60 @@ export interface Move {
   /** Uses the attacker's element, so the type triangle applies. */
   typed: boolean;
   hits?: number;
-  /** Always acts before a move without this. */
+  /** Acts before a move without this, if the pet is the faster one. */
   first?: boolean;
-  effect?: 'focus' | 'shell' | 'daze';
+  effect?: 'focus' | 'shell' | 'daze' | 'shatter' | 'flinch';
 }
 
+/**
+ * Each adult move works best against one other form, in a cycle: Power Slam breaks Shell Up (Power › Guard),
+ * Shell Up's thorns punish Flurry's many hits (Guard › Speed), Flurry makes a slower foe flinch out of Focus and
+ * Mind Trick's daze (Speed › Wits), and Mind Trick turns a strong foe's own Power against it (Wits › Power).
+ * The numbers were tuned by simulation so that pets with the same stat points win about as often whatever
+ * they grew into (see DESIGN.md, Battles).
+ */
 export const MOVES: Record<MoveId, Move> = {
-  tackle: { power: 35, accuracy: 100, typed: false },
-  element: { power: 45, accuracy: 95, typed: true },
-  rush: { power: 60, accuracy: 85, typed: false },
-  focus: { power: 0, accuracy: 100, typed: false, effect: 'focus' },
-  crush: { power: 80, accuracy: 80, typed: true },
-  flurry: { power: 18, accuracy: 95, typed: false, hits: 3, first: true },
+  tackle: { power: 45, accuracy: 100, typed: false },
+  element: { power: 47, accuracy: 95, typed: true },
+  rush: { power: 70, accuracy: 85, typed: false },
+  /** A light hit that powers up the next one. */
+  focus: { power: 20, accuracy: 95, typed: false, effect: 'focus' },
+  crush: { power: 50, accuracy: 80, typed: true, effect: 'shatter' },
+  flurry: { power: 15, accuracy: 95, typed: false, hits: 3, first: true, effect: 'flinch' },
   shell: { power: 0, accuracy: 100, typed: false, effect: 'shell' },
-  trick: { power: 40, accuracy: 95, typed: true, effect: 'daze' },
+  trick: { power: 50, accuracy: 95, typed: true, effect: 'daze' },
 };
 
 const ADULT_MOVE: Record<Stat, MoveId> = { power: 'crush', speed: 'flurry', guard: 'shell', wits: 'trick' };
 /** Each element beats the next one: Tide › Ember › Bloom › Tide. Astral has no strength or weakness. */
 const BEATS: Partial<Record<ElementType, ElementType>> = { tide: 'ember', ember: 'bloom', bloom: 'tide' };
-export const STRONG = 1.5;
-export const WEAK = 0.67;
+export const STRONG = 1.2;
+export const WEAK = 0.83;
 /** Discipline at which a pet always obeys; below it, up to this chance of ignoring an order. */
 const OBEY_DISCIPLINE = 50;
 const MAX_DISOBEY = 0.4;
-const FOCUS_HEAL = 0.2;
-const SHELL_HEAL = 0.15;
+/** Focus: the next damaging hit does this much more. */
+const FOCUS_BOOST = 1.2;
+/** Shell Up heals this share of health and adds a layer: Guard × (1 + SHELL_GUARD) plus SHELL_ARMOR, per layer. */
+const SHELL_HEAL = 0.22;
+const SHELL_GUARD = 0.08;
+const SHELL_ARMOR = 80;
 const MAX_GUARD_UP = 2;
-const DAZE_CHANCE = 0.5;
+/** Each hit that lands on a shelled pet costs the attacker this much health. */
+const THORNS = 2;
+const DAZE_CHANCE = 0.34;
+/** Critical hits: this chance plus Wits / CRIT_WITS, for CRIT_DAMAGE times the damage, past any Shell Up. */
+const CRIT_BASE = 0.05;
+const CRIT_WITS = 200;
+const CRIT_DAMAGE = 2;
+/** Each point of Speed ahead dodges 1/DODGE_SPEED of attacks, up to MAX_DODGE. */
+const DODGE_SPEED = 140;
+const MAX_DODGE = 0.2;
+/** Each point of Speed ahead adds 1/ORDER_SPEED to the chance of moving first, between 10% and 90%. */
+const ORDER_SPEED = 80;
+const HP_BASE = 74;
+const HP_PER_STAGE = 15;
+const HP_PER_GUARD = 0.2;
 /** A battle that drags on this long ends with both sides walking away. */
 export const MAX_TURNS = 40;
 
@@ -102,7 +128,7 @@ export function battleRating(f: Pick<Fighter, 'stage' | 'stats'>): number {
 }
 
 export function maxHp(f: Fighter): number {
-  const hp = 60 + 15 * Math.min(f.stage, 3) + f.stats.guard;
+  const hp = Math.round(HP_BASE + HP_PER_STAGE * Math.min(f.stage, 3) + HP_PER_GUARD * f.stats.guard);
   return f.traits?.includes('tough') ? Math.round(hp * TOUGH_HP) : hp;
 }
 
@@ -260,10 +286,14 @@ export interface Side {
   moves: MoveId[];
   maxHp: number;
   hp: number;
-  /** Next damaging move hits 1.5× harder. */
+  /** Next damaging move hits FOCUS_BOOST times harder. */
   focus: boolean;
+  /** Layers of Shell Up; one wears off each time the pet attacks. */
   guardUp: number;
   dazed: boolean;
+  /** This round: has it acted yet, and did a Flurry make it flinch before it could? */
+  acted: boolean;
+  flinched: boolean;
 }
 
 /** Side a is the player; side b is the computer, or a second player in a live battle. */
@@ -289,11 +319,17 @@ export type BattleEvent =
   | { kind: 'focus'; side: SideKey }
   | { kind: 'guard'; side: SideKey }
   | { kind: 'dazed'; side: SideKey }
+  /** The attacker hurt itself on the target's Shell Up. */
+  | { kind: 'thorns'; side: SideKey; damage: number; hp: number }
+  /** Power Slam broke the target's Shell Up. */
+  | { kind: 'shatter'; side: SideKey }
+  /** Flurry hit the target before it moved: its Focus or Mind Trick's daze won't work this round. */
+  | { kind: 'flinch'; side: SideKey }
   | { kind: 'faint'; side: SideKey };
 
 function side(f: Fighter): Side {
   const hp = maxHp(f);
-  return { f, moves: movesFor(f), maxHp: hp, hp, focus: false, guardUp: 0, dazed: false };
+  return { f, moves: movesFor(f), maxHp: hp, hp, focus: false, guardUp: 0, dazed: false, acted: false, flinched: false };
 }
 
 export function createBattle(player: Fighter, foe: Fighter, seed: number): Battle {
@@ -306,42 +342,62 @@ export function disobeyChance(f: Fighter): number {
   return MAX_DISOBEY * clamp(1 - f.discipline / OBEY_DISCIPLINE, 0, 1);
 }
 
+/** Mind Trick hits with the stronger of the two pets' Power: a strong foe's own strength turned against it. */
+const attackOf = (s: Side, t: Side, move: MoveId) => 10 + (move === 'trick' ? Math.max(s.f.stats.power, t.f.stats.power) : s.f.stats.power);
+/** Power Slam goes straight through Shell Up, and so does a critical hit. */
+const defenseOf = (t: Side, ignoreShell: boolean) => {
+  const up = ignoreShell ? 0 : t.guardUp;
+  return (10 + t.f.stats.guard) * (1 + SHELL_GUARD * up) + SHELL_ARMOR * up;
+};
+
+/** About how much damage a move does now, counting its extra effect, for the computer's choice. */
+function moveValue(s: Side, t: Side, move: MoveId): number {
+  const mv = MOVES[move];
+  const atk = attackOf(s, t, move);
+  const def = defenseOf(t, move === 'crush');
+  const hits = mv.hits ?? 1;
+  let v = mv.power * (mv.accuracy / 100) * hits * (mv.typed ? typeFactor(s.f.type, t.f.type) : 1) * (atk / (atk + def));
+  if (t.guardUp > 0) v -= THORNS * hits * 0.5;
+  if (move === 'trick' && !t.dazed) v *= 1 + DAZE_CHANCE * 0.6;
+  if (move === 'crush' && t.guardUp > 0) v *= 1.25;
+  if (move === 'focus' && !s.focus) v *= 1 + 0.5 * (FOCUS_BOOST - 1);
+  return v;
+}
+
 /**
- * The computer's choice: heal when low, set up a daze or focus now and then, else the hardest-hitting move (a wild
- * creature's rank decides how often it picks any attack instead).
+ * The computer's choice: Shell Up when hurt, a daze or a focus now and then, else the move that should do the
+ * most damage, counting its extra effect (a wild creature's rank decides how often it picks any attack instead).
  */
 export function aiMove(b: Battle, key: SideKey): MoveId {
   const s = b[key];
   const t = b[other(key)];
   const r = b.rand;
-  const heal = s.moves.find((m) => m === 'focus' || m === 'shell');
-  if (heal && s.hp < s.maxHp * 0.4 && r() < 0.6 && !(heal === 'shell' && s.guardUp >= MAX_GUARD_UP)) return heal;
+  const shell = s.moves.includes('shell') && s.guardUp < MAX_GUARD_UP;
+  if (shell && s.hp < s.maxHp * 0.4 && r() < 0.6) return 'shell';
+  if (shell && s.guardUp === 0 && s.hp < s.maxHp * 0.8 && r() < 0.35) return 'shell';
   if (s.moves.includes('trick') && !t.dazed && r() < 0.3) return 'trick';
   if (s.moves.includes('focus') && !s.focus && s.hp > s.maxHp * 0.6 && r() < 0.2) return 'focus';
   const attacks = s.moves.filter((m) => MOVES[m].power > 0);
   // Now and then any attack, not the best: clumsy runts more often, champions hardly ever.
   if (r() < WILD_RANKS[s.f.rank ?? 'match'].randomMove) return attacks[Math.floor(r() * attacks.length)];
-  const value = (m: MoveId) => {
-    const mv = MOVES[m];
-    return mv.power * (mv.accuracy / 100) * (mv.hits ?? 1) * (mv.typed ? typeFactor(s.f.type, t.f.type) : 1);
-  };
-  return attacks.reduce((best, m) => (value(m) > value(best) ? m : best));
+  return attacks.reduce((best, m) => (moveValue(s, t, m) > moveValue(s, t, best) ? m : best));
 }
 
 /**
- * Play one round: both sides act (faster first), and the events describe what happened, in order.
- * Without `moveB` the computer picks side b's move. Given the same battle and moves, every device
- * computes the same result, which is what live battles rely on.
+ * Play one round: both sides act, and the events describe what happened, in order. Flurry goes first if the pet is
+ * faster; otherwise more Speed makes moving first more likely. Without `moveB` the computer picks side b's move.
+ * Given the same battle and moves, every device computes the same result, which is what live battles rely on.
  */
 export function playTurn(b: Battle, moveA: MoveId, moveB?: MoveId): BattleEvent[] {
   if (b.winner) return [];
   const events: BattleEvent[] = [];
   const chosen: Record<SideKey, MoveId> = { a: moveA, b: moveB ?? aiMove(b, 'b') };
-  const fa = !!MOVES[chosen.a].first;
-  const fb = !!MOVES[chosen.b].first;
   const sa = b.a.f.stats.speed;
   const sb = b.b.f.stats.speed;
-  const aFirst = fa !== fb ? fa : sa !== sb ? sa > sb : b.rand() < 0.5;
+  const fa = !!MOVES[chosen.a].first && sa > sb;
+  const fb = !!MOVES[chosen.b].first && sb > sa;
+  const aFirst = fa !== fb ? fa : b.rand() < clamp(0.5 + (sa - sb) / ORDER_SPEED, 0.1, 0.9);
+  b.a.acted = b.b.acted = b.a.flinched = b.b.flinched = false;
   for (const key of aFirst ? (['a', 'b'] as const) : (['b', 'a'] as const)) {
     if (b.winner) break;
     act(b, key, chosen[key], events);
@@ -355,6 +411,7 @@ function act(b: Battle, key: SideKey, move: MoveId, events: BattleEvent[]): void
   const tk = other(key);
   const t = b[tk];
   const r = b.rand;
+  s.acted = true;
   if (s.dazed) {
     s.dazed = false;
     events.push({ kind: 'skip', side: key });
@@ -371,51 +428,62 @@ function act(b: Battle, key: SideKey, move: MoveId, events: BattleEvent[]): void
   }
   events.push({ kind: 'use', side: key, move });
   const m = MOVES[move];
-  const heal = (fraction: number) => {
-    const amount = Math.min(s.maxHp - s.hp, Math.round(s.maxHp * fraction));
-    s.hp += amount;
-    events.push({ kind: 'heal', side: key, amount, hp: s.hp });
-  };
-  if (m.effect === 'focus') {
-    s.focus = true;
-    events.push({ kind: 'focus', side: key });
-    heal(FOCUS_HEAL);
-    return;
-  }
   if (m.effect === 'shell') {
     s.guardUp = Math.min(MAX_GUARD_UP, s.guardUp + 1);
     events.push({ kind: 'guard', side: key });
-    heal(SHELL_HEAL);
+    const amount = Math.min(s.maxHp - s.hp, Math.round(s.maxHp * SHELL_HEAL));
+    s.hp += amount;
+    events.push({ kind: 'heal', side: key, amount, hp: s.hp });
     return;
   }
 
-  const atk = 10 + s.f.stats.power;
-  const def = (10 + t.f.stats.guard) * (1 + 0.4 * t.guardUp);
-  const dodge = clamp((t.f.stats.speed - s.f.stats.speed) / 300, 0, 0.15);
+  const atk = attackOf(s, t, move);
+  const def = defenseOf(t, m.effect === 'shatter');
+  const dodge = clamp((t.f.stats.speed - s.f.stats.speed) / DODGE_SPEED, 0, MAX_DODGE);
   const factor = m.typed ? typeFactor(s.f.type, t.f.type) : 1;
   const hits = m.hits ?? 1;
   let landed = 0;
-  for (let i = 0; i < hits && t.hp > 0; i++) {
+  for (let i = 0; i < hits && t.hp > 0 && s.hp > 0; i++) {
     if (r() >= (m.accuracy / 100) * (1 - dodge)) {
       if (hits === 1) events.push({ kind: 'miss', side: key });
       continue;
     }
-    const crit = r() < 0.05 + s.f.stats.wits / 500;
-    const raw = m.power * (atk / (atk + def)) * 1.1 * factor * (crit ? 1.5 : 1) * (s.focus ? 1.5 : 1) * (0.85 + 0.15 * r());
+    const crit = r() < CRIT_BASE + s.f.stats.wits / CRIT_WITS;
+    const d = crit ? defenseOf(t, true) : def;
+    const raw = m.power * (atk / (atk + d)) * 1.1 * factor * (crit ? CRIT_DAMAGE : 1) * (s.focus ? FOCUS_BOOST : 1) * (0.85 + 0.15 * r());
     const damage = Math.min(t.hp, Math.max(1, Math.round(raw)));
     t.hp -= damage;
     landed++;
     events.push({ kind: 'hit', side: key, target: tk, damage, factor, crit, hp: t.hp });
+    if (t.guardUp > 0 && t.hp > 0) {
+      const hurt = Math.min(s.hp, THORNS);
+      s.hp -= hurt;
+      events.push({ kind: 'thorns', side: key, damage: hurt, hp: s.hp });
+    }
   }
   if (hits > 1) events.push(landed ? { kind: 'hits', side: key, n: landed } : { kind: 'miss', side: key });
-  s.focus = false;
-  if (m.effect === 'daze' && landed && t.hp > 0 && r() < DAZE_CHANCE) {
+  // Focus powers up the next hit, unless a Flurry made the pet flinch first.
+  s.focus = m.effect === 'focus' && !s.flinched;
+  if (s.focus) events.push({ kind: 'focus', side: key });
+  if (s.guardUp > 0) s.guardUp--;
+  if (m.effect === 'shatter' && landed && t.guardUp > 0) {
+    t.guardUp = 0;
+    events.push({ kind: 'shatter', side: tk });
+  }
+  if (m.effect === 'flinch' && landed && !t.acted && t.hp > 0) {
+    t.flinched = true;
+    events.push({ kind: 'flinch', side: tk });
+  }
+  if (m.effect === 'daze' && landed && t.hp > 0 && !s.flinched && r() < DAZE_CHANCE) {
     t.dazed = true;
     events.push({ kind: 'dazed', side: tk });
   }
   if (t.hp <= 0) {
     events.push({ kind: 'faint', side: tk });
     b.winner = key;
+  } else if (s.hp <= 0) {
+    events.push({ kind: 'faint', side: key });
+    b.winner = tk;
   }
 }
 

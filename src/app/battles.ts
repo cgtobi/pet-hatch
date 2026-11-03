@@ -123,7 +123,17 @@ export function setUpBattles(g: Game): Arena {
           g.world.effects.emit(e.kind === 'heal' ? 'heart' : 'spark', self?.center() ?? g.world.egg.center(), 6);
           sfx.cure();
           break;
+        case 'thorns':
+          self?.hurt();
+          sfx.miss();
+          if (e.side === me) haptic('hit');
+          break;
+        case 'shatter':
+          g.world.effects.emit('spark', self?.center() ?? g.world.egg.center(), 12);
+          sfx.crack();
+          break;
         case 'dazed':
+        case 'flinch':
         case 'ignore':
         case 'skip':
           g.world.effects.emit('zzz', self?.center() ?? g.world.egg.center(), 1);

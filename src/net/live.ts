@@ -55,8 +55,8 @@ export interface LiveMatch {
 
 type Msg = { t: string; [key: string]: unknown };
 
-/** 2: SHA-256 commitments. A game on another version can't battle this one. */
-const VERSION = 2;
+/** 2: SHA-256 commitments. 3: rebalanced battle rules. A game on another version can't battle this one. */
+const VERSION = 3;
 /** Letters and digits that can't be confused (no 0/O, 1/I). */
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const CODE_LENGTH = 5;

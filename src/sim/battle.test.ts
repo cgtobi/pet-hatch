@@ -28,6 +28,7 @@ import { decodeFighter, encodeFighter } from './battlecode';
 import { DEFAULT_SETTINGS, hatch, newGame } from './game';
 import { migratePet } from './pet';
 import { STAT_CAPS } from './training';
+import type { ElementType, Stat } from './types';
 
 function fighter(over: Partial<Fighter> = {}): Fighter {
   return {
@@ -44,10 +45,10 @@ function fighter(over: Partial<Fighter> = {}): Fighter {
   };
 }
 
-/** Play until someone wins, the player always using its first damaging move. */
+/** Play until someone wins, the player choosing its moves the way the computer does. */
 function fight(a: Fighter, b: Fighter, seed: number) {
   const battle = createBattle(a, b, seed);
-  while (!battle.winner && battle.turn < MAX_TURNS) playTurn(battle, 'element');
+  while (!battle.winner && battle.turn < MAX_TURNS) playTurn(battle, aiMove(battle, 'a'));
   return battle;
 }
 
@@ -77,13 +78,14 @@ describe('battle rules', () => {
     ]);
   });
 
-  it('lets type advantage decide an even fight most of the time', () => {
+  it('gives type advantage an edge in an even fight, not a sure win', () => {
     let tideWins = 0;
-    for (let seed = 1; seed <= 200; seed++) {
+    for (let seed = 1; seed <= 400; seed++) {
       const b = fight(fighter({ type: 'tide' }), fighter({ type: 'ember', name: 'Foe' }), seed);
       if (b.winner === 'a') tideWins++;
     }
-    expect(tideWins).toBeGreaterThan(140);
+    expect(tideWins).toBeGreaterThan(220);
+    expect(tideWins).toBeLessThan(340);
   });
 
   it('makes training pay off', () => {
@@ -117,16 +119,112 @@ describe('battle rules', () => {
     expect(ignored).toBeLessThan(60);
   });
 
-  it('has the computer heal when low and otherwise pick a strong move', () => {
+  it('has the computer shell up when low and otherwise pick a strong move', () => {
     const b = createBattle(fighter({ type: 'tide', form: 'adult.guard' }), fighter({ type: 'ember' }), 3);
     b.b.hp = 10;
-    b.b.moves = ['tackle', 'element', 'focus'];
+    b.b.moves = ['tackle', 'element', 'shell'];
     const picks = Array.from({ length: 50 }, () => aiMove(b, 'b'));
-    expect(picks.filter((m) => m === 'focus').length).toBeGreaterThan(20);
+    expect(picks.filter((m) => m === 'shell').length).toBeGreaterThan(20);
     b.b.hp = b.b.maxHp;
     b.b.moves = ['tackle', 'rush'];
     const attacks = Array.from({ length: 50 }, () => aiMove(b, 'b'));
     expect(attacks.filter((m) => m === 'rush').length).toBeGreaterThan(30);
+  });
+});
+
+describe('form counters', () => {
+  /** An adult with its form's stat at 100 and 40 in the others, Astral unless given, so elements stay out of it. */
+  const adult = (form: Stat, type: ElementType = 'astral') =>
+    fighter({ name: form, type, form: `adult.${form}`, teen: null, stats: { power: 40, speed: 40, guard: 40, wits: 40, [form]: 100 } });
+  const winRate = (a: Fighter, b: Fighter, n = 300) => {
+    let won = 0;
+    for (let seed = 1; seed <= n; seed++) {
+      won += fight(a, b, seed).winner === 'a' ? 1 : 0;
+      won += fight(b, a, seed + 5000).winner === 'b' ? 1 : 0;
+    }
+    return won / (2 * n);
+  };
+
+  it('Power Slam goes through Shell Up and breaks it', () => {
+    let broke = 0;
+    for (let seed = 1; seed <= 50; seed++) {
+      const b = createBattle(adult('power'), adult('guard'), seed);
+      b.b.guardUp = 2;
+      const events = playTurn(b, 'crush', 'shell');
+      if (events.some((e) => e.kind === 'hit' && e.side === 'a')) {
+        expect(events).toContainEqual({ kind: 'shatter', side: 'b' });
+        broke++;
+      }
+    }
+    expect(broke).toBeGreaterThan(30);
+  });
+
+  it('Shell Up hurts the attacker for every hit that lands, and wears off as the shelled pet attacks', () => {
+    const b = createBattle(adult('speed'), adult('guard'), 7);
+    b.b.guardUp = 2;
+    const events = playTurn(b, 'flurry', 'shell');
+    const hits = events.filter((e) => e.kind === 'hit' && e.side === 'a').length;
+    const thorns = events.filter((e) => e.kind === 'thorns');
+    expect(hits).toBeGreaterThan(0);
+    expect(thorns).toHaveLength(hits);
+    expect(b.a.hp).toBe(b.a.maxHp - thorns.reduce((sum, e) => sum + (e.kind === 'thorns' ? e.damage : 0), 0));
+
+    const c = createBattle(adult('power'), adult('guard'), 8);
+    c.b.guardUp = 2;
+    playTurn(c, 'tackle', 'tackle');
+    expect(c.b.guardUp).toBe(1);
+  });
+
+  it('lets Flurry strike first only for the faster pet; more Speed otherwise makes moving first likelier', () => {
+    let slowFirst = 0;
+    for (let seed = 1; seed <= 200; seed++) {
+      const fast = createBattle(adult('speed'), adult('wits'), seed);
+      expect(playTurn(fast, 'flurry', 'trick')[0]).toEqual({ kind: 'use', side: 'a', move: 'flurry' });
+      const slow = createBattle(adult('power'), adult('speed'), seed);
+      if (playTurn(slow, 'flurry', 'tackle')[0].side === 'a') slowFirst++;
+    }
+    // 60 points slower: about one round in ten.
+    expect(slowFirst).toBeGreaterThan(5);
+    expect(slowFirst).toBeLessThan(40);
+  });
+
+  it('makes a slower foe flinch out of its Focus', () => {
+    let flinched = 0;
+    for (let seed = 1; seed <= 50; seed++) {
+      const b = createBattle(adult('speed'), adult('wits'), seed);
+      const events = playTurn(b, 'flurry', 'focus');
+      if (events.some((e) => e.kind === 'flinch')) {
+        expect(b.b.focus).toBe(false);
+        expect(events.some((e) => e.kind === 'focus')).toBe(false);
+        flinched++;
+      }
+    }
+    expect(flinched).toBeGreaterThan(40);
+  });
+
+  it('turns a strong foe’s own Power against it with Mind Trick', () => {
+    const damage = (foe: Fighter) => {
+      let sum = 0;
+      for (let seed = 1; seed <= 200; seed++) {
+        const b = createBattle(adult('wits'), foe, seed);
+        b.a.f.stats.wits = 0; // no critical hits
+        for (const e of playTurn(b, 'trick', 'shell')) if (e.kind === 'hit' && e.side === 'a') sum += e.damage;
+      }
+      return sum;
+    };
+    // Same Guard, so the same defence; only the foe's Power differs.
+    expect(damage(adult('power'))).toBeGreaterThan(damage(adult('speed')) * 1.3);
+  });
+
+  it('beats each form with the one that counters it, and lets no form win most fights', () => {
+    const forms: Stat[] = ['power', 'speed', 'guard', 'wits'];
+    const counters: Record<Stat, Stat> = { power: 'guard', guard: 'speed', speed: 'wits', wits: 'power' };
+    for (const f of forms) expect(winRate(adult(f), adult(counters[f]))).toBeGreaterThan(0.55);
+    for (const f of forms) {
+      const avg = forms.filter((g) => g !== f).reduce((sum, g) => sum + winRate(adult(f), adult(g), 150), 0) / 3;
+      expect(avg).toBeGreaterThan(0.42);
+      expect(avg).toBeLessThan(0.58);
+    }
   });
 });
 
@@ -202,7 +300,7 @@ describe('wild creatures', () => {
   it('pick their moves better by rank', () => {
     const randomPicks = (rank: WildRank) => {
       const b = createBattle(fighter(), fighter({ wild: true, rank, type: 'ember' }), 3);
-      b.b.moves = ['tackle', 'crush'];
+      b.b.moves = ['tackle', 'rush'];
       return Array.from({ length: 400 }, () => aiMove(b, 'b')).filter((m) => m === 'tackle').length;
     };
     expect(randomPicks('champion')).toBeLessThan(randomPicks('match'));

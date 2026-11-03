@@ -605,6 +605,16 @@ export class Arena {
       case 'dazed':
         this.log(t('battle.dazed', { name: name(e.side) }));
         return 700;
+      case 'thorns':
+        this.setHp(e.side, e.hp);
+        this.log(t('battle.thorns', { name: name(e.side) }));
+        return 600;
+      case 'shatter':
+        this.log(t('battle.shatter', { name: name(e.side) }));
+        return 700;
+      case 'flinch':
+        this.log(t('battle.flinch', { name: name(e.side) }));
+        return 650;
       case 'skip':
         this.log(t('battle.skip', { name: name(e.side) }));
         return 800;
