@@ -2,6 +2,7 @@ import { canVibrate } from '../feedback';
 import { LANGUAGE_NAMES, LANGUAGES, t } from '../i18n';
 import { BATTLE_ENERGY } from '../sim/battle';
 import { STAT_CAPS, TRAIN_ENERGY } from '../sim/training';
+import { ALL_SPECIES, BOOK_FORMS, BOOK_TYPES } from '../sim/book';
 import { speciesName } from '../sim/evolution';
 import { DEFAULT_SCHOOL, SCHOOL_MAX_H } from '../sim/clock';
 import type { Ancestor, SchoolTime, Settings } from '../sim/types';
@@ -19,6 +20,8 @@ export interface InstallState {
 export interface SettingsHandlers {
   /** Earlier pets, oldest first. */
   family: Ancestor[];
+  /** The species book: what was discovered and raised (keys like 'tide.adult.speed'), what's new since last opened. */
+  book: { discovered: Set<string>; raised: Set<string>; fresh: Set<string>; markShown(): void };
   onChange(patch: Partial<Settings>): void;
   /** Returns the save code, already copied to the clipboard if possible. */
   onExport(): Promise<string>;
@@ -199,6 +202,22 @@ export function openSettings(
 
     const { sleep, school: schoolField } = timeFields(settings, (patch) => h.onChange(patch));
 
+    // The species book: a count here, the book itself on its own page of the sheet.
+    const openBook = el('button', { type: 'button', className: 'secondary' }, t('book.open'));
+    openBook.onclick = () => showBook();
+    const bookField = el(
+      'div',
+      { className: 'field' },
+      el('span', { className: 'field-title' }, t('book.title')),
+      el(
+        'small',
+        {},
+        t('book.count', { n: h.book.discovered.size, of: ALL_SPECIES.length }) +
+          (h.book.fresh.size ? ` · ${t('book.new', { n: h.book.fresh.size })}` : ''),
+      ),
+      el('div', { className: 'row' }, openBook),
+    );
+
     // Collapsed topics; each body line becomes a bullet.
     // One collapsed "How to play" entry holding the topics, so the settings themselves stay in view.
     const topics = el('div', { className: 'help-topics' });
@@ -326,6 +345,7 @@ export function openSettings(
       schoolField,
       sound,
       app,
+      bookField,
       family,
       backup,
       el('div', { className: 'row' }, newEgg),
@@ -372,6 +392,46 @@ export function openSettings(
     body.append(el('small', { className: 'app-version' }, `Pet Hatch ${__APP_VERSION__}`));
     if (h.debug) body.append((clock = el('small', { className: 'app-clock' }, clockLabel(h.now()))));
     dialog.replaceChildren(body);
+  };
+
+  /** The species book: each element's nine species, raised, seen in battle, or still a silhouette. */
+  const showBook = () => {
+    const back = el('button', { type: 'button', className: 'round', ariaLabel: t('book.back') });
+    back.innerHTML = icon('close', 20);
+    back.onclick = () => render();
+    const body = el(
+      'div',
+      { className: 'settings-body' },
+      el('div', { className: 'settings-head' }, el('h2', {}, t('book.title')), back),
+      el(
+        'small',
+        { className: 'book-summary' },
+        t('book.summary', { n: h.book.discovered.size, of: ALL_SPECIES.length, raised: h.book.raised.size }),
+      ),
+    );
+    for (const type of BOOK_TYPES) {
+      const grid = el('div', { className: 'book-grid' });
+      for (const form of BOOK_FORMS) {
+        const key = `${type}.${form}`;
+        const known = h.book.discovered.has(key);
+        const state = h.book.raised.has(key) ? 'raised' : known ? 'seen' : 'unknown';
+        grid.append(
+          el(
+            'div',
+            { className: `book-cell ${state}` },
+            el('img', { src: `species/${type}-${form}.png`, alt: known ? speciesName(type, form) : '', loading: 'lazy' }),
+            el('b', {}, known ? speciesName(type, form) : '???'),
+            el('small', {}, state === 'unknown' ? '\u00a0' : t(state === 'raised' ? 'book.raised' : 'book.seen')),
+            ...(h.book.fresh.has(key) ? [el('span', { className: 'book-new' }, t('book.newTag'))] : []),
+          ),
+        );
+      }
+      body.append(el('div', { className: 'field' }, el('span', { className: `chip ${type} book-type` }, t(`type.${type}`)), grid));
+    }
+    dialog.replaceChildren(body);
+    // Opening the book is seeing what's new: the next time, these have no "new" mark.
+    h.book.markShown();
+    h.book.fresh.clear();
   };
 
   // In debug mode, the game clock under the version, ticking while the sheet is open.

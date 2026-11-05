@@ -394,6 +394,20 @@ A public waiting room for live battles against strangers of similar strength.
   and reports go over plain HTTP (`POST …/ghost` next to `…/relay`, or `relay.php` with `a: ghost-result` /
   `ghost-report`).
 
+### Species book ✅
+
+A collection of all 36 species across every pet the player raises (`src/sim/book.ts`, Settings › Species book).
+
+- **Raised:** a species one of the player's own pets became (the current pet's `path`, plus every past pet's,
+  kept in `book.raised` when its story ends; older saves start from the family list, each pet a baby once).
+- **Seen:** a species met in battle (wild creatures, friends' pets, dojo opponents and ghosts), recorded when the
+  battle begins; a new one says "New in your species book: Shellwarden!".
+- **The book:** Settings shows "7 of 36 species discovered · 2 new" and an Open button; the book page lists each
+  element's nine species three to a row with the evolution-tree renders (`public/species/`): raised in full with
+  "Raised", seen with "Seen in battle", undiscovered as a faint silhouette with "???". Discoveries not looked at
+  yet carry a "New" tag until the book is opened (`book.shown`).
+- No reward yet for completing an element; a natural next step.
+
 ### Family ✅
 
 - A pet that **retires** (the happy ending) leaves an egg that inherits a head start: about a tenth of the

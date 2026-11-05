@@ -869,6 +869,79 @@ textarea {
 
 /* ---------- family (in settings) ---------- */
 
+/* The species book: each element's nine species, three to a row. */
+.book-summary {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.book-type {
+  align-self: flex-start;
+}
+
+.book-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.book-cell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 6px 4px 8px;
+  border-radius: 14px;
+  background: var(--track);
+  text-align: center;
+  min-width: 0;
+}
+
+.book-cell img {
+  width: 64px;
+  height: 64px;
+}
+
+.book-cell b {
+  font-size: 13px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.book-cell small {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.book-cell.raised small {
+  color: var(--bloom-ink);
+}
+
+/* Not discovered yet: a dark silhouette. */
+.book-cell.unknown img {
+  filter: brightness(0);
+  opacity: 0.18;
+}
+
+.book-cell.unknown b {
+  color: var(--muted);
+}
+
+.book-new {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--amber-bg);
+  color: var(--amber-ink);
+}
+
 .family-row {
   display: flex;
   align-items: flex-start;

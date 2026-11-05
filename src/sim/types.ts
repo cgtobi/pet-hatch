@@ -239,4 +239,6 @@ export interface GameState {
   statsSent?: { day: string; key: string };
   /** Game time the egg or pet was last picked up early from day care: the rest of that school day is off. */
   pickedUpAt?: number;
+  /** The species book (see book.ts; missing: made from the family list on first use). */
+  book?: { raised: `${ElementType}.${FormId}`[]; seen: `${ElementType}.${FormId}`[]; shown: `${ElementType}.${FormId}`[] };
 }

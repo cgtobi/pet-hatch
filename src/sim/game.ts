@@ -1,3 +1,4 @@
+import { rememberRaised } from './book';
 import { atSchool, dayPart, HOUR, MINUTE } from './clock';
 import { createEgg, eggType, HATCH_WAIT_H, tickEgg } from './egg';
 import { topStat } from './evolution';
@@ -116,6 +117,8 @@ export function layNewEgg(state: GameState, now: number, seed = randomSeed(), ne
   const pet = state.pet;
   const family = [...state.family];
   if (pet) {
+    // Its forms stay in the species book.
+    rememberRaised(state, pet.type, pet.path);
     family.push({
       name: pet.name,
       type: pet.type,
@@ -134,5 +137,6 @@ export function layNewEgg(state: GameState, now: number, seed = randomSeed(), ne
   fresh.egg.lightsOn = state.egg.lightsOn;
   fresh.family = family;
   fresh.learned = state.learned;
+  fresh.book = state.book;
   Object.assign(state, fresh);
 }

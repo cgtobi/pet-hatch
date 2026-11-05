@@ -15,6 +15,7 @@ import { careLeaning, hatchStage, hoursUntilTurn, speckleMix, TURN_INTERVAL_H } 
 import { advance, gameNow, isAway, newGame, pickUp } from './sim/game';
 import { ageHours, hygiene, isSleeping, LIFE_STAGES, lifeStageIndex, napCheck, SHELL_DAYS, stageHours } from './sim/pet';
 import { fetchGhostReport } from './net/dojo';
+import { discoveredSpecies, markBookShown, newInBook, raisedSpecies } from './sim/book';
 import { findRelay } from './net/relayConfig';
 import { CHALLENGE_PARAM } from './sim/battlecode';
 import { speciesName } from './sim/evolution';
@@ -273,6 +274,15 @@ function showSettings() {
   const alertsReady = pushConfig ? pushSupport(install.ios, install.standalone) : 'no';
   openSettings(document.getElementById('settings') as HTMLDialogElement, state.settings, install, {
     family: state.family,
+    book: {
+      discovered: discoveredSpecies(state),
+      raised: raisedSpecies(state),
+      fresh: new Set(newInBook(state)),
+      markShown: () => {
+        markBookShown(state);
+        saveGame(state);
+      },
+    },
     onChange: (patch) => {
       Object.assign(state.settings, patch);
       if (patch.language) {

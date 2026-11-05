@@ -9,6 +9,8 @@ import { randomSeed } from '../sim/rng';
 import { canTrain, finishTraining, startTraining, type TrainStat } from '../sim/training';
 import type { ElementType } from '../sim/types';
 import { newGhostKey } from '../net/dojo';
+import { noteSeen } from '../sim/book';
+import { speciesName } from '../sim/evolution';
 import { Arena } from '../ui/arena';
 import { Training } from '../ui/training';
 import type { Game } from './context';
@@ -101,6 +103,11 @@ export function setUpBattles(g: Game): Arena {
       g.world.startBattle(foe.type, foe.seed, foe.form, foe.stage);
       sfx.grow();
       haptic('press');
+      // Every species met goes into the species book; a new one is worth a word.
+      if (noteSeen(g.state, foe.type, foe.form)) {
+        g.hud.toast(t('book.newSeen', { species: speciesName(foe.type, foe.form) }));
+      }
+      g.save();
     },
     fx: (e, b, me) => {
       const self = fighter3d(e.side, me);

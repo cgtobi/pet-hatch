@@ -1,4 +1,5 @@
 import { LANGUAGES } from '../i18n';
+import { isSpeciesKey } from './book';
 import { migrateEggCare, migrateEggTime } from './egg';
 import { DEFAULT_SETTINGS, NEGLECT_MODES } from './game';
 import { LIFE_STAGES, migratePet } from './pet';
@@ -149,7 +150,13 @@ export function isSound(s: GameState): boolean {
       isList(pet.lessons, 100, (l: PetState['lessons'][number]) => isOneOf(l.stat, STATS) && isName(l.from)) &&
       isList(pet.droppings, 100, (d: Dropping) => isNum(d.angle) && isNum(d.dist, 0, 10) && isNum(d.at)) &&
       isList(pet.mistakes, LIFE_STAGES.length, (n: number) => isInt(n, 0, 1e6)));
-  return settings && game && family && eggOk && petOk;
+  const b = s.book;
+  const bookOk =
+    b === undefined ||
+    (typeof b === 'object' &&
+      b !== null &&
+      [b.raised, b.seen, b.shown].every((list) => Array.isArray(list) && list.length <= 100 && list.every(isSpeciesKey)));
+  return settings && game && family && eggOk && petOk && bookOk;
 }
 
 function parseSave(json: string): GameState | null {
