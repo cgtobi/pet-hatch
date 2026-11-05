@@ -269,6 +269,7 @@ export const en = {
   'reveal.heritage': 'From {parent} it inherited a head start: {stats}.',
   'end.retired.heritage': 'The new pet will inherit a little of {name}’s {stats}.',
   'family.title': 'Family',
+  'family.empty': 'Your past pets will appear here, with how their story ended.',
   'family.retired': 'Went on an adventure',
   'family.ranAway': 'Ran away',
   'family.died': 'Passed away',

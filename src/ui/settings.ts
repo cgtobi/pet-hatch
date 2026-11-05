@@ -277,8 +277,9 @@ export function openSettings(
       el('div', { className: 'row' }, exportBtn, importBtn),
     );
 
-    // Newest first: the family story, one line per past pet.
+    // Newest first: the family story, one line per past pet. Shown even before there is one, so players know it exists.
     const family = el('div', { className: 'field' }, el('span', { className: 'field-title' }, t('family.title')));
+    if (!h.family.length) family.append(el('small', {}, t('family.empty')));
     for (const a of [...h.family].reverse()) {
       const days = Math.max(1, Math.round((a.endedAt - a.hatchedAt) / 86_400_000));
       family.append(
@@ -325,7 +326,7 @@ export function openSettings(
       schoolField,
       sound,
       app,
-      ...(h.family.length ? [family] : []),
+      family,
       backup,
       el('div', { className: 'row' }, newEgg),
       language,

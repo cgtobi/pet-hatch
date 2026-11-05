@@ -270,6 +270,7 @@ export const es: Dict = {
   'reveal.heritage': 'De {parent} heredó una ventaja: {stats}.',
   'end.retired.heritage': 'La nueva mascota heredará un poco de {name}: {stats}.',
   'family.title': 'Familia',
+  'family.empty': 'Aquí aparecerán tus mascotas anteriores y cómo terminó su historia.',
   'family.retired': 'Se fue de aventura',
   'family.ranAway': 'Se escapó',
   'family.died': 'Falleció',

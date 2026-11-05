@@ -270,6 +270,7 @@ export const de: Dict = {
   'reveal.heritage': 'Von {parent} hat es einen Vorsprung geerbt: {stats}.',
   'end.retired.heritage': 'Das neue Tier erbt ein wenig von {name}s {stats}.',
   'family.title': 'Familie',
+  'family.empty': 'Hier erscheinen deine früheren Tiere und wie ihre Geschichte endete.',
   'family.retired': 'Auf Abenteuerreise',
   'family.ranAway': 'Weggelaufen',
   'family.died': 'Gestorben',

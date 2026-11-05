@@ -384,7 +384,8 @@ A public waiting room for live battles against strangers of similar strength.
   8 + 5 + 5 + 5 with four stars). The egg is called "Pip's egg", and the new pet carries a
   **generation** chip (Gen 2, Gen 3, …). The reveal tells you what it inherited.
 - A pet that ran away or died, or a manual restart, passes nothing on; the next egg is a fresh first generation.
-- Settings › **Family** lists every past pet, newest first: generation, name, species, how its story ended, how
+- Settings › **Family** (always shown; before the first past pet it says they will appear there) lists every past
+  pet, newest first: generation, name, species, how its story ended, how
   long it lived, its battle wins and its stars.
 
 ## Sound and touch
