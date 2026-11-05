@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.11.1
+
+- Your very first egg shows you around: the hint walks you through warming, misting, singing and extra care,
+  one step at a time, and then tells you when to come back to turn it.
+
 ## 0.11.0
 
 - Knock back: once the egg starts wobbling, it sometimes knocks from inside while the game is open. Tap the same
