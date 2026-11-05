@@ -1,4 +1,5 @@
 import type { TrainStat } from '../sim/training';
+import type { ElementType } from '../sim/types';
 import { icon, type IconName } from './icons';
 
 /** What a minigame reports while it runs; the pet reacts to hits and misses. */
@@ -22,10 +23,25 @@ export interface GameText {
   tap: string;
   watch: string;
   yourTurn: string;
+  /** Smash's twists: its golden round and its surges. */
+  golden: string;
+  surge: string;
 }
 
-/** `level` is how hard to play, 0 … 1, from the pet's stat and life stage (see trainLevel). */
-type Factory = (area: HTMLElement, hooks: GameHooks, text: GameText, level: number) => Minigame;
+/**
+ * How a game is set up for this pet: `level` is how hard to play, 0 … 1, from its stat and life stage (see
+ * trainLevel); `stage` unlocks twists as it grows up; `type` gives the game its element's look.
+ */
+export interface GameSetup {
+  level: number;
+  stage: number;
+  type: ElementType;
+}
+
+/** Each element's icon on its games' buttons. */
+const ELEMENT_ICON: Record<ElementType, IconName> = { ember: 'flame', tide: 'drop', bloom: 'leaf', astral: 'star' };
+
+type Factory = (area: HTMLElement, hooks: GameHooks, text: GameText, setup: GameSetup) => Minigame;
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 const el = (cls: string, html = '') => Object.assign(document.createElement('div'), { className: cls, innerHTML: html });
@@ -70,33 +86,62 @@ function game(area: HTMLElement, body: (finish: (score: number) => void) => () =
   };
 }
 
-/** Power: mash to fill the meter before each round's time runs out. */
-const smash: Factory = (area, hooks, text) =>
+/**
+ * Power: mash to fill the meter before each round's time runs out. It drains faster as each round goes on, and
+ * the stronger the pet. From
+ * teen on, one round is golden: filling it adds a bonus that can make up for a weaker round. From adult on, each
+ * round has a surge, a short glow at a random moment when every tap counts triple.
+ */
+const smash: Factory = (area, hooks, text, { level, stage, type }) =>
   game(area, (finish) => {
     const ROUNDS = 3;
     const ROUND_S = 4;
     // Tuned so steady tapping scores like a good Block or Recall; only fast tapping fills the last round.
     const PER_TAP = 6;
-    const DRAIN = [18, 24, 30];
+    /**
+     * Average drain per second, by round, for the weakest and the strongest pet: filling the meter takes about
+     * 5.7, 6.5 and 7.5 taps a second at first, 7, 8.5 and 10 at the top. Within a round the drain builds from 60% to
+     * 140% of that, so each round gets tougher as it goes.
+     */
+    const DRAIN_LOW = [9, 14, 20];
+    const DRAIN_HIGH = [17, 26, 35];
+    const drain = (r: number, at: number) =>
+      (DRAIN_LOW[r] + (DRAIN_HIGH[r] - DRAIN_LOW[r]) * level) * (0.6 + 0.8 * clamp01(at / ROUND_S));
+    /** Filling the golden round adds this to the score (a full round counts 1). */
+    const GOLDEN_BONUS = 0.5;
+    const SURGE_S = 0.8;
+    const SURGE_TAP = 3;
+    const golden = stage >= 2 ? Math.floor(Math.random() * ROUNDS) : -1;
+    const surgeAt = () => (stage >= 3 ? 0.6 + Math.random() * (ROUND_S - SURGE_S - 1) : Infinity);
     const meter = el('mg-meter', '<div class="mg-meter-fill"></div><div class="mg-meter-goal"></div>');
     const fillEl = meter.firstElementChild as HTMLElement;
     const button = Object.assign(document.createElement('button'), {
       type: 'button',
       className: 'mg-smash',
-      innerHTML: `${icon('dumbbell', 40)}<span>${text.tap}</span>`,
+      innerHTML: `${icon(ELEMENT_ICON[type], 40)}<span>${text.tap}</span>`,
     });
+    area.classList.add(`el-${type}`);
     area.replaceChildren(meter, button);
 
     let round = 0;
     let t = -0.8;
     let fill = 0;
     let best = 0;
+    let bonus = 0;
+    let surge = surgeAt();
     const scores: number[] = [];
-    hooks.status(text.round(1, ROUNDS));
+    const inSurge = () => t >= surge && t < surge + SURGE_S;
+    const status = () =>
+      hooks.status(
+        [text.round(round + 1, ROUNDS), round === golden ? text.golden : '', inSurge() ? text.surge : '']
+          .filter(Boolean)
+          .join(' · '),
+      );
+    status();
     const onTap = (e: PointerEvent) => {
       e.preventDefault();
       if (t < 0) return;
-      fill = Math.min(100, fill + PER_TAP);
+      fill = Math.min(100, fill + PER_TAP * (inSurge() ? SURGE_TAP : 1));
       button.classList.remove('bump');
       void button.offsetWidth;
       button.classList.add('bump');
@@ -104,25 +149,34 @@ const smash: Factory = (area, hooks, text) =>
       best = Math.max(best, fill);
     };
     button.addEventListener('pointerdown', onTap);
+    let surging = false;
     const stopLoop = runLoop((dt) => {
       t += dt;
-      if (t >= 0) fill = Math.max(0, fill - DRAIN[round] * dt);
+      if (t >= 0) fill = Math.max(0, fill - drain(round, t) * dt);
       fillEl.style.height = `${fill}%`;
       meter.classList.toggle('full', best >= 100);
+      meter.classList.toggle('golden', round === golden);
+      if (inSurge() !== surging) {
+        surging = inSurge();
+        button.classList.toggle('surge', surging);
+        status();
+      }
       button.disabled = t < 0;
       hooks.progress((round + clamp01(t / ROUND_S)) / ROUNDS);
       if (t >= ROUND_S) {
         scores.push(best / 100);
+        if (round === golden && best >= 100) bonus += GOLDEN_BONUS;
         if (best < 100) hooks.miss();
         round++;
         if (round >= ROUNDS) {
-          finish(scores.reduce((a, b) => a + b, 0) / ROUNDS);
+          finish((scores.reduce((a, b) => a + b, 0) + bonus) / ROUNDS);
           return false;
         }
-        hooks.status(text.round(round + 1, ROUNDS));
         t = -0.8;
         fill = 0;
         best = 0;
+        surge = surgeAt();
+        status();
       }
       return true;
     });
@@ -132,16 +186,29 @@ const smash: Factory = (area, hooks, text) =>
     };
   });
 
-/** Speed: tap the stars before they fade. */
-const catchStars: Factory = (area, hooks) =>
+/**
+ * Speed: tap the stars before they fade (sparks, bubbles, petals or stars, by element). They come faster and fade
+ * sooner as the game goes on, and the stronger the pet. From teen on, some are golden: worth double, but quick to
+ * fade. From adult on, some are dark: leave them alone, tapping one costs a catch.
+ */
+const catchStars: Factory = (area, hooks, _text, { level, stage, type }) =>
   game(area, (finish) => {
     const DURATION = 20;
+    /** Seconds between stars and how long each lasts, at the start and the end of a game, weakest pet → strongest. */
+    const lerp = (a: number, b: number) => a + (b - a) * level;
+    // The same start as before, but twice as fast by the end of a session.
+    const SPAWN = [lerp(0.85, 0.7), lerp(0.45, 0.33)];
+    const LIFE = [lerp(1.4, 1.1), lerp(0.7, 0.5)];
+    const GOLDEN = stage >= 2 ? 0.14 : 0;
+    const DARK = stage >= 3 ? 0.16 : 0;
+    area.classList.add(`el-${type}`);
     area.replaceChildren();
     let t = 0;
     let nextSpawn = 0.6;
+    /** Stars there were to catch (dark ones don't count), and the catches, golden ones counting double. */
     let spawned = 0;
-    let hits = 0;
-    const live = new Set<{ node: HTMLButtonElement; age: number; life: number }>();
+    let points = 0;
+    const live = new Set<{ node: HTMLButtonElement; age: number; life: number; dark: boolean }>();
     hooks.status('0');
     const stopLoop = runLoop((dt) => {
       t += dt;
@@ -149,24 +216,33 @@ const catchStars: Factory = (area, hooks) =>
       hooks.progress(p);
       nextSpawn -= dt;
       if (nextSpawn <= 0 && t < DURATION - 0.5) {
-        nextSpawn = 0.8 - 0.3 * p;
-        spawned++;
+        nextSpawn = SPAWN[0] + (SPAWN[1] - SPAWN[0]) * p;
+        const roll = Math.random();
+        const kind = roll < GOLDEN ? 'golden' : roll < GOLDEN + DARK ? 'dark' : '';
+        if (kind !== 'dark') spawned++;
         const node = Object.assign(document.createElement('button'), {
           type: 'button',
-          className: 'mg-star',
-          innerHTML: icon('star', 30),
+          className: `mg-star ${kind}`,
+          innerHTML: icon(kind === 'golden' ? 'star' : ELEMENT_ICON[type], 30),
         });
         node.style.left = `${8 + Math.random() * 76}%`;
         node.style.top = `${8 + Math.random() * 72}%`;
-        const star = { node, age: 0, life: 1.25 - 0.5 * p };
+        const life = (LIFE[0] + (LIFE[1] - LIFE[0]) * p) * (kind === 'golden' ? 0.7 : 1);
+        const star = { node, age: 0, life, dark: kind === 'dark' };
         node.addEventListener('pointerdown', (e) => {
           e.preventDefault();
           if (!live.has(star)) return;
           live.delete(star);
-          hits++;
-          hooks.status(String(hits));
-          hooks.hit();
-          node.classList.add('caught');
+          if (star.dark) {
+            points -= 1;
+            hooks.miss();
+            node.classList.add('popped');
+          } else {
+            points += kind === 'golden' ? 2 : 1;
+            hooks.hit();
+            node.classList.add('caught');
+          }
+          hooks.status(String(Math.max(0, points)));
           setTimeout(() => node.remove(), 250);
         });
         live.add(star);
@@ -178,11 +254,12 @@ const catchStars: Factory = (area, hooks) =>
         if (s.age >= s.life) {
           live.delete(s);
           s.node.remove();
-          hooks.miss();
+          // Letting a dark star fade is right.
+          if (!s.dark) hooks.miss();
         }
       }
       if (t >= DURATION && live.size === 0) {
-        finish(spawned ? hits / (spawned * 0.85) : 0);
+        finish(spawned ? Math.max(0, points) / (spawned * 0.85) : 0);
         return false;
       }
       return true;
@@ -190,13 +267,20 @@ const catchStars: Factory = (area, hooks) =>
     return stopLoop;
   });
 
-/** Guard: tap the side an attack comes from just before it lands. */
-const block: Factory = (area, hooks, text) =>
+/**
+ * Guard: tap the side an attack comes from just before it lands. The stronger the pet, the faster it starts; it
+ * speeds up through the game and with each block.
+ */
+const block: Factory = (area, hooks, text, { level, type }) =>
   game(area, (finish) => {
     const ATTACKS = 12;
     const ZONE: [number, number] = [0.55, 0.95];
     /** Each successful block makes the following attacks this much faster. */
     const SPEEDUP = 1.04;
+    /** Seconds an attack takes to land, and between attacks, at the start: weakest pet → strongest. */
+    const TRAVEL = 1.9 - 0.4 * level;
+    const GAP = 1.5 - 0.3 * level;
+    area.classList.add(`el-${type}`);
     const colors = ['var(--ember)', 'var(--tide)', 'var(--bloom)'];
     const core = el('mg-core', icon('shield', 34));
     const shields = { left: el('mg-shield left'), right: el('mg-shield right') };
@@ -244,14 +328,14 @@ const block: Factory = (area, hooks, text) =>
       nextShot -= dt;
       if (nextShot <= 0 && launched < ATTACKS) {
         const k = launched / ATTACKS;
+        const pace = SPEEDUP ** blocked;
         const side: Side = Math.random() < 0.5 ? 'left' : 'right';
         const node = el(`mg-shot ${side}`);
         node.style.background = colors[launched % colors.length];
         lanes[side].append(node);
-        const pace = SPEEDUP ** blocked;
-        shots.push({ side, node, p: 0, travel: (1.9 - 0.8 * k) / pace });
+        shots.push({ side, node, p: 0, travel: (TRAVEL * (1 - 0.42 * k)) / pace });
         launched++;
-        nextShot = (1.5 - 0.6 * k + Math.random() * 0.3) / pace;
+        nextShot = (GAP * (1 - 0.4 * k) + Math.random() * 0.3) / pace;
       }
       for (const s of [...shots]) {
         s.p += dt / s.travel;
@@ -280,15 +364,28 @@ const block: Factory = (area, hooks, text) =>
     };
   });
 
-/** Wits: repeat a growing sequence of pads. */
-const recall: Factory = (area, hooks, text, level) =>
+/**
+ * Wits: repeat a growing sequence of pads. The stronger the pet, the longer the first pattern (3 pads, up to 6)
+ * and the less time to tap the whole answer (a countdown bar shows it; running out ends the game like a wrong
+ * tap). Every pattern grows by one pad a round, for six rounds, and plays a little faster each round.
+ */
+const recall: Factory = (area, hooks, text, { level }) =>
   game(area, (finish) => {
-    const FIRST = 3;
-    const LAST = 8;
-    const ROUNDS = LAST - FIRST + 1;
-    /** The pattern plays faster the higher the pet's Wits and life stage: one pad per 600 ms down to 380 ms. */
-    const STEP = 600 - 220 * level;
-    const FLASH = 420 - 150 * level;
+    const FIRST = 3 + Math.round(3 * level);
+    const ROUNDS = 6;
+    const LAST = FIRST + ROUNDS - 1;
+    /**
+     * The pattern plays faster the higher the pet's Wits and life stage (one pad per 600 ms down to 320 ms), and
+     * 5% faster each round, so the last round of a game is a quarter faster than the first.
+     */
+    const STEP = 600 - 280 * level;
+    const FLASH = 420 - 190 * level;
+    const ROUND_SPEEDUP = 0.05;
+    /**
+     * Seconds to tap the whole answer: 2 to get going, plus this per pad (1.4 at first, 0.6 at the top), so a
+     * new pet has about 6 s for its first pattern and the strongest under 9 s for its last (11 pads).
+     */
+    const PER_PAD = 1.4 - 0.8 * level;
     const pads: { icon: IconName; tone: string }[] = [
       { icon: 'flame', tone: 'ember-btn' },
       { icon: 'drop', tone: 'tide-btn' },
@@ -305,31 +402,48 @@ const recall: Factory = (area, hooks, text, level) =>
       grid.append(b);
       return b;
     });
-    area.replaceChildren(grid);
+    const timer = el('mg-timer', '<div></div>');
+    const timerFill = timer.firstElementChild as HTMLElement;
+    area.replaceChildren(grid, timer);
 
     const seq: number[] = [];
     let input = 0;
     let listening = false;
+    /** Seconds left to finish the answer, and how long it had. */
+    let left = 0;
+    let allowed = 1;
     let timers: number[] = [];
     const later = (ms: number, fn: () => void) => timers.push(window.setTimeout(fn, ms));
     const flash = (i: number, ms: number) => {
       buttons[i].classList.add('lit');
       later(ms, () => buttons[i].classList.remove('lit'));
     };
+    const setTimer = (s: number) => {
+      left = allowed = s;
+    };
 
     const nextRound = () => {
-      do seq.push(Math.floor(Math.random() * 4));
+      do seq.push(Math.floor(Math.random() * pads.length));
       while (seq.length < FIRST);
       listening = false;
       input = 0;
+      timer.classList.remove('out');
       hooks.status(text.watch);
       grid.classList.add('watching');
-      seq.forEach((pad, i) => later(500 + i * STEP, () => flash(pad, FLASH)));
-      later(500 + seq.length * STEP, () => {
+      const speed = 1 - ROUND_SPEEDUP * (seq.length - FIRST);
+      seq.forEach((pad, i) => later(500 + i * STEP * speed, () => flash(pad, FLASH * speed)));
+      later(500 + seq.length * STEP * speed, () => {
         listening = true;
+        setTimer(2 + PER_PAD * seq.length);
         grid.classList.remove('watching');
         hooks.status(text.yourTurn);
       });
+    };
+
+    const fail = () => {
+      listening = false;
+      hooks.miss();
+      later(700, () => finish((seq.length - FIRST) / ROUNDS));
     };
 
     const onPad = (i: number) => (e: PointerEvent) => {
@@ -337,30 +451,39 @@ const recall: Factory = (area, hooks, text, level) =>
       if (!listening) return;
       flash(i, 200);
       if (i !== seq[input]) {
-        listening = false;
         buttons[i].classList.add('wrong');
-        hooks.miss();
-        later(700, () => finish((seq.length - FIRST) / ROUNDS));
+        fail();
         return;
       }
       input++;
       if (input < seq.length) return;
+      listening = false;
       const completed = seq.length - FIRST + 1;
       hooks.hit();
       hooks.progress(completed / ROUNDS);
-      if (seq.length >= LAST) {
-        listening = false;
-        later(500, () => finish(1));
-      } else later(400, nextRound);
+      if (seq.length >= LAST) later(500, () => finish(1));
+      else later(400, nextRound);
     };
     const listeners = buttons.map((b, i) => {
       const fn = onPad(i);
       b.addEventListener('pointerdown', fn);
       return fn;
     });
+    const stopLoop = runLoop((dt) => {
+      if (listening) {
+        left -= dt;
+        if (left <= 0) {
+          timer.classList.add('out');
+          fail();
+        }
+      }
+      timerFill.style.width = `${listening ? Math.max(0, (100 * left) / allowed) : 0}%`;
+      return true;
+    });
     hooks.progress(0);
     nextRound();
     return () => {
+      stopLoop();
       timers.forEach(clearTimeout);
       timers = [];
       buttons.forEach((b, i) => b.removeEventListener('pointerdown', listeners[i]));

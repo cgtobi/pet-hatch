@@ -93,6 +93,9 @@ export interface TrainResult {
   gain: number;
   /** The stat had already hit (or just hit) this stage's cap. */
   capped: boolean;
+  /** The best score in this game so far (0 … 100), and whether this session set it. */
+  best: number;
+  record: boolean;
 }
 
 /** Apply a finished session: score is 0 … 1 from the minigame. */
@@ -102,10 +105,15 @@ export function finishTraining(pet: PetState, stat: TrainStat, score: number): T
   if (stat === 'endurance') pet.endurance += gain;
   else pet.stats[stat] += gain;
   pet.trainings++;
+  const pct = Math.round(clamp(score, 0, 1) * 100);
+  const bests = (pet.bests ??= {});
+  // The first session sets the bar; a record is beating an earlier best.
+  const record = bests[stat] !== undefined && pct > bests[stat]!;
+  bests[stat] = Math.max(bests[stat] ?? 0, pct);
   pet.energy = clamp(pet.energy - TRAIN_ENERGY, 0, maxEnergy(pet));
   pet.hunger = clamp(pet.hunger - TRAIN_HUNGER);
   pet.mood = clamp(pet.mood + (score >= 0.5 ? 6 : -3));
-  return { gain, capped: trainValue(pet, stat) >= cap };
+  return { gain, capped: trainValue(pet, stat) >= cap, best: bests[stat]!, record };
 }
 
 export type Grade = 'excellent' | 'great' | 'good' | 'poor';

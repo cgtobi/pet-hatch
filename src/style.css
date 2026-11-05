@@ -1320,12 +1320,21 @@ body.sheet-open #update {
   right: 0;
   bottom: 0;
   height: 0;
-  background: linear-gradient(to top, var(--amber), var(--ember));
+  background: linear-gradient(to top, var(--meter-lo), var(--meter-hi));
   border-radius: 18px;
 }
 
 .mg-meter.full .mg-meter-fill {
-  background: linear-gradient(to top, var(--ember), #e2462f);
+  background: linear-gradient(to top, var(--meter-hi), var(--meter-full));
+}
+
+/* Smash's golden round: a gold meter that glows. */
+.mg-meter.golden {
+  box-shadow: 0 0 0 3px #ffd75e, 0 0 16px 4px rgba(255, 200, 60, 0.6);
+}
+
+.mg-meter.golden .mg-meter-fill {
+  background: linear-gradient(to top, #ffe27a, #e0a100);
 }
 
 .mg-meter-goal {
@@ -1343,8 +1352,8 @@ body.sheet-open #update {
   height: 140px;
   border: 0;
   border-radius: 70px;
-  background: var(--ember-bg);
-  color: var(--ember-ink);
+  background: var(--smash-bg);
+  color: var(--smash-ink);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1353,8 +1362,55 @@ body.sheet-open #update {
   font-family: var(--display);
   font-weight: 600;
   font-size: 20px;
-  box-shadow: 0 6px 0 #f0b58f;
+  box-shadow: 0 6px 0 var(--smash-edge);
   touch-action: none;
+}
+
+/* Smash takes the pet's element colors (ember is the default). */
+.mg-power {
+  --smash-bg: var(--ember-bg);
+  --smash-ink: var(--ember-ink);
+  --smash-edge: #f0b58f;
+  --meter-lo: var(--amber);
+  --meter-hi: var(--ember);
+  --meter-full: #e2462f;
+}
+
+.mg-power.el-tide {
+  --smash-bg: var(--tide-bg);
+  --smash-ink: var(--tide-ink);
+  --smash-edge: #a9d3ef;
+  --meter-lo: #9fd6f5;
+  --meter-hi: var(--tide);
+  --meter-full: #2f7fc0;
+}
+
+.mg-power.el-bloom {
+  --smash-bg: var(--bloom-bg);
+  --smash-ink: var(--bloom-ink);
+  --smash-edge: #a7dfbb;
+  --meter-lo: #b5e9c6;
+  --meter-hi: var(--bloom);
+  --meter-full: #2f9a5c;
+}
+
+.mg-power.el-astral {
+  --smash-bg: var(--violet-bg);
+  --smash-ink: var(--violet-ink);
+  --smash-edge: #cdbff2;
+  --meter-lo: #d7cbff;
+  --meter-hi: #9a7cf0;
+  --meter-full: #6c4fd0;
+}
+
+/* Smash's surge: every tap counts triple while the button glows. */
+.mg-smash.surge {
+  background: #fff6c9;
+  color: #a06a00;
+  box-shadow:
+    0 6px 0 #f2cf6a,
+    0 0 0 4px #ffd75e,
+    0 0 24px 8px rgba(255, 210, 80, 0.7);
 }
 
 .mg-smash:disabled {
@@ -1368,7 +1424,7 @@ body.sheet-open #update {
 @keyframes bump {
   50% {
     transform: translateY(4px) scale(0.95);
-    box-shadow: 0 2px 0 #f0b58f;
+    box-shadow: 0 2px 0 var(--smash-edge);
   }
 }
 
@@ -1392,6 +1448,82 @@ body.sheet-open #update {
 
 .mg-star svg {
   fill: #ffd84d;
+}
+
+/* Star catch takes the pet's element: sparks, bubbles, petals or stars. */
+.mg-speed.el-ember .mg-star:not(.golden, .dark) {
+  background: var(--ember-bg);
+  color: var(--ember-ink);
+}
+
+.mg-speed.el-ember .mg-star:not(.golden, .dark) svg {
+  fill: var(--ember);
+}
+
+.mg-speed.el-tide .mg-star:not(.golden, .dark) {
+  background: var(--tide-bg);
+  color: var(--tide-ink);
+}
+
+.mg-speed.el-tide .mg-star:not(.golden, .dark) svg {
+  fill: #9fd6f5;
+}
+
+.mg-speed.el-bloom .mg-star:not(.golden, .dark) {
+  background: var(--bloom-bg);
+  color: var(--bloom-ink);
+}
+
+.mg-speed.el-bloom .mg-star:not(.golden, .dark) svg {
+  fill: #9fe0b5;
+}
+
+.mg-speed.el-astral .mg-star:not(.golden, .dark) {
+  background: var(--violet-bg);
+  color: var(--violet-ink);
+}
+
+.mg-speed.el-astral .mg-star:not(.golden, .dark) svg {
+  fill: #c9b8ff;
+}
+
+/* Golden stars: worth double, quick to fade. */
+.mg-star.golden {
+  width: 64px;
+  height: 64px;
+  border-radius: 32px;
+  background: #fff1c7;
+  color: #a06a00;
+  box-shadow: 0 0 0 3px #ffd75e, 0 0 18px 4px rgba(255, 200, 60, 0.6);
+}
+
+.mg-star.golden svg {
+  fill: #ffc21a;
+}
+
+@keyframes shake {
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}
+
+/* Dark stars: leave them alone. */
+.mg-star.dark {
+  background: #4a4060;
+  color: #241d33;
+}
+
+.mg-star.dark svg {
+  fill: #6d6290;
+}
+
+.mg-star.popped {
+  animation: shake 0.25s;
+  opacity: 0 !important;
+  transition: opacity 0.25s;
 }
 
 .mg-star.caught {
@@ -1460,11 +1592,36 @@ body.sheet-open #update {
   height: 64px;
   margin: -32px 0 0 -32px;
   border-radius: 32px;
-  background: var(--tide-bg);
-  color: var(--tide-ink);
+  background: var(--guard-bg);
+  color: var(--guard-ink);
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* Block takes the pet's element colors for its core and shields (tide is the default). */
+.mg-guard {
+  --guard: var(--tide);
+  --guard-bg: var(--tide-bg);
+  --guard-ink: var(--tide-ink);
+}
+
+.mg-guard.el-ember {
+  --guard: var(--ember);
+  --guard-bg: var(--ember-bg);
+  --guard-ink: var(--ember-ink);
+}
+
+.mg-guard.el-bloom {
+  --guard: var(--bloom);
+  --guard-bg: var(--bloom-bg);
+  --guard-ink: var(--bloom-ink);
+}
+
+.mg-guard.el-astral {
+  --guard: #9a7cf0;
+  --guard-bg: var(--violet-bg);
+  --guard-ink: var(--violet-ink);
 }
 
 /* Endurance: jump rope. */
@@ -1553,7 +1710,7 @@ body.sheet-open #update {
   height: 84px;
   margin-top: -42px;
   border-radius: 7px;
-  background: var(--tide);
+  background: var(--guard);
   opacity: 0.15;
 }
 
@@ -1597,10 +1754,33 @@ body.sheet-open #update {
 
 .mg-pads {
   position: absolute;
-  inset: 12px;
+  /* Room at the bottom for the answer countdown. */
+  inset: 12px 12px 18px;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
+}
+
+/* Recall's answer countdown, along the bottom of the play area. */
+.mg-timer {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 4px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--track);
+  overflow: hidden;
+}
+
+.mg-timer > div {
+  height: 100%;
+  width: 0;
+  background: var(--violet-ink);
+}
+
+.mg-timer.out > div {
+  background: #e2462f;
 }
 
 .mg-pad {

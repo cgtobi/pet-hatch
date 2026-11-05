@@ -197,6 +197,8 @@ export interface PetState {
   endurance: number;
   /** Finished training sessions. */
   trainings: number;
+  /** Best score per training game, 0 … 100 (missing: never played). */
+  bests?: Partial<Record<Stat | 'endurance', number>>;
   /** Every form taken so far, in order (the teen form decides one of the adult's moves). */
   path: FormId[];
   /** Battles won and lost; champions: wild champions beaten (missing in older saves). */

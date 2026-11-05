@@ -138,6 +138,10 @@ export function isSound(s: GameState): boolean {
       isInt(pet.generation, 1, 1e6) &&
       isVial(pet) &&
       isInt(pet.trainings, 0, 1e7) &&
+      (pet.bests === undefined ||
+        (typeof pet.bests === 'object' &&
+          pet.bests !== null &&
+          Object.entries(pet.bests).every(([k, n]) => isOneOf(k, [...STATS, 'endurance']) && isInt(n, 0, 100)))) &&
       isNum(pet.battleXp, 0, 1000) &&
       isList(pet.lessons, 100, (l: PetState['lessons'][number]) => isOneOf(l.stat, STATS) && isName(l.from)) &&
       isList(pet.droppings, 100, (d: Dropping) => isNum(d.angle) && isNum(d.dist, 0, 10) && isNum(d.at)) &&

@@ -104,7 +104,7 @@ describe('training', () => {
       finishTraining(s.pet, 'power', 1);
     }
     expect(s.pet.stats.power).toBe(STAT_CAPS[1]);
-    expect(finishTraining(s.pet, 'power', 1)).toEqual({ gain: 0, capped: true });
+    expect(finishTraining(s.pet, 'power', 1)).toMatchObject({ gain: 0, capped: true });
   });
 
   it('lets an undisciplined pet refuse, as a tantrum to scold', () => {
@@ -192,6 +192,17 @@ describe('evolution', () => {
   });
 });
 
+describe('personal bests', () => {
+  it('keeps the best score per game and calls beating it a record', () => {
+    const s = child();
+    expect(finishTraining(s.pet, 'speed', 0.5)).toMatchObject({ best: 50, record: false });
+    expect(finishTraining(s.pet, 'speed', 0.4)).toMatchObject({ best: 50, record: false });
+    expect(finishTraining(s.pet, 'speed', 0.8)).toMatchObject({ best: 80, record: true });
+    expect(finishTraining(s.pet, 'wits', 0.3)).toMatchObject({ best: 30, record: false });
+    expect(s.pet.bests).toEqual({ speed: 80, wits: 30 });
+  });
+});
+
 describe('endurance', () => {
   it('trains like a stat, within the same caps, without touching the battle stats', () => {
     const s = child();
@@ -205,7 +216,7 @@ describe('endurance', () => {
       finishTraining(s.pet, 'endurance', 1);
     }
     expect(s.pet.endurance).toBe(STAT_CAPS[1]);
-    expect(finishTraining(s.pet, 'endurance', 1)).toEqual({ gain: 0, capped: true });
+    expect(finishTraining(s.pet, 'endurance', 1)).toMatchObject({ gain: 0, capped: true });
   });
 
   it('raises the most energy a pet can have, which rest then fills', () => {

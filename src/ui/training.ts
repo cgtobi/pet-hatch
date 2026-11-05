@@ -28,6 +28,25 @@ export interface TrainingHandlers {
   finish(stat: TrainStat, score: number): TrainResult;
 }
 
+/** The twists a game has unlocked for a pet at this life stage, as extra lines for its intro. */
+const TWISTS: Partial<Record<TrainStat, [stage: number, key: TextKey][]>> = {
+  power: [
+    [2, 'game.power.teen'],
+    [3, 'game.power.adult'],
+  ],
+  speed: [
+    [2, 'game.speed.teen'],
+    [3, 'game.speed.adult'],
+  ],
+};
+
+function twists(stat: TrainStat, stage: number): string {
+  return (TWISTS[stat] ?? [])
+    .filter(([from]) => stage >= from)
+    .map(([, key]) => `<br>${t(key)}`)
+    .join('');
+}
+
 const TONES: Record<TrainStat, string> = { power: 'ember', speed: 'amber', guard: 'tide', wits: 'violet', endurance: 'bloom' };
 
 /** What training is for, by life stage (child … elder). */
@@ -104,7 +123,7 @@ export class Training {
       <div class="mg-area mg-${stat}">
         <div class="mg-intro">
           <span class="bubble ${TONES[stat]}-btn">${icon(STAT_ICONS[stat], 34)}</span>
-          <p>${t(`game.${stat}.how`)}</p>
+          <p>${t(`game.${stat}.how`)}${twists(stat, this.h.pet().stage)}</p>
           <button type="button" class="primary mg-start">${t('train.start')}</button>
         </div>
       </div>`;
@@ -123,6 +142,8 @@ export class Training {
       tap: t('game.tap'),
       watch: t('game.watch'),
       yourTurn: t('game.yourTurn'),
+      golden: t('game.golden'),
+      surge: t('game.surge'),
     };
     area.replaceChildren();
     this.s.busy = true;
@@ -135,7 +156,7 @@ export class Training {
         status: (s) => (sub.textContent = s),
       },
       text,
-      trainLevel(this.h.pet(), stat),
+      { level: trainLevel(this.h.pet(), stat), stage: this.h.pet().stage, type: this.h.pet().type },
     );
     const game = this.game;
     void game.done.then((score) => {
@@ -157,7 +178,9 @@ export class Training {
     this.sheet.innerHTML = `<div class="train-result">
         <span class="bubble ${TONES[stat]}-btn">${icon(STAT_ICONS[stat], 34)}</span>
         <h2>${t(`train.grade.${grade(score)}`)}</h2>
-        <p class="muted">${t('train.score', { n: Math.round(score * 100) })}</p>
+        <p class="muted">${t('train.score', { n: Math.round(score * 100) })} · ${
+          r.record ? `<strong class="train-record">${t('train.record')}</strong>` : t('train.best', { n: r.best })
+        }</p>
         ${gain}${capped}
         <div class="train-actions">
           <button type="button" class="secondary train-again" ${again ? '' : 'disabled'}>${t('train.again')}</button>

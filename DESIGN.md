@@ -214,13 +214,18 @@ Four battle stats and Endurance, each trained by its own 15–30 s minigame from
 the status card and dock fade away while the camera glides back and up over about half a second, so the whole
 island stays in view above the sheet; closing it glides back. (Every change of framing eases the same way.)
 
+Every game but Jump rope gets harder with the pet's **level**, 0 … 1 (`trainLevel()`: ¾ the stat it trains, ¼ its life stage),
+and within each session. Some unlock a twist as the pet grows up, and they take the pet's element colors and icon
+(flame, drop, leaf or star). The result screen shows the **personal best** per game ("Score 72% · Best 85%", or
+"New record!"); bests are kept per pet (`bests`).
+
 | Stat | Minigame | How it plays |
 |---|---|---|
-| Power | Smash | Mash to fill a meter before time runs out; 3 rounds, faster drain each round; only fast tapping fills the last one. |
-| Speed | Star catch | Tap stars before they fade; 20 s, they come faster and fade sooner. |
-| Guard | Block | Tap the side an attack comes from just before it lands; 12 attacks. Each successful block makes the next attacks 4% faster. Swinging at nothing leaves that side open briefly, so mashing fails. |
-| Wits | Recall | Repeat a growing sequence of four pads (3 → 8 long); one mistake ends it. The pattern plays faster as the pet's Wits and life stage rise: one pad per 600 ms for a new child, down to 380 ms for an adult at 100 Wits. |
-| Endurance | Jump rope | Jump as the rope reaches the ground; it turns faster and faster (see below). |
+| Power | Smash | Mash to fill a meter before each round's 4 s run out; 3 rounds. Filling it takes about 5.7, 6.5 and 7.5 taps a second by round for a new pet, 7, 8.5 and 10 at the top, and within a round the drain builds from 60% to 140% of that. **Teen:** one round is golden; filling it adds half a round to the score. **Adult:** each round has a surge, a 0.8 s glow when every tap counts triple. |
+| Speed | Star catch | Tap targets (sparks, bubbles, petals or stars) before they fade; 20 s. A new pet starts with one every 0.85 s lasting 1.4 s, the strongest with one every 0.7 s lasting 1.1 s; by the end of a session both go about twice as fast. **Teen:** about 1 in 7 is a golden star, worth double but quicker to fade. **Adult:** about 1 in 6 is dark: leave it, tapping it costs a catch. |
+| Guard | Block | Tap the side an attack comes from just before it lands; 12 attacks. They take 1.9 s to land and come every 1.5 s for a new pet (1.5 s and 1.2 s at the top), get 42% quicker over the game, and each successful block makes the next 4% faster. Swinging at nothing leaves that side open briefly, so mashing fails. (Feints and double attacks were tried and dropped: they don't work with a mouse or trackpad.) |
+| Wits | Recall | Repeat a growing sequence of four pads for six rounds; one mistake ends it. The first pattern is 3 pads for a new pet, up to 6 at the top, shown at one pad per 600 ms down to 320 ms, 5% faster each round. The whole answer must be tapped in 2 s plus 1.4 s per pad (0.6 s at the top), shown by a countdown bar; running out ends it like a mistake. |
+| Endurance | Jump rope | Jump as the rope comes down; it turns faster and faster (see below). It stays as it is: no level, twists or element colors. |
 
 - A session costs 20% energy and a little food; a score of 0–100% earns 1–6 points. Each type learns one stat
   25% faster (Ember Power, Tide Speed, Bloom Guard, Astral Wits); scruffy children learn 20% slower, elders 50%.
