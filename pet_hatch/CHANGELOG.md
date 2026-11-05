@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.2
+
+- Jump rope is more forgiving: a jump clears the rope if your pet is in the air when it passes, so tapping a
+  little before the rope comes down is right, with a short grace for late taps. Full marks when the rope passes
+  near the top of the jump, and a mistimed tap costs less.
+
 ## 0.9.1
 
 - Block training gets 4% faster with each successful block, so a good run ends much faster than it starts.
