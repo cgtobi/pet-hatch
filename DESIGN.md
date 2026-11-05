@@ -205,9 +205,12 @@ island stays in view above the sheet; closing it glides back. (Every change of f
 - **Endurance:** a fifth row on the Train sheet, trained by **Jump rope**. It follows the same caps and slowdown but isn't a battle stat
   (no star, no part in battles, evolution or inheritance). Each point adds 0.5 to the most energy the pet can have
   (150 at 100), so it can train, play and fight longer; the energy bar shows energy against that maximum.
-  - Jump rope: tap to jump as the rope reaches the ground. Two practice turns, then 28 counted jumps while a turn
-    speeds up from 0.95 s to 0.42 s. A jump within ±0.14 s (less once fast) clears the rope, full marks for the
-    inner half of that window; a jump keeps the pet in the air for a moment, so mashing misses the next turn.
+  - Jump rope: tap to jump as the rope comes down. Two practice turns, then 28 counted jumps while a turn
+    speeds up from 0.95 s to 0.42 s. A jump clears the rope if the pet is in the air when it passes: a jump lasts
+    0.6 of a turn (0.28–0.45 s), and a tap up to ¾ of that before the rope reaches the ground counts, plus 60 ms
+    of grace after it for touch delay (about 400 ms in all when slow, 270 ms at top speed). Full marks when the
+    rope passes within a quarter jump of the top. A jump keeps
+    the pet in the air, so mashing misses the next turn, and a tap that clears nothing costs a quarter jump.
 - **Stars:** each stat at 100 earns a star: a gold ★ chip in the pet's header (one star per stat), "★ Max" on
   the Train sheet, and the stars stay with the pet in the family list. More stars also mean a bigger head start
   for the next generation (see *Family*).

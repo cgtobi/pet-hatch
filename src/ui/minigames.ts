@@ -368,7 +368,8 @@ const recall: Factory = (area, hooks, text, level) =>
   });
 
 /**
- * Endurance: jump the rope in rhythm. Tap to jump as the rope reaches the ground; it turns faster and faster.
+ * Endurance: jump the rope in rhythm. A jump clears the rope if the pet is in the air when the rope passes under
+ * it, so the right moment is just before the rope reaches the ground; it turns faster and faster.
  * A jump keeps the pet in the air for a moment, and jumping off the beat costs points, so mashing doesn't pay.
  */
 const jumpRope: Factory = (area, hooks, text) =>
@@ -382,9 +383,15 @@ const jumpRope: Factory = (area, hooks, text) =>
     const FEET = 112;
     const period = (i: number) => SLOW + (FAST - SLOW) * clamp01((i - LEAD) / (JUMPS - 1));
     /** What a jump off the beat costs, against 1 for a clean jump. */
-    const WASTED = 0.5;
-    /** How far off the beat a jump still clears the rope. */
-    const slack = (i: number) => Math.min(0.14, 0.3 * period(i));
+    const WASTED = 0.25;
+    /** How long a jump keeps the pet in the air, by the speed of turn i. */
+    const air = (i: number) => Math.min(0.45, Math.max(0.28, 0.6 * period(i)));
+    /** A jump clears the rope from this long before it reaches the ground (the pet still well up as it passes)… */
+    const before = (i: number) => 0.75 * air(i);
+    /** …to this long after, a grace for touch delay. */
+    const AFTER = 0.06;
+    /** Full marks when the rope passes the pet around the top of its jump. */
+    const perfect = (i: number, early: number) => Math.abs(early - air(i) / 2) <= air(i) / 4;
     // When the rope passes under the feet; it starts turning one slow turn before the first.
     const beats: number[] = [];
     for (let i = 0, at = 1.2; i < LEAD + JUMPS; at += period(i), i++) beats.push(at);
@@ -420,16 +427,16 @@ const jumpRope: Factory = (area, hooks, text) =>
       e.preventDefault();
       if (t < beats[0] - SLOW || t - jumpAt < jumpLen) return;
       jumpAt = t;
-      jumpLen = Math.min(0.42, Math.max(0.26, 0.55 * period(beat)));
-      const i = beats.findIndex((b, j) => !judged[j] && Math.abs(t - b) <= slack(j));
+      jumpLen = air(beat);
+      const i = beats.findIndex((b, j) => !judged[j] && t >= b - before(j) && t <= b + AFTER);
       if (i < 0) {
-        if (t > beats[LEAD] - slack(LEAD)) points -= WASTED;
+        if (t > beats[LEAD] - before(LEAD)) points -= WASTED;
         return;
       }
       judged[i] = true;
       if (i < LEAD) return;
       cleared++;
-      points += Math.abs(t - beats[i]) <= slack(i) / 2 ? 1 : 0.7;
+      points += perfect(i, beats[i] - t) ? 1 : 0.7;
       hooks.status(`${cleared} / ${JUMPS}`);
       hooks.hit();
     };
@@ -451,13 +458,13 @@ const jumpRope: Factory = (area, hooks, text) =>
       const air = jumpAt >= 0 && t - jumpAt < jumpLen ? Math.sin((Math.PI * (t - jumpAt)) / jumpLen) : 0;
       jumper.setAttribute('transform', `translate(100 ${FEET - air * 26})`);
       shadow.setAttribute('rx', String(16 - 6 * air));
-      const next = beats.find((b, j) => !judged[j] && b > t - slack(j));
+      const next = beats.find((b, j) => !judged[j] && b > t - AFTER);
       cue.style.opacity = next === undefined ? '0' : String(0.5 * clamp01(1 - Math.abs(next - t) / 0.35));
       if (t > beats[LEAD] - 0.5) label.textContent = '';
 
       // A turn passed without a jump: the rope catches the pet's feet.
       beats.forEach((b, j) => {
-        if (judged[j] || t <= b + slack(j)) return;
+        if (judged[j] || t <= b + AFTER) return;
         judged[j] = true;
         if (j < LEAD) return;
         ouchUntil = t + 0.3;
@@ -467,7 +474,7 @@ const jumpRope: Factory = (area, hooks, text) =>
 
       const last = beats[beats.length - 1];
       hooks.progress(clamp01((t - beats[LEAD]) / (last - beats[LEAD])));
-      if (t > last + slack(beats.length - 1) + 0.4) {
+      if (t > last + AFTER + 0.4) {
         finish(Math.max(0, points) / JUMPS);
         return false;
       }
