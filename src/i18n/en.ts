@@ -397,10 +397,10 @@ export const en = {
   'help.title': 'How to play',
   'help.egg.title': 'Caring for the egg',
   'help.egg.body':
-    'Hold the egg to warm it, swipe up to mist it, and stroke it or sing to keep it company.\nTurn it every few hours with a sideways swipe.\nIt hatches after roughly a day. Good care speeds it up, neglect slows it down.\nOnce it is ready, it waits for you: tap it to help it out.',
+    'Hold the egg to warm it, swipe up to mist it, and stroke it or sing to keep it company.\nTurn it every few hours with a sideways swipe.\nIt hatches after 6 to 8 hours of your day; at night it rests. Good care speeds it up, neglect slows it down.\nOnce it is ready, it waits for you: tap it to help it out.',
   'help.types.title': 'Element types',
   'help.types.body':
-    'Ordinary care keeps the egg neutral. Extra care when it is already comfy decides the element: warmth makes Ember, mist makes Tide, comfort makes Bloom.\nPamper it evenly in all three ways and keep it healthy for a chance at the rare Astral type. An egg nobody pampers picks its element by chance.\nTide beats Ember, Ember beats Bloom and Bloom beats Tide. Astral has no weakness. This will matter in battles.',
+    'Ordinary care keeps the egg neutral. Extra care when it is already comfy decides the element: warmth makes Ember, mist makes Tide, comfort makes Bloom.\nPamper it evenly in all three ways and keep it healthy for a chance at the rare Astral type. An egg nobody pampers picks its element by chance.\nThe speckles show where it is heading: orange for Ember, blue for Tide, green for Bloom, shiny violet for Astral.\nTide beats Ember, Ember beats Bloom and Bloom beats Tide. Astral has no weakness. This will matter in battles.',
   'help.care.title': 'Daily care',
   'help.care.body':
     'Keep Food and Mood up with Feed and Play. Babies need the most attention.\nDroppings appear a while after meals. Clean them up, or your pet may get sick.\nA sick pet needs two doses of medicine.\nIn the evening, from 4 hours before bedtime, it gets dark and your pet dozes off. Turn the light on (top right) to keep it up for food, play and training.\nAt bedtime it falls asleep either way. With the light off it sleeps best and wakes up happy; overnight, needs drop much more slowly. With the light on, Feed, Play or Train wakes it for an hour, grumpily.\nA pet that runs out of energy takes a nap on its own. Below 40% energy, tap Nap (top right) during the day for a power nap; it wakes up rested after about an hour.',
@@ -434,6 +434,9 @@ export const en = {
   'newEgg.start': 'Start',
   'welcome.title': 'Welcome to Pet Hatch',
   'welcome.body': 'An egg is waiting for you. How forgiving should it be when care is missed? This stays the same until your next egg.',
+  'welcome.dayTitle': 'Your day',
+  'welcome.dayBody': 'When do you sleep, and are you at school? Your egg rests at night and waits while you are away.',
+  'welcome.dayStart': 'Let’s go',
   'stats.share': 'Share anonymous pet stats',
   'stats.hint': 'Once a day, the game sends an anonymous number for your pet with its stage, type, form, mode, generation, stars and, at the end, how its story ended. No names, no save, no IP address.',
   'alerts.toggle': 'Alerts when your pet needs you',
@@ -460,7 +463,7 @@ export const en = {
   'settings.sleepTo': 'To',
   'settings.school': 'School time',
   'settings.schoolToggle': 'Day care while I’m at school',
-  'settings.schoolHint': 'On these days and hours your egg or pet is looked after: no calls, alerts or care mistakes. It keeps growing, and you can pick it up early.',
+  'settings.schoolHint': 'On these days and hours your egg or pet is looked after: no calls, alerts or care mistakes. A pet keeps growing, an egg waits for you, and you can pick it up early.',
   'settings.schoolClassic': 'Not in Classic: there your pet needs you every day.',
   'settings.sound': 'Sound effects',
   'settings.music': 'Music',

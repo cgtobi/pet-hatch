@@ -33,13 +33,16 @@ Status of each part: ✅ built, 🔜 planned.
 
 - ✅ **Real time.** The simulation stores the time it last ran to; on load it replays the missed time in
   one-minute steps (capped at 14 days). One jump and many small steps give the same result (tested).
+- ✅ **Your day before the first egg:** after choosing the neglect mode, the welcome asks for bedtime and school time
+  (the same fields as in Settings), since the egg rests at night and waits at school.
 - ✅ **Sleep window** (default 22:00–07:00, set in Settings). Needs drain at 10% with the light off,
   30% with it left on, and no care mistakes count while you sleep. The **evening** is the 4 hours before it
   (`dayPart()` in `src/sim/clock.ts`).
 - ✅ **School time** (Cozy and Gentle; set in Settings, off until set up): on the chosen weekdays and hours
   (Monday to Friday, 8–13 by default, at most 10 hours) the egg or pet is at **day care**. Its needs, the turning
   clock, droppings and calls all wait, an open call goes without a mistake, and no alerts are sent; it keeps
-  growing (an egg keeps developing, and once ready waits instead of hatching on its own). The pet leaves the
+  growing (an egg pauses its development, so its 6–8 hours are all play time, and a ready egg waits instead of
+  hatching on its own). The pet leaves the
   island, the dock offers only Pick up (the rest of that day's school time is off), and coming back says so. The
   night wins where the two overlap. Not in Classic, where the pet needs the player every day (`atSchool()` in
   `src/sim/clock.ts`).
@@ -50,7 +53,9 @@ Status of each part: ✅ built, 🔜 planned.
 
 The exact hatch time is **hidden** and **random**:
 
-- When an egg is laid, it secretly rolls a development time of **20–28 h**.
+- When an egg is laid, it secretly rolls a development time of **6–8 h**. It develops only while the player is up:
+  the egg rests during the sleep window, so time that would fall into the night carries on the next morning and
+  every egg gives 6–8 hours of play. (Eggs laid under the old 20–28 h rule are rescaled, keeping their progress.)
 - Good care (healthy, needs above half) speeds development by 10%; unmet needs slow it to 85%.
 - The player only sees five coarse stages: **Quiet → Stirring → Wobbly → Cracking → Hatching**.
   Each egg jitters its stage thresholds by ±4%, so a stage never reveals the exact time left.
@@ -79,6 +84,11 @@ The egg simply rests at night; the light only matters once the pet has hatched.
     mistakes; otherwise the egg's own seed picks Ember, Tide or Bloom with equal odds.
   - Simulated: diligent or casual care → balanced (random element); two extra mists per visit → Tide (~59%);
     two extra songs → Bloom (~60%); pampering all three evenly → Astral. Eggs from older saves are converted.
+- **Speckles show the chances** (`speckleMix()` in `src/sim/egg.ts`): orange Ember, blue Tide, green Bloom. Even
+  care gives an even mix, as a balanced egg could become any of the three; the leading element takes over the
+  shell as it nears a sure win (from 34% of the care, covering 85% of the speckles at 42%; it wins outright at 38%).
+  While the egg is balanced and could still turn Astral, up to half the speckles turn shiny violet as all three
+  kinds of care are pampered towards the Astral threshold.
 - **Health** drops while needs are empty and recovers while all needs are above 40%.
 
 ### Neglect modes
@@ -97,8 +107,8 @@ the current mode but can't change it.
 
 ### Life stages ✅
 
-Egg 1 d → **Baby** 1 d → **Child** 3 d → **Teen** 5 d → **Adult** 3 wk + 0–3 d → **Elder** 1 wk + 0–2 d. The extra
-adult and elder time is fixed per pet (from its seed), so a full life lasts 37 to 42 days rather than always 37.
+Egg 6–8 h of the day → **Baby** 1 d → **Child** 3 d → **Teen** 5 d → **Adult** 3 wk + 0–3 d → **Elder** 1 wk + 0–2 d. The extra
+adult and elder time is fixed per pet (from its seed), so a pet lives 36 to 41 days rather than always 36.
 The pet grows bigger at each stage, with a spin, flash and sparkle when it does. After the Elder stage it retires:
 it sets off on an adventure and leaves a new egg (see *Family*).
 

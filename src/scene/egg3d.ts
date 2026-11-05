@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { Leaning } from '../sim/egg';
+import type { SpeckleMix } from '../sim/egg';
 import { mulberry32 } from '../sim/rng';
 import { GROUND_Y } from './island';
 import { facet, toon } from './toon';
@@ -7,7 +7,7 @@ import { facet, toon } from './toon';
 const TEX_W = 512;
 const TEX_H = 256;
 const EGG_HEIGHT = 1.24;
-const SPECKLE_COLORS = { ember: '#f5a36c', tide: '#7cc0ea', bloom: '#86cfa0', none: '#e5d2b8' };
+const SPECKLE_COLORS = { ember: '#f5a36c', tide: '#7cc0ea', bloom: '#86cfa0', astral: '#ad94f2', none: '#e5d2b8' };
 
 function eggProfile(from = 0, to = 1, steps = 32): THREE.Vector2[] {
   const pts: THREE.Vector2[] = [];
@@ -22,7 +22,8 @@ function eggProfile(from = 0, to = 1, steps = 32): THREE.Vector2[] {
 export interface EggLook {
   /** 0 … 1 how far the cracks have spread. */
   crack: number;
-  leaning: Leaning;
+  /** Speckle colors by share, from the egg's chances (null before any care). */
+  mix: SpeckleMix | null;
   failed: boolean;
   /** Collapsed and waiting for the vial: pale and cold. */
   fading?: boolean;
@@ -67,8 +68,9 @@ export class Egg3D {
 
   constructor(seed: number) {
     const rand = mulberry32(seed ^ 0xe66);
-    for (let i = 0; i < 46; i++) {
-      this.speckles.push({ x: rand() * TEX_W, y: 30 + rand() * 200, r: 3 + rand() * 7, roll: rand() });
+    // Plenty of speckles, so their colors read as the egg's chances from any side.
+    for (let i = 0; i < 110; i++) {
+      this.speckles.push({ x: rand() * TEX_W, y: 30 + rand() * 200, r: 2.5 + rand() * 5, roll: rand() });
     }
     for (let c = 0; c < 7; c++) {
       let x = (c / 7) * TEX_W + rand() * 40;
@@ -148,7 +150,7 @@ export class Egg3D {
     hit.position.y = 0.6;
     this.pivot.add(hit);
     this.hitTargets.push(hit, nest);
-    this.draw({ crack: 0, leaning: { ember: 0, tide: 0, bloom: 0, total: 0, label: 'Unknown' }, failed: false });
+    this.draw({ crack: 0, mix: null, failed: false });
   }
 
   private buildNest(rand: () => number): THREE.Group {
@@ -198,10 +200,11 @@ export class Egg3D {
 
   /** Repaint speckles and cracks; skipped when nothing visible changed. */
   draw(look: EggLook): void {
-    const l = look.leaning;
+    const m = look.mix;
     const segs = this.cracks.reduce((n, c) => n + c.length - 1, 0);
     const shown = Math.round(look.crack * segs);
-    const key = `${shown}|${l.label}|${l.ember.toFixed(2)}|${l.tide.toFixed(2)}|${look.failed}|${!!look.fading}`;
+    const mixKey = m ? [m.astral, m.ember, m.tide].map((v) => v.toFixed(2)).join(',') : '-';
+    const key = `${shown}|${mixKey}|${look.failed}|${!!look.fading}`;
     if (key === this.lookKey) return;
     this.lookKey = key;
 
@@ -212,18 +215,27 @@ export class Egg3D {
     emCtx.fillRect(0, 0, TEX_W, TEX_H);
 
     for (const s of this.speckles) {
-      ctx.fillStyle =
-        l.total < 1
-          ? SPECKLE_COLORS.none
-          : s.roll < l.ember
-            ? SPECKLE_COLORS.ember
-            : s.roll < l.ember + l.tide
-              ? SPECKLE_COLORS.tide
-              : SPECKLE_COLORS.bloom;
+      const kind = !m
+        ? 'none'
+        : s.roll < m.astral
+          ? 'astral'
+          : s.roll < m.astral + m.ember
+            ? 'ember'
+            : s.roll < m.astral + m.ember + m.tide
+              ? 'tide'
+              : 'bloom';
       for (const dx of [-TEX_W, 0, TEX_W]) {
+        ctx.fillStyle = SPECKLE_COLORS[kind];
         ctx.beginPath();
         ctx.ellipse(s.x + dx, s.y, s.r * 1.2, s.r, 0, 0, Math.PI * 2);
         ctx.fill();
+        // Astral speckles shine.
+        if (kind === 'astral') {
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.ellipse(s.x + dx - s.r * 0.35, s.y - s.r * 0.35, s.r * 0.35, s.r * 0.28, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
     }
 

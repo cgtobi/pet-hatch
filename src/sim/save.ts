@@ -1,5 +1,5 @@
 import { LANGUAGES } from '../i18n';
-import { migrateEggCare } from './egg';
+import { migrateEggCare, migrateEggTime } from './egg';
 import { DEFAULT_SETTINGS, NEGLECT_MODES } from './game';
 import { LIFE_STAGES, migratePet } from './pet';
 import { STATS } from './training';
@@ -166,6 +166,7 @@ function parseSave(json: string): GameState | null {
     delete h.bonus;
   }
   migrateEggCare(s.egg);
+  migrateEggTime(s.egg);
   if (s.pet) s.pet = migratePet(s.pet);
   return s;
 }

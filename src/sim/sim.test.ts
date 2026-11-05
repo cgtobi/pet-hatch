@@ -1,6 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { HOUR } from './clock';
-import { careLeaning, comfortEgg, createEgg, eggType, giveEggVial, hatchStage, mistEgg, turnEgg, warmEgg } from './egg';
+import {
+  careLeaning,
+  comfortEgg,
+  createEgg,
+  eggType,
+  giveEggVial,
+  hatchStage,
+  migrateEggTime,
+  mistEgg,
+  speckleMix,
+  turnEgg,
+  warmEgg,
+} from './egg';
 import { advance, DEFAULT_SETTINGS, hatch, isReadyToHatch, newGame } from './game';
 import type { GameState, NeglectMode } from './types';
 
@@ -36,10 +48,10 @@ const allRounder = (s: GameState, t: number) => {
 };
 
 describe('hidden hatch time', () => {
-  it('rolls a secret duration inside the 20–28h window, fixed per seed', () => {
+  it('rolls a secret duration inside the 6–8h window, fixed per seed', () => {
     const durations = Array.from({ length: 200 }, (_, i) => createEgg(0, i).baseHours);
-    expect(Math.min(...durations)).toBeGreaterThanOrEqual(20);
-    expect(Math.max(...durations)).toBeLessThanOrEqual(28);
+    expect(Math.min(...durations)).toBeGreaterThanOrEqual(6);
+    expect(Math.max(...durations)).toBeLessThanOrEqual(8);
     expect(new Set(durations.map((d) => d.toFixed(2))).size).toBeGreaterThan(100);
     expect(createEgg(0, 7).baseHours).toBe(createEgg(0, 7).baseHours);
   });
@@ -49,6 +61,24 @@ describe('hidden hatch time', () => {
     const b = createEgg(0, 2).thresholds;
     expect(a).not.toEqual(b);
     for (let i = 1; i < a.length; i++) expect(a[i]).toBeGreaterThan(a[i - 1]);
+  });
+
+  it('rests at night: an egg laid in the evening hatches the next day', () => {
+    const s = game('gentle', at(1, 20));
+    careFor(s, 30, allRounder);
+    const ready = new Date(s.egg.readyAt!);
+    expect(ready.getDate()).toBe(2);
+    expect(ready.getHours()).toBeGreaterThanOrEqual(7);
+  });
+
+  it('keeps the progress of an egg laid under the old 20–28 h rule', () => {
+    const egg = createEgg(0, 3);
+    Object.assign(egg, { baseHours: 24, devHours: 12 });
+    migrateEggTime(egg);
+    expect(egg.baseHours).toBeCloseTo(7);
+    expect(egg.devHours / egg.baseHours).toBeCloseTo(0.5);
+    migrateEggTime(egg);
+    expect(egg.baseHours).toBeCloseTo(7);
   });
 
   it('moves through the stages and becomes ready with good care', () => {
@@ -190,6 +220,19 @@ describe('element type from care', () => {
     // Same care, but a weak egg: no Astral.
     astral.egg.health = 50;
     expect(eggType(astral.egg)).not.toBe('astral');
+  });
+
+  it('shows the chances in its speckles', () => {
+    expect(speckleMix(createEgg(0, 1))).toBeNull();
+    const even = speckleMix(hatchWith({}).egg)!;
+    for (const share of [even.ember, even.tide, even.bloom]) expect(share).toBeGreaterThan(0.2);
+    expect(even.astral).toBe(0);
+    const tide = speckleMix(hatchWith({ humidity: 2 }).egg)!;
+    expect(tide.tide).toBeGreaterThan(0.8);
+    const astral = speckleMix(hatchWith({ warmth: 2, humidity: 1, bond: 2 }).egg)!;
+    expect(astral.astral).toBeCloseTo(0.5);
+    const mix = Object.values(astral).reduce((a, b) => a + b, 0);
+    expect(mix).toBeCloseTo(1);
   });
 
   it('counts pampering only within a budget that refills over time', () => {

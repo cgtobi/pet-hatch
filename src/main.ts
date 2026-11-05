@@ -11,7 +11,7 @@ import { attachGestures } from './input/gestures';
 import { World } from './scene/world';
 import { dayPart, HOUR, isAsleep, localHour } from './sim/clock';
 import { sunAt } from './sim/sun';
-import { careLeaning, hatchStage, hoursUntilTurn, TURN_INTERVAL_H } from './sim/egg';
+import { careLeaning, hatchStage, hoursUntilTurn, speckleMix, TURN_INTERVAL_H } from './sim/egg';
 import { advance, gameNow, isAway, newGame, pickUp } from './sim/game';
 import { ageHours, hygiene, isSleeping, LIFE_STAGES, lifeStageIndex, napCheck, SHELL_DAYS, stageHours } from './sim/pet';
 import { findRelay } from './net/relayConfig';
@@ -19,9 +19,9 @@ import { CHALLENGE_PARAM } from './sim/battlecode';
 import { speciesName } from './sim/evolution';
 import { exportSave, importSave, loadGame, saveGame } from './sim/save';
 import { masteredStats, maxEnergy } from './sim/training';
-import type { GameState, PetState } from './sim/types';
+import type { GameState, PetState, Settings } from './sim/types';
 import { Hud } from './ui/hud';
-import { openSettings, type InstallState } from './ui/settings';
+import { openSettings, timeFields, type InstallState } from './ui/settings';
 import { ActivitySheet } from './ui/sheet';
 import { crackLevel, eggHint, lightButtonKind, musicFor, petFeel, petHealth, petHint, roomDark } from './ui/status';
 import { LIVE_PARAM, setUpBattles } from './app/battles';
@@ -162,7 +162,7 @@ function updateHud() {
     hud.setDockState({ turn: hoursUntilTurn(egg, now) < 0.5, vial: !!egg.fading });
     world.egg.draw({
       crack: crackLevel(egg, eggCare.rush()),
-      leaning: careLeaning(egg),
+      mix: speckleMix(egg),
       failed: egg.failed,
       fading: !!egg.fading,
     });
@@ -558,6 +558,20 @@ if (!saved) {
         saveGame(state);
         updateHud();
         reportStats();
+        // Then the player's day: the egg rests while they sleep and waits while they are at school.
+        const apply = (patch: Partial<Settings>) => {
+          Object.assign(state.settings, patch);
+          saveGame(state);
+          updateHud();
+        };
+        const { sleep, school } = timeFields(state.settings, apply);
+        hud.showOverlay({
+          title: t('welcome.dayTitle'),
+          body: t('welcome.dayBody'),
+          button: t('welcome.dayStart'),
+          content: [sleep, school],
+          onClose: () => apply({}),
+        });
       },
       statsUrl ? { label: t('stats.share'), checked: false } : undefined,
     ),

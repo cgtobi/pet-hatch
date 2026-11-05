@@ -398,10 +398,10 @@ export const nl: Dict = {
   'help.title': 'Zo speel je',
   'help.egg.title': 'Zorgen voor het ei',
   'help.egg.body':
-    'Houd het ei vast om het te verwarmen, veeg omhoog om te sproeien, en aai het of zing om het gezelschap te houden.\nDraai het om de paar uur met een zijwaartse veeg.\nHet komt na ongeveer een dag uit. Goede zorg versnelt dat, verwaarlozing vertraagt het.\nAls het zover is, wacht het op je: tik erop om het eruit te helpen.',
+    'Houd het ei vast om het te verwarmen, veeg omhoog om te sproeien, en aai het of zing om het gezelschap te houden.\nDraai het om de paar uur met een zijwaartse veeg.\nHet komt uit na 6 tot 8 uur van jouw dag; ’s nachts rust het. Goede zorg versnelt dat, verwaarlozing vertraagt het.\nAls het zover is, wacht het op je: tik erop om het eruit te helpen.',
   'help.types.title': 'Elementen',
   'help.types.body':
-    'Gewone zorg houdt het ei neutraal. Extra verwennerij als het al helemaal tevreden is bepaalt het element: warmte maakt Gloed, sproeien maakt Vloed, troost maakt Bloei.\nVerwen het evenveel op alle drie de manieren en houd het gezond, dan maak je kans op het zeldzame type Astraal. Een ei dat niemand verwent kiest zijn element bij toeval.\nVloed wint van Gloed, Gloed wint van Bloei en Bloei wint van Vloed. Astraal heeft geen zwakte. Dat telt straks mee in gevechten.',
+    'Gewone zorg houdt het ei neutraal. Extra verwennerij als het al helemaal tevreden is bepaalt het element: warmte maakt Gloed, sproeien maakt Vloed, troost maakt Bloei.\nVerwen het evenveel op alle drie de manieren en houd het gezond, dan maak je kans op het zeldzame type Astraal. Een ei dat niemand verwent kiest zijn element bij toeval.\nDe spikkels laten zien waar het heen gaat: oranje voor Gloed, blauw voor Vloed, groen voor Bloei, glanzend paars voor Astraal.\nVloed wint van Gloed, Gloed wint van Bloei en Bloei wint van Vloed. Astraal heeft geen zwakte. Dat telt straks mee in gevechten.',
   'help.care.title': 'Dagelijkse zorg',
   'help.care.body':
     'Houd Eten en Stemming op peil met Voer en Speel. Baby’s hebben de meeste aandacht nodig.\nEen tijdje na het eten komen er keuteltjes. Ruim ze op, anders kan je dier ziek worden.\nEen ziek dier heeft twee doses medicijn nodig.\n’s Avonds, vanaf 4 uur voor bedtijd, wordt het donker en dommelt je dier in. Doe het licht aan (rechtsboven) om het wakker te houden voor eten, spelen en trainen.\nBij bedtijd valt het hoe dan ook in slaap. Met het licht uit slaapt het het best en wordt het vrolijk wakker; ’s nachts dalen behoeften veel langzamer. Met het licht aan maakt voeren, spelen of trainen het een uur wakker, chagrijnig.\nEen dier dat zonder energie zit, doet vanzelf een dutje. Onder 40% energie tik je overdag op Dutje (rechtsboven) voor een powernap; het wordt na ongeveer een uur uitgerust wakker.',
@@ -435,6 +435,9 @@ export const nl: Dict = {
   'newEgg.start': 'Beginnen',
   'welcome.title': 'Welkom bij Pet Hatch',
   'welcome.body': 'Er wacht een ei op je. Hoe vergevingsgezind moet het zijn als verzorging uitblijft? Dit blijft zo tot je volgende ei.',
+  'welcome.dayTitle': 'Jouw dag',
+  'welcome.dayBody': 'Wanneer slaap je, en ga je naar school? Je ei rust ’s nachts en wacht op je als je weg bent.',
+  'welcome.dayStart': 'Daar gaan we',
   'stats.share': 'Anonieme dierstatistieken delen',
   'stats.hint': 'Eén keer per dag stuurt de game een anoniem nummer voor je dier met zijn fase, type, vorm, modus, generatie, sterren en aan het eind hoe zijn verhaal afliep. Geen namen, geen opgeslagen spel, geen IP-adres.',
   'alerts.toggle': 'Meldingen als je dier je nodig heeft',
@@ -461,7 +464,7 @@ export const nl: Dict = {
   'settings.sleepTo': 'Tot',
   'settings.school': 'Schooltijd',
   'settings.schoolToggle': 'Opvang terwijl ik op school ben',
-  'settings.schoolHint': 'Op deze dagen en uren wordt er voor je ei of dier gezorgd: geen roepjes, meldingen of zorgfouten. Het groeit gewoon door, en je kunt het eerder ophalen.',
+  'settings.schoolHint': 'Op deze dagen en uren wordt er voor je ei of dier gezorgd: geen roepjes, meldingen of zorgfouten. Een dier groeit gewoon door, een ei wacht op je, en je kunt het eerder ophalen.',
   'settings.schoolClassic': 'Niet in Klassiek: daar heeft je dier je elke dag nodig.',
   'settings.sound': 'Geluidseffecten',
   'settings.music': 'Muziek',

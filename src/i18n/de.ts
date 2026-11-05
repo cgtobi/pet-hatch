@@ -398,10 +398,10 @@ export const de: Dict = {
   'help.title': 'So wird gespielt',
   'help.egg.title': 'Das Ei pflegen',
   'help.egg.body':
-    'Halte das Ei gedrückt, um es zu wärmen, wische nach oben, um es zu besprühen, und streichle es oder sing ihm etwas vor.\nWende es alle paar Stunden mit einer seitlichen Wischbewegung.\nEs schlüpft nach ungefähr einem Tag. Gute Pflege beschleunigt das, Vernachlässigung bremst es.\nWenn es so weit ist, wartet es auf dich: Tippe es an, um ihm herauszuhelfen.',
+    'Halte das Ei gedrückt, um es zu wärmen, wische nach oben, um es zu besprühen, und streichle es oder sing ihm etwas vor.\nWende es alle paar Stunden mit einer seitlichen Wischbewegung.\nEs schlüpft nach 6 bis 8 Stunden deines Tages, nachts ruht es. Gute Pflege beschleunigt das, Vernachlässigung bremst es.\nWenn es so weit ist, wartet es auf dich: Tippe es an, um ihm herauszuhelfen.',
   'help.types.title': 'Elemente',
   'help.types.body':
-    'Normale Pflege hält das Ei neutral. Extra Zuwendung, wenn es schon rundum versorgt ist, bestimmt das Element: Wärme ergibt Glut, Sprühen ergibt Flut, Zuwendung ergibt Blüte.\nVerwöhne es gleichmäßig auf alle drei Arten und halte es gesund, dann kann der seltene Typ Astral schlüpfen. Ein Ei, das niemand verwöhnt, wählt sein Element zufällig.\nFlut schlägt Glut, Glut schlägt Blüte und Blüte schlägt Flut. Astral hat keine Schwäche. Das zählt später in Kämpfen.',
+    'Normale Pflege hält das Ei neutral. Extra Zuwendung, wenn es schon rundum versorgt ist, bestimmt das Element: Wärme ergibt Glut, Sprühen ergibt Flut, Zuwendung ergibt Blüte.\nVerwöhne es gleichmäßig auf alle drei Arten und halte es gesund, dann kann der seltene Typ Astral schlüpfen. Ein Ei, das niemand verwöhnt, wählt sein Element zufällig.\nDie Sprenkel zeigen, wohin es geht: orange für Glut, blau für Flut, grün für Blüte, glänzend violett für Astral.\nFlut schlägt Glut, Glut schlägt Blüte und Blüte schlägt Flut. Astral hat keine Schwäche. Das zählt später in Kämpfen.',
   'help.care.title': 'Tägliche Pflege',
   'help.care.body':
     'Halte Futter und Laune mit Füttern und Spielen hoch. Babys brauchen am meisten Aufmerksamkeit.\nEine Weile nach dem Essen gibt es Häufchen. Mach sie weg, sonst kann dein Tier krank werden.\nEin krankes Tier braucht zwei Dosen Medizin.\nAbends, ab 4 Stunden vor der Schlafenszeit, wird es dunkel und dein Tier döst ein. Mach das Licht an (oben rechts), damit es zum Füttern, Spielen und Trainieren wach bleibt.\nZur Schlafenszeit schläft es so oder so ein. Bei ausgeschaltetem Licht schläft es am besten und wacht fröhlich auf; über Nacht sinken die Bedürfnisse viel langsamer. Bei eingeschaltetem Licht weckt Füttern, Spielen oder Training es für eine Stunde, grantig.\nHat es keine Energie mehr, macht es von selbst ein Nickerchen. Unter 40 % Energie tippst du tagsüber auf Schlafen (oben rechts) für einen Powernap; es wacht nach etwa einer Stunde ausgeruht auf.',
@@ -435,6 +435,9 @@ export const de: Dict = {
   'newEgg.start': 'Los geht’s',
   'welcome.title': 'Willkommen bei Pet Hatch',
   'welcome.body': 'Ein Ei wartet auf dich. Wie nachsichtig soll es sein, wenn Pflege ausfällt? Das gilt bis zu deinem nächsten Ei.',
+  'welcome.dayTitle': 'Dein Tag',
+  'welcome.dayBody': 'Wann schläfst du, und gehst du zur Schule? Dein Ei ruht nachts und wartet, solange du weg bist.',
+  'welcome.dayStart': 'Los geht’s',
   'stats.share': 'Anonyme Tier-Statistik teilen',
   'stats.hint': 'Einmal am Tag sendet das Spiel eine anonyme Nummer für dein Tier mit Phase, Typ, Form, Modus, Generation, Sternen und am Ende, wie seine Geschichte ausging. Keine Namen, kein Spielstand, keine IP-Adresse.',
   'alerts.toggle': 'Benachrichtigen, wenn dein Tier dich braucht',
@@ -461,7 +464,7 @@ export const de: Dict = {
   'settings.sleepTo': 'Bis',
   'settings.school': 'Schulzeit',
   'settings.schoolToggle': 'Kita, während ich in der Schule bin',
-  'settings.schoolHint': 'An diesen Tagen und Stunden wird dein Ei oder Tier betreut: keine Rufe, keine Benachrichtigungen, keine Pflegefehler. Es wächst weiter, und du kannst es früher abholen.',
+  'settings.schoolHint': 'An diesen Tagen und Stunden wird dein Ei oder Tier betreut: keine Rufe, keine Benachrichtigungen, keine Pflegefehler. Ein Tier wächst weiter, ein Ei wartet auf dich, und du kannst es früher abholen.',
   'settings.schoolClassic': 'Nicht im Klassisch-Modus: Dort braucht dich dein Tier jeden Tag.',
   'settings.sound': 'Soundeffekte',
   'settings.music': 'Musik',

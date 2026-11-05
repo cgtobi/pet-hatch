@@ -71,7 +71,7 @@ describe('school time', () => {
     expect(state.pet!.call).not.toBeNull();
   });
 
-  it('holds the egg’s needs and turning clock while it keeps developing', () => {
+  it('holds the egg’s needs, turning clock and development', () => {
     const state = game('egg', at(5, 8));
     const egg = state.egg;
     const before = { warmth: egg.warmth, humidity: egg.humidity, bond: egg.bond };
@@ -79,7 +79,7 @@ describe('school time', () => {
     expect({ warmth: egg.warmth, humidity: egg.humidity, bond: egg.bond }).toEqual(before);
     expect(egg.careMistakes).toBe(0);
     expect(egg.lastTurnedAt).toBe(at(5, 12, 59));
-    expect(egg.devHours).toBeCloseTo(5 - 1 / 60, 5);
+    expect(egg.devHours).toBe(0);
   });
 
   it('keeps a ready egg waiting at day care instead of hatching on its own', () => {

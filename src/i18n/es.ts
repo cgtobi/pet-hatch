@@ -398,10 +398,10 @@ export const es: Dict = {
   'help.title': 'Cómo se juega',
   'help.egg.title': 'Cuidar el huevo',
   'help.egg.body':
-    'Mantén pulsado el huevo para calentarlo, desliza hacia arriba para rociarlo y acarícialo o cántale para hacerle compañía.\nGíralo cada pocas horas deslizando el dedo de lado.\nEclosiona en más o menos un día. Los buenos cuidados lo aceleran y el descuido lo retrasa.\nCuando esté listo, te esperará: tócalo para ayudarlo a salir.',
+    'Mantén pulsado el huevo para calentarlo, desliza hacia arriba para rociarlo y acarícialo o cántale para hacerle compañía.\nGíralo cada pocas horas deslizando el dedo de lado.\nEclosiona tras 6 a 8 horas de tu día; por la noche descansa. Los buenos cuidados lo aceleran y el descuido lo retrasa.\nCuando esté listo, te esperará: tócalo para ayudarlo a salir.',
   'help.types.title': 'Tipos de elemento',
   'help.types.body':
-    'Los cuidados normales mantienen el huevo neutral. Lo que le das de más cuando ya está a gusto decide el elemento: el calor da Ascua, el rocío da Marea, los mimos dan Brote.\nConsiéntelo por igual de las tres formas y mantenlo sano para tener una opción al raro tipo Astral. Un huevo al que nadie consiente elige su elemento al azar.\nMarea vence a Ascua, Ascua vence a Brote y Brote vence a Marea. Astral no tiene debilidad. Esto importará en los combates.',
+    'Los cuidados normales mantienen el huevo neutral. Lo que le das de más cuando ya está a gusto decide el elemento: el calor da Ascua, el rocío da Marea, los mimos dan Brote.\nConsiéntelo por igual de las tres formas y mantenlo sano para tener una opción al raro tipo Astral. Un huevo al que nadie consiente elige su elemento al azar.\nLas motas muestran hacia dónde va: naranja para Ascua, azul para Marea, verde para Brote, violeta brillante para Astral.\nMarea vence a Ascua, Ascua vence a Brote y Brote vence a Marea. Astral no tiene debilidad. Esto importará en los combates.',
   'help.care.title': 'Cuidado diario',
   'help.care.body':
     'Mantén la Comida y el Ánimo altos con Comida y Jugar. Los bebés necesitan más atención.\nUn rato después de comer aparecen cacas. Límpialas o tu mascota puede enfermar.\nUna mascota enferma necesita dos dosis de Medicina.\nPor la tarde, desde 4 horas antes de dormir, oscurece y tu mascota se adormece. Enciende la luz (arriba a la derecha) para que siga despierto para comer, jugar y entrenar.\nA la hora de dormir se duerme de todos modos. Con la luz apagada duerme mejor y se despierta feliz; por la noche, las necesidades bajan mucho más despacio. Con la luz encendida, comer, jugar o entrenar lo despierta durante una hora, gruñón.\nSi se queda sin energía, se echa una siesta por su cuenta. Con menos del 40 % de energía, toca Siesta (arriba a la derecha) de día para una siesta reparadora; se despierta descansado al cabo de una hora.',
@@ -435,6 +435,9 @@ export const es: Dict = {
   'newEgg.start': 'Empezar',
   'welcome.title': 'Bienvenido a Pet Hatch',
   'welcome.body': 'Un huevo te espera. ¿Qué tan indulgente debe ser si faltan cuidados? Se mantiene hasta tu próximo huevo.',
+  'welcome.dayTitle': 'Tu día',
+  'welcome.dayBody': '¿Cuándo duermes y vas al colegio? Tu huevo descansa por la noche y te espera mientras no estás.',
+  'welcome.dayStart': '¡Vamos!',
   'stats.share': 'Compartir estadísticas anónimas',
   'stats.hint': 'Una vez al día, el juego envía un número anónimo de tu mascota con su etapa, tipo, forma, modo, generación, estrellas y, al final, cómo terminó su historia. Sin nombres, sin partida guardada, sin dirección IP.',
   'alerts.toggle': 'Avisos cuando tu mascota te necesite',
@@ -461,7 +464,7 @@ export const es: Dict = {
   'settings.sleepTo': 'Hasta',
   'settings.school': 'Horario escolar',
   'settings.schoolToggle': 'Guardería mientras estoy en el cole',
-  'settings.schoolHint': 'Estos días y horas cuidan de tu huevo o mascota: sin llamadas, avisos ni errores de cuidado. Sigue creciendo, y puedes recogerlo antes.',
+  'settings.schoolHint': 'Estos días y horas cuidan de tu huevo o mascota: sin llamadas, avisos ni errores de cuidado. Una mascota sigue creciendo, un huevo te espera, y puedes recogerlo antes.',
   'settings.schoolClassic': 'No en Clásico: allí tu mascota te necesita cada día.',
   'settings.sound': 'Efectos de sonido',
   'settings.music': 'Música',

@@ -224,6 +224,20 @@ button:focus:not(:focus-visible) {
   text-align: left;
 }
 
+/* Tall overlays (the welcome's bedtime and school step) scroll on small phones. */
+#overlay > .sheet {
+  max-height: 100%;
+  overflow-y: auto;
+}
+
+.overlay-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: left;
+}
+
+.overlay-content[hidden],
 .overlay-choices[hidden],
 .overlay-check[hidden] {
   display: none;

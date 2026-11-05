@@ -398,10 +398,10 @@ export const fr: Dict = {
   'help.title': 'Comment jouer',
   'help.egg.title': 'Soigner l’œuf',
   'help.egg.body':
-    'Appuie longuement sur l’œuf pour le chauffer, balaie vers le haut pour le brumiser, et caresse-le ou chante-lui une chanson pour lui tenir compagnie.\nTourne-le toutes les quelques heures d’un balayage de côté.\nIl éclot au bout d’environ un jour. De bons soins l’accélèrent, la négligence le ralentit.\nQuand il est prêt, il t’attend : touche-le pour l’aider à sortir.',
+    'Appuie longuement sur l’œuf pour le chauffer, balaie vers le haut pour le brumiser, et caresse-le ou chante-lui une chanson pour lui tenir compagnie.\nTourne-le toutes les quelques heures d’un balayage de côté.\nIl éclot après 6 à 8 heures de ta journée ; la nuit, il se repose. De bons soins l’accélèrent, la négligence le ralentit.\nQuand il est prêt, il t’attend : touche-le pour l’aider à sortir.',
   'help.types.title': 'Types élémentaires',
   'help.types.body':
-    'Les soins ordinaires gardent l’œuf neutre. Les attentions en plus, quand il est déjà bien installé, décident de l’élément : la chaleur donne Braise, la brume donne Marée, le réconfort donne Pousse.\nChouchoute-le autant des trois façons et garde-le en bonne santé pour avoir une chance d’obtenir le rare type Astral. Un œuf jamais chouchouté choisit son élément au hasard.\nMarée bat Braise, Braise bat Pousse et Pousse bat Marée. Astral n’a aucune faiblesse. Cela comptera lors des combats.',
+    'Les soins ordinaires gardent l’œuf neutre. Les attentions en plus, quand il est déjà bien installé, décident de l’élément : la chaleur donne Braise, la brume donne Marée, le réconfort donne Pousse.\nChouchoute-le autant des trois façons et garde-le en bonne santé pour avoir une chance d’obtenir le rare type Astral. Un œuf jamais chouchouté choisit son élément au hasard.\nLes taches montrent où il va : orange pour Braise, bleu pour Marée, vert pour Pousse, violet brillant pour Astral.\nMarée bat Braise, Braise bat Pousse et Pousse bat Marée. Astral n’a aucune faiblesse. Cela comptera lors des combats.',
   'help.care.title': 'Soins quotidiens',
   'help.care.body':
     'Garde Repas et Humeur au beau fixe avec Nourrir et Jouer. Les bébés demandent le plus d’attention.\nDes crottes apparaissent un moment après les repas. Nettoie-les, sinon ton compagnon risque de tomber malade.\nUn compagnon malade a besoin de deux doses de Remède.\nLe soir, à partir de 4 heures avant le coucher, il fait nuit et ton compagnon s’assoupit. Allume la lumière (en haut à droite) pour qu’il reste éveillé pour manger, jouer et s’entraîner.\nÀ l’heure du coucher, il s’endort de toute façon. Lumière éteinte, il dort mieux et se réveille joyeux ; la nuit, les besoins baissent beaucoup plus lentement. Lumière allumée, nourrir, jouer ou s’entraîner le réveille pour une heure, grognon.\nUn compagnon à court d’énergie fait la sieste tout seul. Sous 40 % d’énergie, touche Sieste (en haut à droite) en journée pour une sieste éclair ; il se réveille reposé au bout d’une heure environ.',
@@ -435,6 +435,9 @@ export const fr: Dict = {
   'newEgg.start': 'Commencer',
   'welcome.title': 'Bienvenue dans Pet Hatch',
   'welcome.body': 'Un œuf t’attend. Quelle indulgence quand les soins manquent ? Ce choix vaut jusqu’à ton prochain œuf.',
+  'welcome.dayTitle': 'Ta journée',
+  'welcome.dayBody': 'Quand dors-tu, et vas-tu à l’école ? Ton œuf se repose la nuit et t’attend quand tu n’es pas là.',
+  'welcome.dayStart': 'C’est parti',
   'stats.share': 'Partager des statistiques anonymes',
   'stats.hint': 'Une fois par jour, le jeu envoie un numéro anonyme pour ton compagnon avec son stade, son type, sa forme, le mode, la génération, les étoiles et, à la fin, comment son histoire s’est terminée. Pas de nom, pas de sauvegarde, pas d’adresse IP.',
   'alerts.toggle': 'Alertes quand ton compagnon a besoin de toi',
@@ -461,7 +464,7 @@ export const fr: Dict = {
   'settings.sleepTo': 'À',
   'settings.school': 'Heures d’école',
   'settings.schoolToggle': 'Garderie pendant que je suis à l’école',
-  'settings.schoolHint': 'Ces jours et ces heures, on s’occupe de ton œuf ou de ton compagnon : pas d’appels, pas d’alertes, pas d’erreurs de soin. Il continue de grandir, et tu peux le récupérer plus tôt.',
+  'settings.schoolHint': 'Ces jours et ces heures, on s’occupe de ton œuf ou de ton compagnon : pas d’appels, pas d’alertes, pas d’erreurs de soin. Un compagnon continue de grandir, un œuf t’attend, et tu peux le récupérer plus tôt.',
   'settings.schoolClassic': 'Pas en mode Classique : là, ton compagnon a besoin de toi chaque jour.',
   'settings.sound': 'Effets sonores',
   'settings.music': 'Musique',

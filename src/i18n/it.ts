@@ -398,10 +398,10 @@ export const it: Dict = {
   'help.title': 'Come si gioca',
   'help.egg.title': 'Prendersi cura dell’uovo',
   'help.egg.body':
-    'Tieni premuto sull’uovo per scaldarlo, scorri verso l’alto per spruzzarlo, e accarezzalo o canta per fargli compagnia.\nGiralo ogni poche ore scorrendo di lato.\nSi schiude dopo circa un giorno. Le cure giuste lo accelerano, la trascuratezza lo rallenta.\nQuando è pronto, ti aspetta: toccalo per aiutarlo a uscire.',
+    'Tieni premuto sull’uovo per scaldarlo, scorri verso l’alto per spruzzarlo, e accarezzalo o canta per fargli compagnia.\nGiralo ogni poche ore scorrendo di lato.\nSi schiude dopo 6-8 ore della tua giornata; di notte riposa. Le cure giuste lo accelerano, la trascuratezza lo rallenta.\nQuando è pronto, ti aspetta: toccalo per aiutarlo a uscire.',
   'help.types.title': 'Tipi elementali',
   'help.types.body':
-    'Le cure normali lasciano l’uovo neutrale. Le attenzioni in più quando sta già bene decidono l’elemento: il calore crea Brace, gli spruzzi creano Onda, le coccole creano Fiore.\nVizialo allo stesso modo in tutti e tre i modi e tienilo in salute per avere una chance del raro tipo Astrale. Un uovo che nessuno vizia sceglie l’elemento a caso.\nOnda batte Brace, Brace batte Fiore e Fiore batte Onda. Astrale non ha punti deboli. Conterà nelle lotte.',
+    'Le cure normali lasciano l’uovo neutrale. Le attenzioni in più quando sta già bene decidono l’elemento: il calore crea Brace, gli spruzzi creano Onda, le coccole creano Fiore.\nVizialo allo stesso modo in tutti e tre i modi e tienilo in salute per avere una chance del raro tipo Astrale. Un uovo che nessuno vizia sceglie l’elemento a caso.\nLe macchioline mostrano dove sta andando: arancione per Brace, blu per Onda, verde per Fiore, viola brillante per Astrale.\nOnda batte Brace, Brace batte Fiore e Fiore batte Onda. Astrale non ha punti deboli. Conterà nelle lotte.',
   'help.care.title': 'Cure quotidiane',
   'help.care.body':
     'Tieni alti Cibo e Umore con Pappa e Gioca. I cuccioli sono quelli che richiedono più attenzioni.\nDopo i pasti, prima o poi compaiono i ricordini. Puliscili, o il tuo cucciolo può ammalarsi.\nUn cucciolo malato ha bisogno di due dosi di medicina.\nLa sera, da 4 ore prima di dormire, si fa buio e il cucciolo si appisola. Accendi la luce (in alto a destra) per tenerlo sveglio per mangiare, giocare e allenarsi.\nAll’ora di dormire si addormenta comunque. Con la luce spenta dorme meglio e si sveglia felice; di notte i bisogni calano molto più lentamente. Con la luce accesa, mangiare, giocare o allenarsi lo sveglia per un’ora, di cattivo umore.\nSe finisce l’energia, il cucciolo fa un pisolino da solo. Sotto il 40% di energia, tocca Pisolino (in alto a destra) di giorno per un pisolino rigenerante; si sveglia riposato dopo circa un’ora.',
@@ -435,6 +435,9 @@ export const it: Dict = {
   'newEgg.start': 'Inizia',
   'welcome.title': 'Benvenuto in Pet Hatch',
   'welcome.body': 'Un uovo ti aspetta. Quanto indulgente deve essere se mancano le cure? Resta così fino al prossimo uovo.',
+  'welcome.dayTitle': 'La tua giornata',
+  'welcome.dayBody': 'Quando dormi, e vai a scuola? Il tuo uovo riposa di notte e ti aspetta quando non ci sei.',
+  'welcome.dayStart': 'Si parte',
   'stats.share': 'Condividi statistiche anonime',
   'stats.hint': 'Una volta al giorno il gioco invia un numero anonimo per il tuo cucciolo con fase, tipo, forma, modalità, generazione, stelle e, alla fine, come è finita la sua storia. Niente nomi, niente salvataggio, niente indirizzo IP.',
   'alerts.toggle': 'Avvisi quando il tuo cucciolo ha bisogno di te',
@@ -461,7 +464,7 @@ export const it: Dict = {
   'settings.sleepTo': 'Alle',
   'settings.school': 'Orario scolastico',
   'settings.schoolToggle': 'Asilo mentre sono a scuola',
-  'settings.schoolHint': 'In questi giorni e orari qualcuno si prende cura del tuo uovo o cucciolo: niente richiami, avvisi o errori di cura. Continua a crescere, e puoi riprenderlo prima.',
+  'settings.schoolHint': 'In questi giorni e orari qualcuno si prende cura del tuo uovo o cucciolo: niente richiami, avvisi o errori di cura. Un cucciolo continua a crescere, un uovo ti aspetta, e puoi riprenderlo prima.',
   'settings.schoolClassic': 'Non in Classica: lì il tuo cucciolo ha bisogno di te ogni giorno.',
   'settings.sound': 'Effetti sonori',
   'settings.music': 'Musica',

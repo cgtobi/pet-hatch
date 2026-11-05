@@ -41,8 +41,11 @@ export const VIAL_MISTAKES = 2;
 /** A revived egg's needs are at least this full, so it doesn't collapse again before the player can help. */
 const VIAL_NEEDS = 50;
 
-const MIN_HATCH_H = 20;
-const HATCH_SPREAD_H = 8;
+/** Hours of development before hatching (6–8), counted only while the player is up: the egg rests at night. */
+const MIN_HATCH_H = 6;
+const HATCH_SPREAD_H = 2;
+/** Eggs laid under the old 20–28 h rule are rescaled to this length, keeping their progress. */
+const OLD_MIN_HATCH_H = 20;
 const STAGE_THRESHOLDS = [0.18, 0.42, 0.68, 0.9];
 const STAGE_JITTER = 0.08;
 
@@ -101,15 +104,11 @@ export function tickEgg(egg: EggState, t: number, dtH: number, settings: Setting
     if (t - egg.fading.since >= FADE_H * HOUR) egg.failed = true;
     return;
   }
-  // At day care it is looked after: its needs and the turning clock wait. It keeps developing, and once ready
-  // it waits for the player instead of hatching on its own.
+  // At day care it is looked after: its needs, the turning clock and its development wait, so the player gets
+  // all of its 6–8 hours, and a ready egg waits instead of hatching on its own.
   if (away) {
     egg.lastTurnedAt += dtH * HOUR;
     if (egg.readyAt !== null) egg.readyAt += dtH * HOUR;
-    else {
-      egg.devHours += dtH;
-      if (egg.devHours >= egg.baseHours) egg.readyAt = t;
-    }
     return;
   }
   const asleep = isAsleep(t, settings);
@@ -159,8 +158,8 @@ export function tickEgg(egg: EggState, t: number, dtH: number, settings: Setting
     return;
   }
 
-  if (egg.readyAt === null) {
-    // Good care speeds development up a little, neglect slows it down.
+  if (egg.readyAt === null && !asleep) {
+    // Good care speeds development up a little, neglect slows it down. At night the egg rests.
     const rate = loss > 0 ? 0.85 : egg.health >= 70 && avg >= 50 ? 1.1 : 1;
     egg.devHours += rate * dtH;
     if (egg.devHours >= egg.baseHours) egg.readyAt = t;
@@ -237,6 +236,14 @@ export function migrateEggCare(egg: EggState): void {
   egg.pamperBudget = { warmth: PAMPER_PER_HOUR, humidity: PAMPER_PER_HOUR, bond: PAMPER_PER_HOUR };
 }
 
+/** Rescale an egg laid when eggs took 20–28 h to the 6–8 h used now, keeping how far along it is. */
+export function migrateEggTime(egg: EggState): void {
+  if (egg.baseHours < OLD_MIN_HATCH_H) return;
+  const scale = (MIN_HATCH_H + ((egg.baseHours - OLD_MIN_HATCH_H) / 8) * HATCH_SPREAD_H) / egg.baseHours;
+  egg.baseHours *= scale;
+  egg.devHours *= scale;
+}
+
 /** Returns false when the egg was turned too recently to need it. */
 export function turnEgg(egg: EggState, now: number): boolean {
   if (hoursSinceTurn(egg, now) < MIN_TURN_GAP_H) return false;
@@ -261,6 +268,43 @@ export function careLeaning(egg: EggState): Leaning {
   const top = (Object.keys(shares) as (keyof typeof shares)[]).sort((a, b) => shares[b] - shares[a])[0];
   const label = shares[top] < BALANCED_SHARE ? 'Balanced' : top === 'ember' ? 'Ember' : top === 'tide' ? 'Tide' : 'Bloom';
   return { ...shares, total, label };
+}
+
+/** Shares of the egg's speckles by color: its chances of becoming each element. */
+export interface SpeckleMix {
+  ember: number;
+  tide: number;
+  bloom: number;
+  astral: number;
+}
+
+/** The leading element's speckles start to take over above this share of the care… */
+const SPECKLE_LEAN_FROM = 0.34;
+/** …and cover this much of the shell once it leads by this much more (it wins outright from 0.38). */
+const SPECKLE_LEAN_SPAN = 0.08;
+const SPECKLE_TOP = 0.85;
+/** At most this share of speckles turns violet as an evenly pampered egg heads for Astral. */
+const SPECKLE_ASTRAL = 0.5;
+
+/**
+ * What the speckles show, or null before any care. Even care gives an even mix, since a balanced egg could
+ * become any of the three; the element pulling ahead takes over the shell as it nears a sure win. While the
+ * egg is balanced and could still turn Astral, violet speckles grow as all three kinds of care are pampered.
+ */
+export function speckleMix(egg: EggState): SpeckleMix | null {
+  const l = careLeaning(egg);
+  if (l.total < 1) return null;
+  const elements = ['ember', 'tide', 'bloom'] as const;
+  const top = elements.reduce((a, b) => (l[b] > l[a] ? b : a));
+  const lean = clamp((l[top] - SPECKLE_LEAN_FROM) / SPECKLE_LEAN_SPAN, 0, 1);
+  const topShare = 1 / 3 + (SPECKLE_TOP - 1 / 3) * lean;
+  const rest = 1 - l[top];
+  const p = egg.pampered;
+  const canAstral = l.label === 'Balanced' && egg.health >= ASTRAL_HEALTH && egg.careMistakes <= ASTRAL_MAX_MISTAKES;
+  const astral = canAstral ? SPECKLE_ASTRAL * clamp(Math.min(p.ember, p.tide, p.bloom) / ASTRAL_PAMPER, 0, 1) : 0;
+  const share = (e: (typeof elements)[number]) =>
+    (1 - astral) * (e === top ? topShare : rest > 0 ? ((1 - topShare) * l[e]) / rest : (1 - topShare) / 2);
+  return { ember: share('ember'), tide: share('tide'), bloom: share('bloom'), astral };
 }
 
 /**

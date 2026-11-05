@@ -90,6 +90,8 @@ export interface Overlay {
   choices?: { options: { value: string; label: string }[]; value: string };
   /** A checkbox under it all, e.g. agreeing to something; onClose gets whether it is ticked. */
   check?: { label: string; checked: boolean };
+  /** Fields of its own, e.g. the bedtime and school settings before the first egg. */
+  content?: HTMLElement[];
 }
 
 /** The DOM overlay: status card, hint chip, toast, care dock and the reveal sheet. */
@@ -302,7 +304,10 @@ export class Hud {
   }
 
   /** A bottom sheet with one button; pass `field` to also ask for a short text (e.g. a name). */
-  showOverlay({ title, body, button, onClose, field, choices, check }: Overlay): void {
+  showOverlay({ title, body, button, onClose, field, choices, check, content }: Overlay): void {
+    const extra = $('overlay-content');
+    extra.hidden = !content;
+    extra.replaceChildren(...(content ?? []));
     const box = $('overlay-check');
     box.hidden = !check;
     box.querySelector('input')!.checked = check?.checked ?? false;
