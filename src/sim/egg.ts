@@ -1,6 +1,6 @@
 import { HOUR, isAsleep } from './clock';
 import { mulberry32 } from './rng';
-import type { EggNeed, EggState, ElementType, Heritage, NeglectMode, Settings } from './types';
+import type { EggNeed, EggStamp, EggState, ElementType, Heritage, NeglectMode, Settings } from './types';
 
 
 /** Need loss per awake game hour. */
@@ -234,6 +234,14 @@ export function migrateEggCare(egg: EggState): void {
   };
   egg.pampered = { ember: 0, tide: 0, bloom: 0 };
   egg.pamperBudget = { warmth: PAMPER_PER_HOUR, humidity: PAMPER_PER_HOUR, bond: PAMPER_PER_HOUR };
+}
+
+/** Give the egg a stamp; true if it is new. */
+export function stampEgg(egg: EggState, stamp: EggStamp): boolean {
+  const stamps = (egg.stamps ??= []);
+  if (stamps.includes(stamp)) return false;
+  stamps.push(stamp);
+  return true;
 }
 
 /** Rescale an egg laid when eggs took 20–28 h to the 6–8 h used now, keeping how far along it is. */

@@ -58,8 +58,11 @@ export const nl: Dict = {
   'hint.turnSoonest': 'Moet binnen het uur gedraaid worden',
   'hint.sleep': 'Sst… iedereen slaapt',
   'hint.lightsNight': 'Bedtijd. {name} slaapt het best met het licht uit',
+  'hint.knock': 'Klop, klop! Tik hetzelfde ritme terug op het ei',
   'hint.firstTime': 'Vasthouden om te verwarmen · omhoog vegen om te sproeien · aaien om te troosten',
 
+  'toast.knockBack': 'Het hoorde je terugkloppen!',
+  'toast.knockMissed': 'Net niet. Het klopt zo weer',
   'toast.turned': 'Gedraaid!',
   'toast.turnedRecently': 'Het is net pas gedraaid',
   'toast.toasty': 'Lekker warm',
@@ -407,7 +410,7 @@ export const nl: Dict = {
     'Houd Eten en Stemming op peil met Voer en Speel. Baby’s hebben de meeste aandacht nodig.\nEen tijdje na het eten komen er keuteltjes. Ruim ze op, anders kan je dier ziek worden.\nEen ziek dier heeft twee doses medicijn nodig.\n’s Avonds, vanaf 4 uur voor bedtijd, wordt het donker en dommelt je dier in. Doe het licht aan (rechtsboven) om het wakker te houden voor eten, spelen en trainen.\nBij bedtijd valt het hoe dan ook in slaap. Met het licht uit slaapt het het best en wordt het vrolijk wakker; ’s nachts dalen behoeften veel langzamer. Met het licht aan maakt voeren, spelen of trainen het een uur wakker, chagrijnig.\nEen dier dat zonder energie zit, doet vanzelf een dutje. Onder 40% energie tik je overdag op Dutje (rechtsboven) voor een powernap; het wordt na ongeveer een uur uitgerust wakker.',
   'help.calls.title': 'Roepjes en discipline',
   'help.calls.body':
-    'Een “!”-bel betekent dat je dier je nodig heeft. Meestal ontbreekt er iets: regel het en het roepen stopt.\nSoms is het alleen een driftbui en is er niets aan de hand. Berisp het dan; dat bouwt discipline op.\nEen dier berispen dat echt iets nodig heeft, maakt het alleen maar van streek.\nEen dier met weinig discipline kan weigeren te trainen.\nZet in Instellingen de meldingen aan (waar aangeboden), dan laat je telefoon weten wanneer je dier roept, ook als de game dicht is.',
+    'Een “!”-bel betekent dat je dier je nodig heeft. Meestal ontbreekt er iets: regel het en het roepen stopt.\nSoms is het alleen een driftbui en is er niets aan de hand. Berisp het dan; dat bouwt discipline op, en een goed opgevoed dier krijgt veel minder vaak een driftbui.\nEen dier berispen dat echt iets nodig heeft, maakt het alleen maar van streek.\nEen dier met weinig discipline kan weigeren te trainen.\nZet in Instellingen de meldingen aan (waar aangeboden), dan laat je telefoon weten wanneer je dier roept, ook als de game dicht is.',
   'help.mistakes.title': 'Zorgfouten',
   'help.mistakes.body':
     'Een roepje dat 30 minuten wordt genegeerd, een keuteltje dat een uur blijft liggen of (behalve in Knus) het een tweede keer wekken in één nacht, telt elk als een zorgfout.\nWeinig fouten als baby geven een vrolijk kind; meer fouten een slonzig kind dat wat langzamer traint.',

@@ -58,8 +58,11 @@ export const es: Dict = {
   'hint.turnSoonest': 'Hay que girarlo en menos de una hora',
   'hint.sleep': 'Shh… todos duermen',
   'hint.lightsNight': 'Es hora de dormir. {name} duerme mejor con la luz apagada',
+  'hint.knock': '¡Toc, toc! Da los mismos golpecitos en el huevo',
   'hint.firstTime': 'Mantén para calentar · desliza hacia arriba para rociar · acaricia para consolar',
 
+  'toast.knockBack': '¡Te ha oído responder!',
+  'toast.knockMissed': 'Casi. Volverá a llamar',
   'toast.turned': '¡Girado!',
   'toast.turnedRecently': 'Lo acaban de girar',
   'toast.toasty': 'Calentito y cómodo',
@@ -407,7 +410,7 @@ export const es: Dict = {
     'Mantén la Comida y el Ánimo altos con Comida y Jugar. Los bebés necesitan más atención.\nUn rato después de comer aparecen cacas. Límpialas o tu mascota puede enfermar.\nUna mascota enferma necesita dos dosis de Medicina.\nPor la tarde, desde 4 horas antes de dormir, oscurece y tu mascota se adormece. Enciende la luz (arriba a la derecha) para que siga despierto para comer, jugar y entrenar.\nA la hora de dormir se duerme de todos modos. Con la luz apagada duerme mejor y se despierta feliz; por la noche, las necesidades bajan mucho más despacio. Con la luz encendida, comer, jugar o entrenar lo despierta durante una hora, gruñón.\nSi se queda sin energía, se echa una siesta por su cuenta. Con menos del 40 % de energía, toca Siesta (arriba a la derecha) de día para una siesta reparadora; se despierta descansado al cabo de una hora.',
   'help.calls.title': 'Llamadas y disciplina',
   'help.calls.body':
-    'Un globo con “!” significa que tu mascota te necesita. Normalmente le falta algo: arréglalo y la llamada se detiene.\nA veces es solo un berrinche y no pasa nada. Entonces Reñir; así se gana disciplina.\nReñir a una mascota que de verdad necesita algo solo la disgusta.\nUna mascota con poca disciplina puede negarse a entrenar.\nActiva los avisos en Ajustes (donde se ofrezcan) y tu móvil te dirá cuándo llama tu mascota, incluso con el juego cerrado.',
+    'Un globo con “!” significa que tu mascota te necesita. Normalmente le falta algo: arréglalo y la llamada se detiene.\nA veces es solo un berrinche y no pasa nada. Entonces ríñele; así gana disciplina, y una mascota disciplinada tiene muchos menos berrinches.\nReñir a una mascota que de verdad necesita algo solo la disgusta.\nUna mascota con poca disciplina puede negarse a entrenar.\nActiva los avisos en Ajustes (donde se ofrezcan) y tu móvil te dirá cuándo llama tu mascota, incluso con el juego cerrado.',
   'help.mistakes.title': 'Descuidos',
   'help.mistakes.body':
     'Una llamada ignorada durante 30 minutos, una caca sin limpiar durante una hora o (salvo en Acogedor) despertarlo por segunda vez en una noche cuentan cada una como un descuido.\nPocos descuidos de bebé dan un niño alegre; más descuidos, uno despeinado que entrena un poco más despacio.',

@@ -57,8 +57,11 @@ export const en = {
   'hint.turnSoonest': 'Needs turning within the hour',
   'hint.sleep': 'Shh… everyone is sleeping',
   'hint.lightsNight': 'It’s bedtime. {name} sleeps best with the light off',
+  'hint.knock': 'Knock, knock! Tap the same rhythm back on the egg',
   'hint.firstTime': 'Hold to warm · swipe up to mist · stroke to comfort',
 
+  'toast.knockBack': 'It heard you knock back!',
+  'toast.knockMissed': 'Not quite. It will knock again',
   'toast.turned': 'Turned!',
   'toast.turnedRecently': 'It was just turned',
   'toast.toasty': 'Warm and toasty',
@@ -406,7 +409,7 @@ export const en = {
     'Keep Food and Mood up with Feed and Play. Babies need the most attention.\nDroppings appear a while after meals. Clean them up, or your pet may get sick.\nA sick pet needs two doses of medicine.\nIn the evening, from 4 hours before bedtime, it gets dark and your pet dozes off. Turn the light on (top right) to keep it up for food, play and training.\nAt bedtime it falls asleep either way. With the light off it sleeps best and wakes up happy; overnight, needs drop much more slowly. With the light on, Feed, Play or Train wakes it for an hour, grumpily.\nA pet that runs out of energy takes a nap on its own. Below 40% energy, tap Nap (top right) during the day for a power nap; it wakes up rested after about an hour.',
   'help.calls.title': 'Calls and discipline',
   'help.calls.body':
-    'A “!” bubble means your pet wants you. Usually something is missing: fix it and the call stops.\nSometimes it is only a tantrum and nothing is wrong. Scold it then; that builds discipline.\nScolding a pet that really needs something only upsets it.\nA poorly disciplined pet may refuse to train.\nTurn on Alerts in Settings (where offered), and your phone tells you when your pet calls, even with the game closed.',
+    'A “!” bubble means your pet wants you. Usually something is missing: fix it and the call stops.\nSometimes it is only a tantrum and nothing is wrong. Scold it then; that builds discipline, and a well-disciplined pet throws tantrums far less often.\nScolding a pet that really needs something only upsets it.\nA poorly disciplined pet may refuse to train.\nTurn on Alerts in Settings (where offered), and your phone tells you when your pet calls, even with the game closed.',
   'help.mistakes.title': 'Care mistakes',
   'help.mistakes.body':
     'A call ignored for 30 minutes, a dropping left for an hour, or (outside Cozy) waking your pet a second time in one night each count as a care mistake.\nFew mistakes as a baby give a bright child; more give a scruffy one that trains a little slower.',

@@ -194,6 +194,14 @@ const note = (semi: number) => C5 * Math.pow(2, semi / 12);
 
 export const sfx = {
   tap: () => tone(700, now(), 0.07, { type: 'triangle', vol: 0.09, slideTo: 980 }),
+  /** A knock on the shell: a dull wooden thud, a little brighter for the player's own taps. */
+  knock: (bright = false) => {
+    const f = bright ? 1.5 : 1;
+    tone(170 * f, now(), 0.08, { type: 'sine', vol: 0.16, slideTo: 110 * f });
+    noise(now(), 0.04, 0.12, 900 * f, 1.5);
+  },
+  /** The egg heard its knock answered. */
+  knockBack: () => [12, 16, 19, 24].forEach((s, i) => chime(note(s), now() + i * 0.07, 0.08)),
   warm: () => tone(220, now(), 0.35, { vol: 0.05, slideTo: 280, attack: 0.08 }),
   mist: () => noise(now(), 0.4, 0.22, 3500, 0.7),
   /** Sweeping up: two strokes, back and forth, then a little sparkle to say it's tidy. */

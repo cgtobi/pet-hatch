@@ -91,6 +91,16 @@ The egg simply rests at night; the light only matters once the pet has hatched.
   kinds of care are pampered towards the Astral threshold.
 - **Health** drops while needs are empty and recovers while all needs are above 40%.
 
+- **Knock back** (`src/sim/knock.ts`, played in `src/app/eggCare.ts`): from the Wobbly stage on, while the game
+  is open and the player is up, the egg knocks from inside 12–25 s into a visit and every 40–80 s after: 2–4
+  knocks with short (0.3 s) and long (0.6 s) gaps, each with a thud, a wobble and a tick of vibration, and the hint
+  "Knock, knock! Tap the same rhythm back on the egg". Tapping the egg then answers instead of comforting it: the
+  same number of taps with roughly the same gaps (within 45% or 0.15 s) pleases it (chimes, hearts) and brings the
+  hatch 5 minutes closer, which is no kind of care, so the element is untouched. A wrong answer or none (3.5 s)
+  just says it will knock again.
+- **Stamps:** the egg records firsts for a stamp card (`stamps` on the egg): warm, mist, sing, turn, the first
+  pampering, an answered knock and the hatch. The card itself isn't shown yet.
+
 ### Neglect modes
 
 Chosen when an egg is started (a welcome screen for the very first egg, and a picker whenever a new egg begins:
@@ -153,8 +163,9 @@ You name the baby when it hatches (a name is suggested).
   two doses. Medicine when not sick upsets it. Cozy mode has no sickness.
 - **Health** recovers while fed and happy, and drops while sick.
 - **Attention calls (the "!" bubble):** the pet calls when food or mood drops below 20% or it gets sick
-  (a *need* call, cleared by caring for it). Every 3–6 awake hours it also throws a *tantrum*, a call with nothing
-  wrong. **Scold** fixes a tantrum (+20 discipline). Scolding a pet with a real need, or for nothing, upsets it.
+  (a *need* call, cleared by caring for it). It also throws *tantrums*, calls with nothing wrong: every 3–6 awake
+  hours with no discipline, stretching with discipline to 6–12 at 50 and 9–18 at 100 (about one a day), so raising
+  a well-behaved pet means fewer chores (`tantrumGap()` in `src/sim/pet.ts`). **Scold** fixes a tantrum (+20 discipline). Scolding a pet with a real need, or for nothing, upsets it.
   The hint line helps tell the two apart: "…but nothing seems wrong".
 - **Care mistakes** (stored per life stage, for evolution in milestone 3): an ignored call (30 min), a dropping
   left 1 awake hour, waking the pet a second time in one night. A diligent owner makes almost none (tested).

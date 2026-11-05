@@ -58,8 +58,11 @@ export const de: Dict = {
   'hint.turnSoonest': 'Muss innerhalb der nächsten Stunde gewendet werden',
   'hint.sleep': 'Psst… alle schlafen',
   'hint.lightsNight': 'Schlafenszeit. {name} schläft am besten bei ausgeschaltetem Licht',
+  'hint.knock': 'Klopf, klopf! Tippe den gleichen Rhythmus aufs Ei zurück',
   'hint.firstTime': 'Halten zum Wärmen · nach oben wischen zum Sprühen · streicheln zum Trösten',
 
+  'toast.knockBack': 'Es hat dein Klopfen gehört!',
+  'toast.knockMissed': 'Nicht ganz. Es klopft bald wieder',
   'toast.turned': 'Gewendet!',
   'toast.turnedRecently': 'Es wurde gerade erst gewendet',
   'toast.toasty': 'Schön mollig warm',
@@ -407,7 +410,7 @@ export const de: Dict = {
     'Halte Futter und Laune mit Füttern und Spielen hoch. Babys brauchen am meisten Aufmerksamkeit.\nEine Weile nach dem Essen gibt es Häufchen. Mach sie weg, sonst kann dein Tier krank werden.\nEin krankes Tier braucht zwei Dosen Medizin.\nAbends, ab 4 Stunden vor der Schlafenszeit, wird es dunkel und dein Tier döst ein. Mach das Licht an (oben rechts), damit es zum Füttern, Spielen und Trainieren wach bleibt.\nZur Schlafenszeit schläft es so oder so ein. Bei ausgeschaltetem Licht schläft es am besten und wacht fröhlich auf; über Nacht sinken die Bedürfnisse viel langsamer. Bei eingeschaltetem Licht weckt Füttern, Spielen oder Training es für eine Stunde, grantig.\nHat es keine Energie mehr, macht es von selbst ein Nickerchen. Unter 40 % Energie tippst du tagsüber auf Schlafen (oben rechts) für einen Powernap; es wacht nach etwa einer Stunde ausgeruht auf.',
   'help.calls.title': 'Rufe und Disziplin',
   'help.calls.body':
-    'Eine „!“-Blase heißt, dass dein Tier dich braucht. Meist fehlt etwas: Kümmere dich darum, dann hört der Ruf auf.\nManchmal ist es nur Trotz und es fehlt nichts. Dann tadle es; das stärkt die Disziplin.\nWer ein Tier tadelt, das wirklich etwas braucht, macht es nur traurig.\nEin wenig diszipliniertes Tier verweigert manchmal das Training.\nSchalte in den Einstellungen die Benachrichtigungen ein (wo angeboten), dann sagt dir dein Handy Bescheid, wenn dein Tier ruft, auch bei geschlossenem Spiel.',
+    'Eine „!“-Blase heißt, dass dein Tier dich braucht. Meist fehlt etwas: Kümmere dich darum, dann hört der Ruf auf.\nManchmal ist es nur Trotz und es fehlt nichts. Dann tadle es; das stärkt die Disziplin, und ein gut erzogenes Tier trotzt viel seltener.\nWer ein Tier tadelt, das wirklich etwas braucht, macht es nur traurig.\nEin wenig diszipliniertes Tier verweigert manchmal das Training.\nSchalte in den Einstellungen die Benachrichtigungen ein (wo angeboten), dann sagt dir dein Handy Bescheid, wenn dein Tier ruft, auch bei geschlossenem Spiel.',
   'help.mistakes.title': 'Pflegefehler',
   'help.mistakes.body':
     'Ein 30 Minuten ignorierter Ruf, ein eine Stunde liegen gelassenes Häufchen oder (außer bei Gemütlich) ein zweites Wecken in derselben Nacht zählen jeweils als Pflegefehler.\nWenige Fehler im Babyalter ergeben ein munteres Kind, mehr ein zerzaustes, das etwas langsamer trainiert.',

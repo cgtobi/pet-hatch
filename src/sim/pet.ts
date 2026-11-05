@@ -74,7 +74,10 @@ const GENTLE_RUNAWAY_H = 24;
 /** A need below this makes the pet call for attention. */
 export const CALL_THRESHOLD = 20;
 const CALL_TIMEOUT_H = 0.5;
+/** Awake hours between tantrums for a pet with no discipline; good discipline stretches them (see tantrumGap). */
 const FAKE_CALL_EVERY_H: [number, number] = [3, 6];
+/** At 100 discipline the gap is this many times longer: about one tantrum a day instead of three or four. */
+const DISCIPLINED_GAP = 3;
 
 const FULL = 90;
 const MEAL = 35;
@@ -90,6 +93,11 @@ const between = (rand: () => number, [lo, hi]: [number, number]) => lo + rand() 
 /** Deterministic randomness per game minute, so catch-up and live play roll the same dice. */
 function roll(seed: number, t: number, salt: number): number {
   return mulberry32(seed ^ Math.floor(t / MINUTE) ^ (salt * 0x9e3779b1))();
+}
+
+/** Awake hours until the next tantrum: 3–6 with no discipline, growing to 9–18 at 100. */
+export function tantrumGap(discipline: number, rand: () => number): number {
+  return between(rand, FAKE_CALL_EVERY_H) * (1 + ((DISCIPLINED_GAP - 1) * clamp(discipline)) / 100);
 }
 
 export function suggestName(seed: number): string {
@@ -373,7 +381,7 @@ export function tickPet(pet: PetState, t: number, dtH: number, settings: Setting
     pet.call = { kind: 'need', at: t };
   } else if (!pet.call && t >= pet.nextFakeCallAt) {
     pet.call = { kind: 'fake', at: t };
-    pet.nextFakeCallAt = t + between(() => roll(pet.seed, t, 4), FAKE_CALL_EVERY_H) * HOUR;
+    pet.nextFakeCallAt = t + tantrumGap(pet.discipline, () => roll(pet.seed, t, 4)) * HOUR;
   }
 }
 

@@ -10,6 +10,7 @@ import {
   migrateEggTime,
   mistEgg,
   speckleMix,
+  stampEgg,
   turnEgg,
   warmEgg,
 } from './egg';
@@ -241,6 +242,18 @@ describe('element type from care', () => {
     expect(warmEgg(egg, 50)).toEqual({ added: 0, pampered: 30 });
     expect(warmEgg(egg, 50)).toEqual({ added: 0, pampered: 0 });
     expect(egg.pampered.ember).toBe(30);
+  });
+
+  it('collects each stamp once and keeps them in the save', async () => {
+    const { exportSave, importSave } = await import('./save');
+    const s = game();
+    expect(stampEgg(s.egg, 'mist')).toBe(true);
+    expect(stampEgg(s.egg, 'mist')).toBe(false);
+    stampEgg(s.egg, 'knock');
+    expect(importSave(exportSave(s)).egg.stamps).toEqual(['mist', 'knock']);
+    const bad = JSON.parse(JSON.stringify(s));
+    bad.egg.stamps = ['mist', 'fly'];
+    expect(() => importSave(exportSave(bad))).toThrow();
   });
 
   it('rescales care from eggs started under the old rules', async () => {

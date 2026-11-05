@@ -1,12 +1,23 @@
 /**
- * Caring for the egg: warming, misting, singing, turning, stroking, the taps that break it open, and how it
- * wobbles and cracks as it grows.
+ * Caring for the egg: warming, misting, singing, turning, stroking, knocking back, the taps that break it open,
+ * and how it wobbles and cracks as it grows. Firsts earn the egg its stamps.
  */
 import { haptic, sfx, unlockAudio } from '../feedback';
 import { t, type TextKey } from '../i18n';
 import { isAsleep } from '../sim/clock';
-import { comfortEgg, hatchStage, mistEgg, turnEgg, warmEgg, type CareResult } from '../sim/egg';
+import { comfortEgg, hatchStage, mistEgg, stampEgg, turnEgg, warmEgg, type CareResult } from '../sim/egg';
 import { isReadyToHatch } from '../sim/game';
+import {
+  ANSWER_GAP,
+  ANSWER_WAIT,
+  FIRST_KNOCK,
+  KNOCK_HOURS,
+  KNOCK_STAGE,
+  knockDelay,
+  knockPattern,
+  matchesKnock,
+  NEXT_KNOCK,
+} from '../sim/knock';
 import type { DockAction } from '../ui/hud';
 import type { Rush } from '../ui/status';
 import type { Game } from './context';
@@ -40,7 +51,20 @@ export interface EggCare {
   stopWarming(): void;
   /** Taps left to break out, for the hint and the cracks. */
   rush(): Rush;
+  /** The egg is knocking, or waiting for its knock to be answered. */
+  knocking(): boolean;
 }
+
+/** A knock in progress: when each knock sounds (s from the start), how many have, and the player's answer. */
+interface Knock {
+  times: number[];
+  t: number;
+  played: number;
+  taps: number[];
+}
+
+/** A short pause before the first knock, so it doesn't start mid-gesture. */
+const KNOCK_LEAD = 0.3;
 
 /**
  * @param onHatch called once the last tap breaks the shell
@@ -56,6 +80,61 @@ export function createEggCare(g: Game, onHatch: () => void, onVial: () => void):
   let wobbleTimer = 2;
   let rushLeft: number | null = null;
   let lastStage = hatchStage(g.state.egg);
+  let knockIn = knockDelay(FIRST_KNOCK, Math.random);
+  let knock: Knock | null = null;
+
+  function startKnock() {
+    knock = { times: knockPattern(Math.random), t: 0, played: 0, taps: [] };
+    g.refresh();
+  }
+
+  function endKnock(answered: boolean) {
+    knock = null;
+    knockIn = knockDelay(NEXT_KNOCK, Math.random);
+    if (answered) {
+      // A happy wiggle, and it hatches a little sooner. It's no kind of care, so it leaves the element alone.
+      g.state.egg.devHours += KNOCK_HOURS;
+      stampEgg(g.state.egg, 'knock');
+      sfx.knockBack();
+      haptic('success');
+      g.world.egg.jump(1.4);
+      g.world.effects.emit('heart', g.world.egg.center(), 4);
+      g.hud.toast(t('toast.knockBack'));
+    } else g.hud.toast(t('toast.knockMissed'));
+    g.save();
+    g.refresh();
+  }
+
+  /** Knocks sound on time; then the answer is judged once it is complete or the player stops tapping. */
+  function knockFrame(dt: number, canKnock: boolean) {
+    if (!canKnock) {
+      if (knock) {
+        knock = null;
+        g.refresh();
+      }
+      return;
+    }
+    if (!knock) {
+      knockIn -= dt;
+      if (knockIn <= 0) startKnock();
+      return;
+    }
+    const k = knock;
+    k.t += dt;
+    while (k.played < k.times.length && k.t >= KNOCK_LEAD + k.times[k.played]) {
+      k.played++;
+      sfx.knock();
+      haptic('tick');
+      g.world.egg.nudge(1.8, Math.random() * Math.PI * 2);
+    }
+    if (k.played < k.times.length) return;
+    const last = KNOCK_LEAD + k.times[k.times.length - 1];
+    if (k.taps.length === 0) {
+      if (k.t > last + ANSWER_WAIT) endKnock(false);
+    } else if (k.taps.length >= k.times.length || k.t - k.taps[k.taps.length - 1] > ANSWER_GAP) {
+      endKnock(matchesKnock(k.times, k.taps));
+    }
+  }
 
   function eggAction(action: DockAction) {
     if (action === 'vial') onVial();
@@ -70,9 +149,11 @@ export function createEggCare(g: Game, onHatch: () => void, onVial: () => void):
     if (active && !warming) {
       sfx.warm();
       haptic('tap');
+      stampEgg(g.state.egg, 'warm');
     }
     if (!active && warming) {
       if (warmPampered > 0.5) {
+        stampEgg(g.state.egg, 'pamper');
         g.world.effects.emit('heart', g.world.egg.center(), 3);
         g.hud.toast(t('toast.pampered'));
       } else if (g.state.egg.warmth >= 99) g.hud.toast(t('toast.toasty'));
@@ -86,6 +167,7 @@ export function createEggCare(g: Game, onHatch: () => void, onVial: () => void):
     if (r.added > 0) {
       if (raisedKey) g.hud.toast(t(raisedKey));
     } else if (r.pampered > 0) {
+      stampEgg(g.state.egg, 'pamper');
       g.world.effects.emit('heart', g.world.egg.center(), 3);
       g.hud.toast(t('toast.pampered'));
     } else g.hud.toast(t('toast.full'));
@@ -94,6 +176,7 @@ export function createEggCare(g: Game, onHatch: () => void, onVial: () => void):
   function mist() {
     if (!g.eggActive()) return;
     const r = mistEgg(g.state.egg);
+    stampEgg(g.state.egg, 'mist');
     g.world.effects.emit('drop', g.world.egg.center(), 12);
     g.world.egg.nudge(0.8);
     sfx.mist();
@@ -105,6 +188,7 @@ export function createEggCare(g: Game, onHatch: () => void, onVial: () => void):
     if (!g.eggActive() || singCooldown > 0) return;
     singCooldown = SING_COOLDOWN;
     const r = comfortEgg(g.state.egg, SING_AMOUNT);
+    stampEgg(g.state.egg, 'sing');
     sfx.sing();
     for (let i = 0; i < 5; i++) {
       setTimeout(() => {
@@ -118,6 +202,7 @@ export function createEggCare(g: Game, onHatch: () => void, onVial: () => void):
   function turn(direction: 1 | -1) {
     if (!g.eggActive()) return;
     if (turnEgg(g.state.egg, g.now())) {
+      stampEgg(g.state.egg, 'turn');
       g.world.egg.roll(direction);
       sfx.turn();
       haptic('press');
@@ -153,9 +238,19 @@ export function createEggCare(g: Game, onHatch: () => void, onVial: () => void):
       haptic('press');
       if (rushLeft <= 0) {
         rushLeft = null;
+        stampEgg(g.state.egg, 'hatch');
         onHatch();
       }
       g.refresh();
+      return;
+    }
+    // While it knocks, taps are the answer (once its knocks are done), not comfort.
+    if (knock) {
+      if (knock.played < knock.times.length) return;
+      knock.taps.push(knock.t);
+      sfx.knock(true);
+      haptic('tick');
+      g.world.egg.nudge(0.9);
       return;
     }
     comfortEgg(g.state.egg, 2);
@@ -187,6 +282,10 @@ export function createEggCare(g: Game, onHatch: () => void, onVial: () => void):
     lastStage = stage;
 
     const sleepy = isAsleep(now, g.state.settings);
+    knockFrame(
+      dt,
+      stage >= KNOCK_STAGE && !sleepy && !warming && egg.readyAt === null && rushLeft === null && !document.hidden,
+    );
     const w = WOBBLE[stage];
     wobbleTimer -= dt;
     if (w.every > 0 && wobbleTimer <= 0) {
@@ -207,5 +306,6 @@ export function createEggCare(g: Game, onHatch: () => void, onVial: () => void):
     frame,
     stopWarming: () => (warming = false),
     rush: () => ({ left: rushLeft, taps: RUSH_TAPS }),
+    knocking: () => knock !== null,
   };
 }

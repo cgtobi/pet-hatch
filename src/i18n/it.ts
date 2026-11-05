@@ -58,8 +58,11 @@ export const it: Dict = {
   'hint.turnSoonest': 'Va girato entro un’ora',
   'hint.sleep': 'Shh… dormono tutti',
   'hint.lightsNight': 'È ora di dormire. {name} dorme meglio con la luce spenta',
+  'hint.knock': 'Toc, toc! Batti lo stesso ritmo sull’uovo',
   'hint.firstTime': 'Tieni premuto per scaldare · scorri su per spruzzare · accarezza per consolare',
 
+  'toast.knockBack': 'Ti ha sentito rispondere!',
+  'toast.knockMissed': 'Non proprio. Busserà di nuovo',
   'toast.turned': 'Girato!',
   'toast.turnedRecently': 'È stato girato da poco',
   'toast.toasty': 'Bello caldino',
@@ -407,7 +410,7 @@ export const it: Dict = {
     'Tieni alti Cibo e Umore con Pappa e Gioca. I cuccioli sono quelli che richiedono più attenzioni.\nDopo i pasti, prima o poi compaiono i ricordini. Puliscili, o il tuo cucciolo può ammalarsi.\nUn cucciolo malato ha bisogno di due dosi di medicina.\nLa sera, da 4 ore prima di dormire, si fa buio e il cucciolo si appisola. Accendi la luce (in alto a destra) per tenerlo sveglio per mangiare, giocare e allenarsi.\nAll’ora di dormire si addormenta comunque. Con la luce spenta dorme meglio e si sveglia felice; di notte i bisogni calano molto più lentamente. Con la luce accesa, mangiare, giocare o allenarsi lo sveglia per un’ora, di cattivo umore.\nSe finisce l’energia, il cucciolo fa un pisolino da solo. Sotto il 40% di energia, tocca Pisolino (in alto a destra) di giorno per un pisolino rigenerante; si sveglia riposato dopo circa un’ora.',
   'help.calls.title': 'Richiami e disciplina',
   'help.calls.body':
-    'Un fumetto con “!” significa che il tuo cucciolo vuole te. Di solito manca qualcosa: sistemalo e il richiamo smette.\nA volte è solo un capriccio e non c’è niente che non va. Allora sgridalo: costruisce disciplina.\nSgridare un cucciolo che ha davvero bisogno di qualcosa lo rattrista soltanto.\nUn cucciolo poco disciplinato può rifiutarsi di allenarsi.\nAttiva gli avvisi nelle Impostazioni (dove disponibili) e il telefono ti dirà quando il tuo cucciolo chiama, anche a gioco chiuso.',
+    'Un fumetto con “!” significa che il tuo cucciolo vuole te. Di solito manca qualcosa: sistemalo e il richiamo smette.\nA volte è solo un capriccio e non c’è niente che non va. Allora sgridalo: costruisce disciplina, e un cucciolo ben educato fa molti meno capricci.\nSgridare un cucciolo che ha davvero bisogno di qualcosa lo rattrista soltanto.\nUn cucciolo poco disciplinato può rifiutarsi di allenarsi.\nAttiva gli avvisi nelle Impostazioni (dove disponibili) e il telefono ti dirà quando il tuo cucciolo chiama, anche a gioco chiuso.',
   'help.mistakes.title': 'Errori di cura',
   'help.mistakes.body':
     'Un richiamo ignorato per 30 minuti, un ricordino lasciato per un’ora o (tranne in Relax) un secondo risveglio nella stessa notte contano ognuno come un errore di cura.\nPochi errori da cucciolo danno un piccolo vivace; di più ne danno uno scarruffato che si allena un po’ più lentamente.',

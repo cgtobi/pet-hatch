@@ -96,7 +96,13 @@ export interface EggState {
   /** Collapsed at 0 health (Classic, with the vial still there): lies still until it's given, or FADE_H passes. */
   fading?: { since: number } | null;
   heritage: Heritage | null;
+  /** Firsts the player has had with this egg, for the stamp card. Missing: none yet. */
+  stamps?: EggStamp[];
 }
+
+/** One stamp each for the first warm, mist, song, turn, pampering, answered knock and hatch. */
+export const EGG_STAMPS = ['warm', 'mist', 'sing', 'turn', 'pamper', 'knock', 'hatch'] as const;
+export type EggStamp = (typeof EGG_STAMPS)[number];
 
 export type LifeStage = 'baby' | 'child' | 'teen' | 'adult' | 'elder';
 export type PetNeed = 'hunger' | 'mood' | 'energy';

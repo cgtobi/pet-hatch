@@ -3,7 +3,7 @@ import { migrateEggCare, migrateEggTime } from './egg';
 import { DEFAULT_SETTINGS, NEGLECT_MODES } from './game';
 import { LIFE_STAGES, migratePet } from './pet';
 import { STATS } from './training';
-import type { Dropping, ElementType, FormId, GameState, Heritage, PetState, PetStatus, Stat } from './types';
+import { EGG_STAMPS, type Dropping, type ElementType, type FormId, type GameState, type Heritage, type PetState, type PetStatus, type Stat } from './types';
 
 const KEY = 'pethatch.save';
 
@@ -114,6 +114,7 @@ export function isSound(s: GameState): boolean {
     [egg.devHours, egg.baseHours, egg.laidAt, egg.lastTurnedAt].every((n) => isNum(n)) &&
     isInt(egg.seed, 0, 2 ** 32) &&
     isVial(egg) &&
+    (egg.stamps === undefined || (Array.isArray(egg.stamps) && egg.stamps.every((s) => isOneOf(s, EGG_STAMPS)))) &&
     (h === null ||
       (isName(h.parentName) && isOneOf(h.parentType, TYPES) && isStats(h.stats, 100) && isInt(h.generation, 1, 1e6)));
   const petOk =

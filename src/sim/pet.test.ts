@@ -17,6 +17,7 @@ import {
   scold,
   stageHours,
   startPowerNap,
+  tantrumGap,
   wakeAtNight,
 } from './pet';
 import { canTrain, refusalChance } from './training';
@@ -183,6 +184,32 @@ describe('attention calls and discipline', () => {
     expect(s.pet.call?.kind).toBe('fake');
     expect(scold(s.pet)).toBe('disciplined');
     expect(s.pet.discipline).toBe(20);
+  });
+
+  it('throws fewer tantrums the better disciplined it is', () => {
+    const rand = () => 0.5;
+    expect(tantrumGap(0, rand)).toBeCloseTo(4.5);
+    expect(tantrumGap(50, rand)).toBeCloseTo(9);
+    expect(tantrumGap(100, rand)).toBeCloseTo(13.5);
+    // Over three awake days: a well-behaved pet throws about a third as many.
+    const count = (discipline: number) => {
+      const s = hatched();
+      s.pet.discipline = discipline;
+      let tantrums = 0;
+      for (let m = 1; m <= 3 * 24 * 60; m += 5) {
+        advance(s, at(1, 9) + m * 60_000);
+        if (s.pet.call?.kind === 'fake') {
+          tantrums++;
+          s.pet.call = null;
+        }
+        Object.assign(s.pet, { hunger: 80, mood: 80, energy: 80, droppings: [], sick: false });
+      }
+      return tantrums;
+    };
+    const wild = count(0);
+    const good = count(100);
+    expect(good).toBeGreaterThan(0);
+    expect(good).toBeLessThan(wild / 2);
   });
 
   it('gets upset when scolded for a real need', () => {

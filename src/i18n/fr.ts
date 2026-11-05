@@ -58,8 +58,11 @@ export const fr: Dict = {
   'hint.turnSoonest': 'À tourner dans l’heure',
   'hint.sleep': 'Chut… tout le monde dort',
   'hint.lightsNight': 'C’est l’heure du dodo. {name} dort mieux lumière éteinte',
+  'hint.knock': 'Toc, toc ! Tape le même rythme sur l’œuf',
   'hint.firstTime': 'Appuie pour chauffer · balaie vers le haut pour brumiser · caresse pour réconforter',
 
+  'toast.knockBack': 'Il t’a entendu frapper en retour !',
+  'toast.knockMissed': 'Pas tout à fait. Il frappera encore',
   'toast.turned': 'Tourné !',
   'toast.turnedRecently': 'Il vient d’être tourné',
   'toast.toasty': 'Bien au chaud',
@@ -407,7 +410,7 @@ export const fr: Dict = {
     'Garde Repas et Humeur au beau fixe avec Nourrir et Jouer. Les bébés demandent le plus d’attention.\nDes crottes apparaissent un moment après les repas. Nettoie-les, sinon ton compagnon risque de tomber malade.\nUn compagnon malade a besoin de deux doses de Remède.\nLe soir, à partir de 4 heures avant le coucher, il fait nuit et ton compagnon s’assoupit. Allume la lumière (en haut à droite) pour qu’il reste éveillé pour manger, jouer et s’entraîner.\nÀ l’heure du coucher, il s’endort de toute façon. Lumière éteinte, il dort mieux et se réveille joyeux ; la nuit, les besoins baissent beaucoup plus lentement. Lumière allumée, nourrir, jouer ou s’entraîner le réveille pour une heure, grognon.\nUn compagnon à court d’énergie fait la sieste tout seul. Sous 40 % d’énergie, touche Sieste (en haut à droite) en journée pour une sieste éclair ; il se réveille reposé au bout d’une heure environ.',
   'help.calls.title': 'Appels et discipline',
   'help.calls.body':
-    'Une bulle « ! » signifie que ton compagnon te réclame. Souvent, il manque quelque chose : règle ça et l’appel s’arrête.\nParfois, ce n’est qu’un caprice et tout va bien. Gronde-le alors ; cela renforce la discipline.\nGronder un compagnon qui a vraiment besoin de quelque chose ne fait que le vexer.\nUn compagnon peu discipliné peut refuser de s’entraîner.\nActive les alertes dans les Réglages (si proposées) : ton téléphone te prévient quand ton compagnon appelle, même jeu fermé.',
+    'Une bulle « ! » signifie que ton compagnon te réclame. Souvent, il manque quelque chose : règle ça et l’appel s’arrête.\nParfois, ce n’est qu’un caprice et tout va bien. Gronde-le alors ; cela renforce la discipline, et un compagnon bien discipliné fait bien moins de caprices.\nGronder un compagnon qui a vraiment besoin de quelque chose ne fait que le vexer.\nUn compagnon peu discipliné peut refuser de s’entraîner.\nActive les alertes dans les Réglages (si proposées) : ton téléphone te prévient quand ton compagnon appelle, même jeu fermé.',
   'help.mistakes.title': 'Erreurs de soin',
   'help.mistakes.body':
     'Un appel ignoré pendant 30 minutes, une crotte laissée une heure ou (sauf en mode Cosy) un deuxième réveil dans la même nuit comptent chacun comme une erreur de soin.\nPeu d’erreurs quand il est bébé donnent un enfant vif ; davantage donnent un enfant ébouriffé, qui s’entraîne un peu plus lentement.',
