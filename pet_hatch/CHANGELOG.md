@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.14.0
+
+- New species book in Settings: all 36 species, filled in as your pets grow into them or meet them in battle.
+  Species you haven't found yet show as silhouettes, and new finds are marked until you open the book.
+
 ## 0.13.0
 
 - The dojo is never empty any more: if nobody turns up within 20 seconds, the ghost of another player's pet steps
