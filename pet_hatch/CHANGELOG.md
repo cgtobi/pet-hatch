@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.13.0
+
+- The dojo is never empty any more: if nobody turns up within 20 seconds, the ghost of another player's pet steps
+  in. It's a real pet, shown without its name and played by the computer, and a ghost battle gives half the usual
+  reward.
+- Your own pet leaves a ghost behind when it visits the dojo. When you come back, you hear how it did: "While you
+  were away, Pip's ghost fought 3 battles in the dojo and won 2."
+- Both the Node relay (this app) and the PHP relay support ghosts. Live battles and the dojo still work with older
+  games, which just don't meet ghosts.
+
 ## 0.12.1
 
 - Settings always shows the Family section; before your first past pet it says they will appear there.
