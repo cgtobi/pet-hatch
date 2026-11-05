@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.10.0
+
+- Eggs hatch much sooner: after 6 to 8 hours of your day instead of a whole day. The egg rests at night and
+  waits while you're at school, so all of that time is yours to care for it. Eggs already in progress keep
+  how far along they are.
+- The speckles on the egg now show what it might become: orange for Ember, blue for Tide, green for Bloom.
+  Even care keeps them mixed; the colour you pamper most takes over as it gets close to a sure thing, and
+  shiny violet speckles appear when all three are pampered evenly on the way to the rare Astral.
+- Before the very first egg, the welcome now asks for your bedtime and school time.
+
 ## 0.9.2
 
 - Jump rope is more forgiving: a jump clears the rope if your pet is in the air when it passes, so tapping a
