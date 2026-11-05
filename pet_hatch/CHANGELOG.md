@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.11.0
+
+- Knock back: once the egg starts wobbling, it sometimes knocks from inside while the game is open. Tap the same
+  rhythm back on the egg and it's delighted, and it hatches a little sooner. Missing a knock costs nothing.
+- A well-disciplined pet throws far fewer tantrums: from every 3–6 hours with no discipline down to about one a
+  day at full discipline.
+
 ## 0.10.0
 
 - Eggs hatch much sooner: after 6 to 8 hours of your day instead of a whole day. The egg rests at night and
