@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.12.1
+
+- Settings always shows the Family section; before your first past pet it says they will appear there.
+
 ## 0.12.0
 
 - Training grows with your pet: Smash, Star catch, Block and Recall get harder the stronger your pet is, and
