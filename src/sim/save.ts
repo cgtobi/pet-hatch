@@ -138,6 +138,9 @@ export function isSound(s: GameState): boolean {
       isInt(pet.generation, 1, 1e6) &&
       isVial(pet) &&
       isInt(pet.trainings, 0, 1e7) &&
+      (pet.ghostKey === undefined || (typeof pet.ghostKey === 'string' && /^[A-Za-z0-9_-]{16,64}$/.test(pet.ghostKey))) &&
+      (pet.ghost === undefined ||
+        (isInt(pet.ghost?.fights, 0, 1e7) && isInt(pet.ghost?.wins, 0, 1e7) && pet.ghost.wins <= pet.ghost.fights)) &&
       (pet.bests === undefined ||
         (typeof pet.bests === 'object' &&
           pet.bests !== null &&

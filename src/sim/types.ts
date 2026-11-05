@@ -197,6 +197,10 @@ export interface PetState {
   endurance: number;
   /** Finished training sessions. */
   trainings: number;
+  /** Secret key for this pet's dojo ghost, so its results can come back to it (missing: not in the dojo yet). */
+  ghostKey?: string;
+  /** How its ghost did in the dojo while others fought it (missing: none yet). */
+  ghost?: { fights: number; wins: number };
   /** Best score per training game, 0 … 100 (missing: never played). */
   bests?: Partial<Record<Stat | 'endurance', number>>;
   /** Every form taken so far, in order (the teen form decides one of the adult's moves). */

@@ -1,12 +1,12 @@
 // @vitest-environment node
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { DOJO, findOffers, findPairs, matchWindow, ratingFromCode, type Waiting } from '../../server/dojo.mjs';
+import { DOJO, findOffers, findPairs, GHOSTS, matchWindow, namelessCode, pickGhost, ratingFromCode, type Waiting } from '../../server/dojo.mjs';
 import { createRelay, type Relay } from '../../server/relay.mjs';
 import { mulberry32 } from '../sim/rng';
 import { battleRating, type Fighter } from '../sim/battle';
-import { encodeFighter } from '../sim/battlecode';
+import { decodeFighter, encodeFighter } from '../sim/battlecode';
 import { STAT_CAPS } from '../sim/training';
-import { DojoSession } from './dojo';
+import { DojoSession, fetchGhostReport, newGhostKey, sendGhostResult } from './dojo';
 import { LiveError, LiveSession } from './live';
 
 function fighter(stage: number, stats: Fighter['stats'], name = 'Pip'): Fighter {
@@ -217,4 +217,66 @@ describe.each(relays)('dojo over the %s relay', (_, relayUrl) => {
     const bad = new DojoSession(url, 'not-a-real-battle-code');
     await expect(new Promise((_, fail) => (bad.onFail = fail))).rejects.toBe('bad-request');
   });
+});
+
+describe('ghosts', () => {
+  it('carry the pet without its name', () => {
+    const f = fighter(3, { power: 50, speed: 40, guard: 45, wits: 30 }, 'Mochi');
+    const code = namelessCode(encodeFighter(f))!;
+    expect(ratingFromCode(code)).toBe(battleRating(f));
+    const ghost = decodeFighter(code)!;
+    expect(ghost.name).toBe('Pyrollo');
+    expect(ghost.stats).toEqual(f.stats);
+    expect(namelessCode('hello')).toBeNull();
+  });
+
+  const g = (key: string, rating: number, owner: string | null = key) => ({ key, code: key, rating, owner });
+
+  it('pick the closest ghost in the widest window, never your own, not the same one again soon', () => {
+    const me = { id: 'p', rating: 200, owner: 'mine', self: 'mine' };
+    const pool = [g('mine', 200), g('far', 300), g('near', 210), g('nearer', 195, null)];
+    expect(pickGhost(me, pool, 0, new Map())?.key).toBe('nearer');
+    expect(pickGhost(me, pool, 0, new Map([['p|nearer', 0]]))?.key).toBe('near');
+    expect(pickGhost(me, pool, GHOSTS.againMs, new Map([['p|nearer', 0]]))?.key).toBe('nearer');
+    expect(pickGhost(me, [g('mine', 200), g('far', 300)], 0, new Map())).toBeNull();
+  });
+});
+
+const ghostRelays: [string, () => string][] = [['Node', () => ghostUrl]];
+if (process.env.PHP_RELAY_URL) ghostRelays.push(['PHP', () => process.env.PHP_RELAY_URL!]);
+let ghostRelay: Relay;
+let ghostUrl: string;
+/** Ghosts step in after this long on the Node relay of these tests (the PHP relay is set to PHP_GHOST_AFTER_MS). */
+const GHOST_AFTER_MS = 800;
+const PHP_GHOST_AFTER_MS = Number(process.env.PHP_GHOST_AFTER_MS) || 8000;
+beforeAll(async () => {
+  ghostRelay = createRelay({ ghostAfterMs: GHOST_AFTER_MS });
+  ghostUrl = `ws://127.0.0.1:${await ghostRelay.listen(0, '127.0.0.1')}/relay`;
+});
+afterAll(() => ghostRelay.close());
+
+describe.each(ghostRelays)('ghosts over the %s relay', (kind, relayUrl) => {
+  it('lets a lone pet fight another pet’s nameless ghost, and tells that pet’s owner how it did', async () => {
+    const url = relayUrl();
+    // Pip visits the dojo and leaves: it stays behind as a ghost.
+    const pipKey = newGhostKey();
+    const pip = fighter(2, { power: 58, speed: 58, guard: 58, wits: 58 }, 'Pip');
+    const visit = new DojoSession(url, encodeFighter(pip), pipKey);
+    await new Promise((r) => setTimeout(r, 400));
+    visit.close();
+    // Mochi waits alone and meets Pip's ghost.
+    const mochi = new DojoSession(url, encodeFighter(fighter(2, { power: 57, speed: 57, guard: 57, wits: 57 }, 'Mochi')), newGhostKey());
+    const met = await new Promise<{ foe: string; ticket: string }>((done, fail) => {
+      mochi.onGhost = done;
+      mochi.onFail = (code) => fail(new Error(code));
+    });
+    const ghost = decodeFighter(met.foe)!;
+    expect(ghost.stats).toEqual(pip.stats);
+    expect(ghost.name).not.toBe('Pip');
+    // The ghost won; its owner hears it once.
+    await sendGhostResult(url, met.ticket, true);
+    await sendGhostResult(url, met.ticket, true);
+    expect(await fetchGhostReport(url, pipKey)).toEqual({ fights: 1, wins: 1 });
+    expect(await fetchGhostReport(url, pipKey)).toEqual({ fights: 0, wins: 0 });
+  }, (kind === 'PHP' ? PHP_GHOST_AFTER_MS + 30_000 : GHOST_AFTER_MS + 10_000));
 });

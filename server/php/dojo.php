@@ -117,3 +117,56 @@ function take_closest(array $candidates): array
     }
     return $pairs;
 }
+
+/**
+ * Ghosts, as in server/dojo.mjs: pets that visited the dojo, kept without their names, step in for a player who has
+ * waited this long alone. Kept this long and at most this many; the same player meets the same ghost again only
+ * after a while; a ghost battle's result is taken back once, within a while; owners' tallies wait to be fetched.
+ */
+const GHOST_AFTER_MS = 20_000;
+const GHOST_KEEP_MS = 7 * 24 * 60 * 60_000;
+const GHOST_MAX_POOL = 300;
+const GHOST_AGAIN_MS = 10 * 60_000;
+const GHOST_TICKET_MS = 15 * 60_000;
+const GHOST_TALLY_KEEP_MS = 30 * 24 * 60 * 60_000;
+const GHOST_MAX_TALLIES = 5000;
+/** A ghost owner's secret key, as the game makes it. */
+const GHOST_KEY = '/^[A-Za-z0-9_-]{16,64}$/';
+
+/** The same pet's battle code without its name (a space, which the game shows as the species), or null. */
+function nameless_code(mixed $code): ?string
+{
+    if (rating_from_code($code) === null) return null;
+    $bytes = array_slice(array_values(unpack('C*', base64_decode(strtr($code, '-_', '+/')))), 0, 10);
+    $bytes[] = 0x20;
+    $bytes[] = checksum($bytes);
+    return rtrim(strtr(base64_encode(pack('C*', ...$bytes)), '+/', '-_'), '=');
+}
+
+/** A short hash of an owner's key or a ghost's code, the same as the Node relay's. */
+function ghost_hash(string $text): string
+{
+    return substr(hash('sha256', $text), 0, 32);
+}
+
+/**
+ * The ghost a waiting player meets: the closest in strength within the dojo's widest window, never the player's own
+ * pet, and not one they met lately. $player: id, rating, owner (hash or null), self (its own ghost's key).
+ */
+function pick_ghost(array $player, array $pool, int $now, array $met): ?array
+{
+    $allowed = max(DOJO_MIN_POINTS, $player['rating'] * DOJO_MAX_WINDOW);
+    $best = null;
+    $bestDiff = INF;
+    foreach ($pool as $g) {
+        if (($player['owner'] && $g['owner'] === $player['owner']) || $g['key'] === ($player['self'] ?? null)) continue;
+        $diff = abs($g['rating'] - $player['rating']);
+        if ($diff > $allowed) continue;
+        if ($now - ($met[$player['id'] . '|' . $g['key']] ?? PHP_INT_MIN) < GHOST_AGAIN_MS) continue;
+        if ($diff < $bestDiff) {
+            $best = $g;
+            $bestDiff = $diff;
+        }
+    }
+    return $best;
+}

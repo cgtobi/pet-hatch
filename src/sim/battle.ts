@@ -23,6 +23,8 @@ export interface Fighter {
   rank?: WildRank;
   /** A wild creature's traits. */
   traits?: WildTrait[];
+  /** Another player's pet, met in the dojo while nobody else was there and played by the computer: half rewards. */
+  ghost?: boolean;
 }
 
 export type MoveId = 'tackle' | 'element' | 'rush' | 'focus' | 'crush' | 'flurry' | 'shell' | 'trick';
@@ -93,6 +95,8 @@ export const MAX_TURNS = 40;
 export const BATTLE_ENERGY = 25;
 const BATTLE_HUNGER = 8;
 const WIN_REWARD = 2;
+/** A ghost battle's stat gain and experience, against a real one's. */
+const GHOST_SHARE = 0.5;
 /**
  * A win against another pet (not a wild creature) this much stronger, by battle rating, is an upset and earns double
  * the stat points.
@@ -577,7 +581,7 @@ export function finishBattle(pet: PetState, outcome: Outcome, seed: number, summ
   const cap = STAT_CAPS[Math.min(pet.stage, STAT_CAPS.length - 1)];
   const open = () => STATS.filter((s) => pet.stats[s] < cap);
 
-  reward.xp = Math.round(battleXp(pet, outcome, summary) * spec.xp);
+  reward.xp = Math.round(battleXp(pet, outcome, summary) * spec.xp * (summary.foe.ghost ? GHOST_SHARE : 1));
   // Against wild creatures, the run of form: a win +1, a loss −2 (running away changes nothing).
   if (rank && outcome !== 'fled') {
     pet.wildHeat = clamp((pet.wildHeat ?? 0) + (outcome === 'won' ? 1 : -2), HEAT_MIN, HEAT_MAX);
@@ -601,7 +605,9 @@ export function finishBattle(pet: PetState, outcome: Outcome, seed: number, summ
     if (choices.length) {
       const stat = choices[Math.floor(rand() * choices.length)];
       reward.stat = stat;
-      const points = rank ? spec.reward : WIN_REWARD * (reward.upset ? 2 : 1);
+      const points = rank
+        ? spec.reward
+        : WIN_REWARD * (reward.upset ? 2 : 1) * (summary.foe.ghost ? GHOST_SHARE : 1);
       reward.gain = Math.min(points, cap - pet.stats[stat]);
       pet.stats[stat] += reward.gain;
     }

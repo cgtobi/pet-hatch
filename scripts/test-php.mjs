@@ -74,10 +74,12 @@ function vitest(args, env) {
 let status = 0;
 // The game's tests all come from one address, so the per-visitor limit is off for them.
 // Uneven dojo offers come after 1.5 s here instead of 40 s, as in src/net/dojo.test.ts.
-let relay = await start({ PETHATCH_MAX_PER_IP: '0', PETHATCH_DOJO_OFFER_AFTER_MS: '1500' });
+// Ghosts step in late enough not to disturb the other dojo tests, which wait a few seconds at most.
+const GHOST_AFTER_MS = '8000';
+let relay = await start({ PETHATCH_MAX_PER_IP: '0', PETHATCH_DOJO_OFFER_AFTER_MS: '1500', PETHATCH_DOJO_GHOST_AFTER_MS: GHOST_AFTER_MS });
 try {
   // Over HTTP a message takes up to a poll step to arrive, so a whole battle takes a few seconds longer.
-  status ||= vitest(['src/net', '--testTimeout=60000'], { PHP_RELAY_URL: url });
+  status ||= vitest(['src/net', '--testTimeout=60000'], { PHP_RELAY_URL: url, PHP_GHOST_AFTER_MS: GHOST_AFTER_MS });
 } finally {
   relay.stop();
 }

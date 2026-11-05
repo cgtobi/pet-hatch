@@ -372,10 +372,27 @@ A public waiting room for live battles against strangers of similar strength.
   that turned each other down isn't offered again for 10 minutes. The weaker side has a reason to accept: an
   upset win pays double (see Battles).
 - **Anonymous:** dojo opponents are shown by species and type only, never by the name their owner typed.
+- **Ghosts:** a pet that visits the dojo stays behind as a **ghost**: its battle code without its name (the relay
+  replaces the name itself, so a typed name never reaches anyone), kept 7 days after its last visit (at most 300;
+  a returning pet replaces its older self). A player who has waited **20 s** without a match meets the ghost
+  closest in strength within ±35% (never their own pet, and not the same ghost again within 10 minutes): "Ghost
+  Tsunamaw" appears ("Nobody else is here right now. Ghost Tsunamaw steps in!") and the computer plays it on the
+  player's phone, like a friend's battle code. A ghost battle costs the usual energy but gives **half the
+  reward**: half the stat points for a win (an upset still doubles them) and half the experience.
+- **Ghost news for the owner:** each pet has a secret ghost key (`ghostKey`, made on its first dojo visit); the
+  relay keeps only a hash of it. The player who fought a ghost sends its result with a one-time ticket (valid
+  15 minutes), and the relay adds it to the owner's tally (kept 30 days, at most 5000). When the owner's game opens
+  or comes back to the foreground (at most every 10 minutes) it fetches and clears the tally and says, for example,
+  "While you were away, Pip's ghost fought 3 battles in the dojo and won 2." The totals are kept on the pet
+  (`ghost`); the pet itself never changes from others' fights. Games that know ghosts say so when they join
+  (`?ghosts=1`), so older games never meet one and don't become one.
 - **Relay side** (`server/dojo.mjs`, `/dojo` WebSocket): a queue of waiting players, a matching pass every
   second, and a room reserved for each pair so both can arrive in any order; it closes if they don't both arrive
-  within 30 s (the game then simply goes back to waiting). Up to 500 waiting players; nothing is stored. A game
-  that can answer offers says so when it joins (`?offers=1`), so older games are only ever matched normally.
+  within 30 s (the game then simply goes back to waiting). Up to 500 waiting players. A game that can answer
+  offers says so when it joins (`?offers=1`), so older games are only ever matched normally. Ghosts and tallies
+  live in memory on the Node relay (gone on a restart) and in `relay-data/ghosts.php` on the PHP relay; results
+  and reports go over plain HTTP (`POST …/ghost` next to `…/relay`, or `relay.php` with `a: ghost-result` /
+  `ghost-report`).
 
 ### Family ✅
 

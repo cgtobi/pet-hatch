@@ -10,6 +10,8 @@
  *   send  { id, msgs }    – forward messages to the other player in the room
  *   poll  { id, after }   – messages newer than `after`, waiting up to POLL_WAIT_MS for some
  *   leave { id, msgs? }   – last messages, then leave
+ *   ghost-result { ticket, won } – how a ghost battle went, from the ghost's side (once per ticket)
+ *   ghost-report { key }         – an owner's ghost tally since it last asked (then a new one starts)
  * Replies: { id?, msgs: [[seq, text], …], closed?, gone? }. A connection that stops polling counts as
  * gone, as if its socket had closed. Messages are forwarded as they are (except any that pretend to come from the
  * relay itself, which are dropped); the relay knows nothing about battles.
@@ -235,7 +237,7 @@ function within_rate(array &$s, string $id, int $now, int $count): bool
 
 /** Forward a client's messages to the other player in its room (the dojo has nobody to forward to). */
 /** Message types only the relay itself sends (errors, room and dojo news, matches and offers). */
-const RELAY_TYPES = ['error', 'room', 'dojo', 'match', 'offer', 'offer-off'];
+const RELAY_TYPES = ['error', 'room', 'dojo', 'match', 'offer', 'offer-off', 'ghost'];
 
 function speaks_for_relay(string $text): bool
 {
@@ -321,6 +323,12 @@ function cleanup(array &$s, int $now): void
     }
     foreach ($s['declined'] ?? [] as $key => $at) {
         if ($now - $at >= DOJO_DECLINED_MS) unset($s['declined'][$key]);
+    }
+    foreach ($s['tickets'] ?? [] as $ticket => $t) {
+        if ($now > $t['until']) unset($s['tickets'][$ticket]);
+    }
+    foreach ($s['met'] ?? [] as $key => $at) {
+        if ($now - $at > GHOST_AGAIN_MS) unset($s['met'][$key]);
     }
     // An offer nobody answered in time counts as a no.
     foreach (array_keys($s['conns']) as $id) {
@@ -438,7 +446,7 @@ function announce_dojo(array &$s): void
     foreach ($ids as $id) push($s, $id, message(['t' => 'dojo', 'players' => count($ids) - 1]));
 }
 
-function join_dojo(array &$s, int $now, int $rating, string $player, string $code, bool $offers): array
+function join_dojo(array &$s, int $now, int $rating, string $player, string $code, bool $offers, ?array $ghost = null): array
 {
     if (count(waiting($s)) >= DOJO_MAX_PLAYERS || !visitor_has_room($s)) return refused('busy');
     $id = new_conn($s, $now, [
@@ -451,6 +459,8 @@ function join_dojo(array &$s, int $now, int $rating, string $player, string $cod
         // Games that can answer uneven offers say so; older ones are never asked.
         'offers' => $offers,
         'offer' => null,
+        // Games that know ghosts: their pet's ghost key and owner hash (see keep_ghost), so they never meet their own.
+        'ghost' => $ghost,
     ]);
     announce_dojo($s);
     return deliver($s, $id, 0);
@@ -468,6 +478,12 @@ function offer_after_ms(): int
  * closest of those who've waited long enough to each other, however far apart (see dojo.php).
  */
 function match_dojo(array &$s, int $now): void
+{
+    match_players($s, $now);
+    meet_ghosts($s, $now);
+}
+
+function match_players(array &$s, int $now): void
 {
     $ids = array_values(array_filter(waiting($s), fn ($id) => empty($s['conns'][$id]['offer'])));
     if (count($ids) < 2 || count($s['rooms']) >= MAX_ROOMS) return;
@@ -494,6 +510,78 @@ function match_dojo(array &$s, int $now): void
         }
     }
     if ($paired) announce_dojo($s);
+}
+
+// ---------- ghosts ----------
+
+/** When a lone player meets a ghost, in ms; PETHATCH_DOJO_GHOST_AFTER_MS changes it (tests use a few seconds). */
+function ghost_after_ms(): int
+{
+    $env = getenv('PETHATCH_DOJO_GHOST_AFTER_MS');
+    return $env === false || $env === '' ? GHOST_AFTER_MS : max(0, (int) $env);
+}
+
+/**
+ * Keep a visiting pet as a ghost (ghosts.php), without its name; a returning pet replaces its older self. Never
+ * fails the visit.
+ */
+function keep_ghost(string $code, int $rating, array $ghost): void
+{
+    $nameless = nameless_code($code);
+    if ($nameless === null) return;
+    try {
+        with_data('ghosts.php', function (mixed &$data) use ($nameless, $rating, $ghost) {
+            if (!is_array($data)) $data = ['pool' => [], 'tallies' => []];
+            $now = now_ms();
+            unset($data['pool'][$ghost['self']]);
+            $data['pool'][$ghost['self']] = ['key' => $ghost['self'], 'code' => $nameless, 'rating' => $rating, 'owner' => $ghost['owner'], 'at' => $now];
+            $data['pool'] = array_filter($data['pool'], fn ($g) => $now - $g['at'] <= GHOST_KEEP_MS);
+            // Oldest first: drop from the front.
+            if (count($data['pool']) > GHOST_MAX_POOL) $data['pool'] = array_slice($data['pool'], -GHOST_MAX_POOL, null, true);
+        });
+    } catch (DataUnavailable) {
+        // Ghosts are a bonus; the dojo works without them.
+    }
+}
+
+/** Players who have waited long enough alone meet a ghost; they leave the dojo like a match. */
+function meet_ghosts(array &$s, int $now): void
+{
+    $pool = null;
+    $met = false;
+    foreach (waiting($s) as $id) {
+        $c = $s['conns'][$id];
+        if (empty($c['ghost']) || !empty($c['offer']) || $now - $c['joinedAt'] < ghost_after_ms()) continue;
+        $pool ??= array_values((read_data('ghosts.php') ?? [])['pool'] ?? []);
+        $player = ['id' => $c['player'], 'rating' => $c['rating'], 'owner' => $c['ghost']['owner'], 'self' => $c['ghost']['self']];
+        $g = pick_ghost($player, $pool, $now, $s['met'] ?? []);
+        if (!$g) continue;
+        $s['met'][$c['player'] . '|' . $g['key']] = $now;
+        $ticket = rtrim(strtr(base64_encode(random_bytes(12)), '+/', '-_'), '=');
+        if ($g['owner']) $s['tickets'][$ticket] = ['owner' => $g['owner'], 'until' => $now + GHOST_TICKET_MS];
+        push($s, $id, message(['t' => 'ghost', 'foe' => $g['code'], 'ticket' => $ticket, 'rating' => $c['rating'], 'foeRating' => $g['rating']]));
+        $s['conns'][$id]['waiting'] = false;
+        $s['conns'][$id]['closed'] = true;
+        $met = true;
+    }
+    if ($met) announce_dojo($s);
+}
+
+/** Add a ghost battle's result to its owner's tally. */
+function tally_ghost(string $owner, bool $won): void
+{
+    try {
+        with_data('ghosts.php', function (mixed &$data) use ($owner, $won) {
+            if (!is_array($data)) $data = ['pool' => [], 'tallies' => []];
+            $now = now_ms();
+            $t = $data['tallies'][$owner] ?? ['fights' => 0, 'wins' => 0];
+            unset($data['tallies'][$owner]);
+            $data['tallies'][$owner] = ['fights' => $t['fights'] + 1, 'wins' => $t['wins'] + ($won ? 1 : 0), 'at' => $now];
+            $data['tallies'] = array_filter($data['tallies'], fn ($x) => $now - $x['at'] <= GHOST_TALLY_KEEP_MS);
+            if (count($data['tallies']) > GHOST_MAX_TALLIES) $data['tallies'] = array_slice($data['tallies'], -GHOST_MAX_TALLIES, null, true);
+        });
+    } catch (DataUnavailable) {
+    }
 }
 
 /** Send two dojo players into a fresh room, as host and guest. */
@@ -579,10 +667,45 @@ switch (field($req, 'a')) {
         $player = $id;
         $battleCode = $req['code'];
         $offers = in_array($req['offers'] ?? null, [true, '1'], true);
-        $joined = with_state(fn (array &$s, int $now) => join_dojo($s, $now, $rating, $player, $battleCode, $offers));
+        // Games that know ghosts: their pet becomes one, and they may meet others.
+        $ghost = null;
+        if (in_array($req['ghosts'] ?? null, [true, '1'], true)) {
+            $key = field($req, 'key');
+            $owner = preg_match(GHOST_KEY, $key) ? ghost_hash($key) : null;
+            $ghost = ['owner' => $owner, 'self' => $owner ?? ghost_hash((string) nameless_code($battleCode))];
+        }
+        $joined = with_state(fn (array &$s, int $now) => join_dojo($s, $now, $rating, $player, $battleCode, $offers, $ghost));
         // Only pets that actually got in count (not ones turned away because the dojo is full).
-        if (isset($joined['id'])) count_dojo_pet($req['code']);
+        if (isset($joined['id'])) {
+            count_dojo_pet($req['code']);
+            if ($ghost) keep_ghost($battleCode, $rating, $ghost);
+        }
         reply($joined);
+
+    case 'ghost-result':
+        $ticket = field($req, 'ticket');
+        $owner = with_state(function (array &$s, int $now) use ($ticket) {
+            $t = $s['tickets'][$ticket] ?? null;
+            unset($s['tickets'][$ticket]);
+            return $t && $now <= $t['until'] ? $t['owner'] : null;
+        });
+        if (is_string($owner)) tally_ghost($owner, ($req['won'] ?? false) === true);
+        reply([]);
+
+    case 'ghost-report':
+        $key = field($req, 'key');
+        if (!preg_match(GHOST_KEY, $key)) reply(refused('bad-request'), 400);
+        $owner = ghost_hash($key);
+        try {
+            $t = with_data('ghosts.php', function (mixed &$data) use ($owner) {
+                $t = is_array($data) ? ($data['tallies'][$owner] ?? null) : null;
+                if ($t) unset($data['tallies'][$owner]);
+                return $t;
+            });
+        } catch (DataUnavailable) {
+            $t = null;
+        }
+        reply(['fights' => $t['fights'] ?? 0, 'wins' => $t['wins'] ?? 0]);
 
     case 'send':
         reply(with_state(function (array &$s, int $now) use ($id, $req) {

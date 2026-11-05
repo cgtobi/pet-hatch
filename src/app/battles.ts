@@ -8,6 +8,7 @@ import { CHALLENGE_PARAM, encodeFighter } from '../sim/battlecode';
 import { randomSeed } from '../sim/rng';
 import { canTrain, finishTraining, startTraining, type TrainStat } from '../sim/training';
 import type { ElementType } from '../sim/types';
+import { newGhostKey } from '../net/dojo';
 import { Arena } from '../ui/arena';
 import { Training } from '../ui/training';
 import type { Game } from './context';
@@ -79,6 +80,14 @@ export function setUpBattles(g: Game): Arena {
       url.hash = '';
       url.searchParams.set(CHALLENGE_PARAM, code);
       return { code, link: url.toString() };
+    },
+    ghostKey: () => {
+      const pet = g.state.pet!;
+      if (!pet.ghostKey) {
+        pet.ghostKey = newGhostKey();
+        g.save();
+      }
+      return pet.ghostKey;
     },
     liveLink: (room) => {
       const url = new URL(location.href);

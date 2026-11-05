@@ -7,13 +7,14 @@
  *
  *   PORT=8787 STATIC_DIR=dist node server/relay.mjs
  */
+import { createHash, randomBytes } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { extname, join, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { WebSocketServer } from 'ws';
-import { DOJO, findOffers, findPairs, pairKey, ratingFromCode } from './dojo.mjs';
+import { DOJO, findOffers, findPairs, GHOSTS, namelessCode, pairKey, pickGhost, ratingFromCode } from './dojo.mjs';
 
 /**
  * The relay's WebSocket path. Matched by suffix, so it also works under a path prefix (e.g. Home Assistant
@@ -61,9 +62,6 @@ const TYPES = {
 };
 
 /**
- * @param {{ staticDir?: string | null, log?: (msg: string) => void, maxPerVisitor?: number, offerAfterMs?: number }} [options]
- */
-/**
  * Who is asking, for the per-visitor limit: the IP address, an IPv6 one cut to its /64 (a home or phone gets a
  * whole /64 and can pick any address in it). Exported for tests.
  * @param {string | undefined} address
@@ -84,8 +82,11 @@ function maxPerVisitorFromEnv() {
   return env === undefined || env === '' ? MAX_PER_IP : Number(env) || 0;
 }
 
-/** Message types only the relay itself sends (errors, room and dojo news, matches and offers). */
-const RELAY_TYPES = new Set(['error', 'room', 'dojo', 'match', 'offer', 'offer-off']);
+/** Message types only the relay itself sends (errors, room and dojo news, matches, offers and ghosts). */
+const RELAY_TYPES = new Set(['error', 'room', 'dojo', 'match', 'offer', 'offer-off', 'ghost']);
+/** A ghost owner's secret key, as the game makes it. */
+const GHOST_KEY = /^[A-Za-z0-9_-]{16,64}$/;
+const hashOf = (text) => createHash('sha256').update(text).digest('hex').slice(0, 32);
 
 /**
  * Whether a player's message pretends to come from the relay, e.g. a fake error that would end the other
@@ -101,11 +102,16 @@ export function speaksForRelay(text) {
   }
 }
 
+/**
+ * @param {{ staticDir?: string | null, log?: (msg: string) => void, maxPerVisitor?: number, offerAfterMs?: number,
+ *   ghostAfterMs?: number }} [options]
+ */
 export function createRelay({
   staticDir = null,
   log = () => {},
   maxPerVisitor = maxPerVisitorFromEnv(),
   offerAfterMs = DOJO.offerAfterMs,
+  ghostAfterMs = GHOSTS.afterMs,
 } = {}) {
   /** @type {Map<string, { peers: Set<import('ws').WebSocket>, timer: NodeJS.Timeout | undefined }>} */
   const rooms = new Map();
@@ -130,6 +136,7 @@ export function createRelay({
   /** @param {import('node:http').IncomingMessage} req @param {import('node:http').ServerResponse} res */
   const serve = async (req, res) => {
     const url = new URL(req.url ?? '/', 'http://localhost');
+    if (url.pathname.endsWith('/ghost')) return serveGhost(req, res);
     if (url.pathname.endsWith('/relay.json')) {
       res.writeHead(200, { 'content-type': TYPES['.json'], 'cache-control': 'no-store' });
       // Relative to the page, so the game connects through the same prefix it was loaded from.
@@ -318,8 +325,21 @@ export function createRelay({
     const id = (url.searchParams.get('id') ?? '').slice(0, 40);
     if (rating === null || !id) return reject(ws, 'bad-request');
     if (waiting.size >= DOJO.maxPlayers) return reject(ws, 'busy');
-    // Games that can answer uneven offers say so (offers=1); older ones are never asked.
-    const entry = { ws, id, rating, code: battleCode, joinedAt: Date.now(), offers: url.searchParams.get('offers') === '1', offer: null };
+    // Games that can answer uneven offers say so (offers=1); older ones are never asked. Games that know ghosts
+    // say so too (ghosts=1): their pet joins the ghosts, and they may meet one.
+    const key = url.searchParams.get('key') ?? '';
+    const entry = {
+      ws,
+      id,
+      rating,
+      code: battleCode,
+      joinedAt: Date.now(),
+      offers: url.searchParams.get('offers') === '1',
+      offer: null,
+      ghosts: url.searchParams.get('ghosts') === '1',
+      owner: GHOST_KEY.test(key) ? hashOf(key) : null,
+    };
+    if (entry.ghosts) keepGhost(entry);
     waiting.set(ws, entry);
     announceDojo();
     const stopPing = keepAlive(ws);
@@ -345,8 +365,96 @@ export function createRelay({
 
   /**
    * @typedef {{ ws: import('ws').WebSocket, id: string, rating: number, code: string, joinedAt: number, offers: boolean,
-   *   offer: { with: DojoEntry, until: number, yes: boolean } | null }} DojoEntry
+   *   offer: { with: DojoEntry, until: number, yes: boolean } | null, ghosts: boolean, owner: string | null,
+   *   self?: string }} DojoEntry
    */
+
+  // ---------- ghosts ----------
+
+  /** Ghosts by key (the owner's hash, or the pet's code for games without a key). */
+  const ghostPool = new Map();
+  /** Ghost battles under way: ticket → the ghost's owner, until when its result is taken. */
+  const tickets = new Map();
+  /** Results waiting for their owners: owner hash → { fights, wins, at }. */
+  const tallies = new Map();
+  /** Who met which ghost lately: player id|ghost key → when. */
+  const metGhosts = new Map();
+
+  /** Keep a visiting pet as a ghost, without its name; a returning pet replaces its older self. @param {DojoEntry} entry */
+  function keepGhost(entry) {
+    const code = namelessCode(entry.code);
+    if (!code) return;
+    const key = entry.owner ?? hashOf(code);
+    entry.self = key;
+    ghostPool.delete(key);
+    ghostPool.set(key, { key, code, rating: entry.rating, owner: entry.owner, at: Date.now() });
+    // Oldest first in a Map: drop from the front.
+    while (ghostPool.size > GHOSTS.maxPool) ghostPool.delete(ghostPool.keys().next().value);
+  }
+
+  /** Send a waiting player a ghost to fight; it leaves the dojo like a match. @param {DojoEntry} entry */
+  function meetGhost(entry, now) {
+    const ghost = pickGhost(entry, [...ghostPool.values()], now, metGhosts);
+    if (!ghost) return false;
+    metGhosts.set(`${entry.id}|${ghost.key}`, now);
+    const ticket = randomBytes(12).toString('base64url');
+    if (ghost.owner) tickets.set(ticket, { owner: ghost.owner, until: now + GHOSTS.ticketMs });
+    waiting.delete(entry.ws);
+    send(entry.ws, { t: 'ghost', foe: ghost.code, ticket, rating: entry.rating, foeRating: ghost.rating });
+    entry.ws.close(1000, 'ghost');
+    log(`dojo: rating ${entry.rating} meets a ghost of rating ${ghost.rating}`);
+    return true;
+  }
+
+  /**
+   * POST …/ghost: { a: 'ghost-result', ticket, won } records how a ghost did (once per ticket);
+   * { a: 'ghost-report', key } hands an owner its ghost's tally and starts a new one.
+   */
+  async function serveGhost(req, res) {
+    const reply = (status, body) => {
+      res.writeHead(status, {
+        'content-type': TYPES['.json'],
+        'cache-control': 'no-store',
+        // The game may come from another host than the relay (VITE_RELAY_URL).
+        'access-control-allow-origin': '*',
+        'access-control-allow-methods': 'POST',
+        'access-control-allow-headers': 'content-type',
+      });
+      res.end(body === null ? undefined : JSON.stringify(body));
+    };
+    if (req.method === 'OPTIONS') return reply(204, null);
+    if (req.method !== 'POST') return reply(405, { error: 'POST only' });
+    let text = '';
+    for await (const chunk of req) {
+      text += chunk;
+      if (text.length > 1024) return reply(413, { error: 'too big' });
+    }
+    let m;
+    try {
+      m = JSON.parse(text);
+    } catch {
+      return reply(400, { error: 'bad-request' });
+    }
+    const now = Date.now();
+    if (m?.a === 'ghost-result' && typeof m.ticket === 'string') {
+      const t = tickets.get(m.ticket);
+      tickets.delete(m.ticket);
+      if (t && now <= t.until) {
+        const tally = tallies.get(t.owner) ?? { fights: 0, wins: 0, at: now };
+        tallies.delete(t.owner);
+        tallies.set(t.owner, { fights: tally.fights + 1, wins: tally.wins + (m.won === true ? 1 : 0), at: now });
+        while (tallies.size > GHOSTS.maxTallies) tallies.delete(tallies.keys().next().value);
+      }
+      return reply(200, {});
+    }
+    if (m?.a === 'ghost-report' && typeof m.key === 'string' && GHOST_KEY.test(m.key)) {
+      const owner = hashOf(m.key);
+      const tally = tallies.get(owner);
+      tallies.delete(owner);
+      return reply(200, { fights: tally?.fights ?? 0, wins: tally?.wins ?? 0 });
+    }
+    return reply(400, { error: 'bad-request' });
+  }
 
   /** @param {DojoEntry} entry @param {boolean} yes */
   function answerOffer(entry, yes) {
@@ -410,11 +518,25 @@ export function createRelay({
    */
   function matchDojo() {
     const now = Date.now();
+    for (const [key, g] of ghostPool) if (now - g.at > GHOSTS.keepMs) ghostPool.delete(key);
+    for (const [ticket, t] of tickets) if (now > t.until) tickets.delete(ticket);
+    for (const [owner, tally] of tallies) if (now - tally.at > GHOSTS.tallyKeepMs) tallies.delete(owner);
+    for (const [key, at] of metGhosts) if (now - at > GHOSTS.againMs) metGhosts.delete(key);
     for (const [key, at] of recent) if (now - at > DOJO.rematchMs) recent.delete(key);
     for (const [key, at] of declinedPairs) if (now - at >= DOJO.declinedMs) declinedPairs.delete(key);
     for (const [visitor, m] of misses) if (now - m.since >= ROOM_MISS_WINDOW_MS) misses.delete(visitor);
     // An offer nobody answered in time counts as a no.
     for (const entry of waiting.values()) if (entry.offer && now > entry.offer.until) cancelOffer(entry, true);
+    matchPlayers(now);
+    // Nobody to fight after a while: a ghost steps in (for games that know ghosts, and not during an offer).
+    let met = false;
+    for (const entry of [...waiting.values()]) {
+      if (entry.ghosts && !entry.offer && now - entry.joinedAt >= ghostAfterMs) met = meetGhost(entry, now) || met;
+    }
+    if (met) announceDojo();
+  }
+
+  function matchPlayers(now) {
     const free = [...waiting.values()].filter((e) => !e.offer);
     if (free.length < 2 || rooms.size >= MAX_ROOMS) return;
     const paired = new Set();
@@ -455,10 +577,15 @@ export function createRelay({
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const fallback = resolve(import.meta.dirname, '..', 'dist');
   const staticDir = process.env.STATIC_DIR ?? (existsSync(fallback) ? fallback : null);
-  // PETHATCH_DOJO_OFFER_AFTER_MS changes when uneven offers start (as for the PHP relay; handy for trying them out).
-  const offerEnv = process.env.PETHATCH_DOJO_OFFER_AFTER_MS;
-  const offerAfterMs = offerEnv ? Math.max(0, Number(offerEnv) || 0) : undefined;
-  const relay = createRelay({ staticDir, offerAfterMs, log: (m) => console.log(m) });
+  // PETHATCH_DOJO_OFFER_AFTER_MS and PETHATCH_DOJO_GHOST_AFTER_MS change when uneven offers start and ghosts step in
+  // (as for the PHP relay; handy for trying them out).
+  const ms = (name) => (process.env[name] ? Math.max(0, Number(process.env[name]) || 0) : undefined);
+  const relay = createRelay({
+    staticDir,
+    offerAfterMs: ms('PETHATCH_DOJO_OFFER_AFTER_MS'),
+    ghostAfterMs: ms('PETHATCH_DOJO_GHOST_AFTER_MS'),
+    log: (m) => console.log(m),
+  });
   const port = await relay.listen(Number(process.env.PORT) || 8787, process.env.HOST);
   console.log(`Pet Hatch relay on :${port}${PATH}${staticDir ? `, serving ${staticDir}` : ''}`);
 }

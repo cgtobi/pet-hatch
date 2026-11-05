@@ -1,5 +1,5 @@
 import { t } from '../i18n';
-import { DojoSession } from '../net/dojo';
+import { DojoSession, sendGhostResult } from '../net/dojo';
 import { LiveError, LiveSession, newRoomCode, parseRoomCode, type LiveErrorCode } from '../net/live';
 import {
   BATTLE_ENERGY,
@@ -38,6 +38,8 @@ export interface ArenaHandlers {
   wildFoe(): Fighter;
   /** This pet's battle code and challenge link. */
   myCode(): { code: string; link: string };
+  /** This pet's secret ghost key (made the first time it's needed). */
+  ghostKey(): string;
   /** Invite link for a live battle room. */
   liveLink(room: string): string;
   share(text: string, link: string): void;
@@ -77,6 +79,8 @@ export class Arena {
   private dojo: DojoSession | null = null;
   /** The current fight came from the dojo: opponents stay anonymous and "Fight again" re-enters. */
   private fromDojo = false;
+  /** Fighting a ghost: the ticket that sends its result back to its owner. */
+  private ghostTicket: string | null = null;
   /** How long a matched pair may take to meet in their room before both go back to waiting. */
   private static DOJO_MEET_MS = 20_000;
 
@@ -331,7 +335,7 @@ export class Arena {
       this.s.busy = false;
     };
 
-    const dojo = (this.dojo = new DojoSession(this.relay, this.h.myCode().code));
+    const dojo = (this.dojo = new DojoSession(this.relay, this.h.myCode().code, this.h.ghostKey()));
     dojo.onPlayers = (n) => {
       players.textContent = n === 0 ? t('dojo.empty') : n === 1 ? t('dojo.one') : t('dojo.players', { n });
     };
@@ -364,6 +368,15 @@ export class Arena {
       offer.hidden = true;
       status.textContent = t('dojo.waiting');
       this.s.layout();
+    };
+    // Nobody to fight: another player's pet steps in as a ghost, played here by the computer.
+    dojo.onGhost = ({ foe, ticket }) => {
+      if (run !== this.run) return;
+      this.dojo = null;
+      const f = decodeFighter(foe);
+      if (!f) return this.enterDojo();
+      this.ghostTicket = ticket;
+      void this.fight({ ...f, name: t('dojo.ghostName', { species: speciesName(f.type, f.form) }), ghost: true });
     };
     dojo.onMatch = (room, role, foe) => {
       if (run !== this.run) return;
@@ -453,8 +466,14 @@ export class Arena {
     live?: { session: LiveSession; seed: number; a: Fighter; b: Fighter },
   ): Promise<void> {
     const pet = this.h.pet();
-    if (!live) this.leave();
-    const dojoFight = this.fromDojo && !!live;
+    if (!live) {
+      // A ghost comes from the dojo, which "Fight again" goes back to.
+      const ghostFromDojo = this.fromDojo && !!foe.ghost;
+      this.leave();
+      this.fromDojo = ghostFromDojo;
+    }
+    if (!foe.ghost) this.ghostTicket = null;
+    const dojoFight = this.fromDojo && (!!live || !!foe.ghost);
     this.run++;
     const run = this.run;
     this.foe = foe;
@@ -511,8 +530,10 @@ export class Arena {
     this.log(
       foe.wild
         ? t('battle.appearWild', { species: foe.name })
-        : dojoFight
-          ? t('dojo.appear', { species: foe.name })
+        : foe.ghost
+          ? t('dojo.ghostAppear', { name: foe.name })
+          : dojoFight
+            ? t('dojo.appear', { species: foe.name })
           : t('battle.appearFriend', { name: foe.name, species: speciesName(foe.type, foe.form) }),
     );
     await wait(1300);
@@ -652,6 +673,9 @@ export class Arena {
       gaveUp: !!how.gaveUp,
     };
     const reward = this.h.finish(outcome, foe, summary);
+    // A ghost's owner hears how it did: it won unless this pet did.
+    if (foe.ghost && this.ghostTicket && this.relay) void sendGhostResult(this.relay, this.ghostTicket, outcome !== 'won');
+    this.ghostTicket = null;
     this.s.busy = false;
     const foeName = this.foeName(foe);
     const body =
@@ -664,7 +688,8 @@ export class Arena {
     const gain =
       (reward.upset ? `<p class="train-goal">${t('battle.upset')}</p>` : '') +
       (outcome === 'won' && reward.rank === 'champion' ? `<p class="train-goal">${t('wild.championWon')}</p>` : '') +
-      (reward.stat ? `<p class="train-gain ${pet.type}">${t('train.gain', { stat: t(`stat.${reward.stat}`), n: reward.gain })}</p>` : '');
+      (reward.stat ? `<p class="train-gain ${pet.type}">${t('train.gain', { stat: t(`stat.${reward.stat}`), n: reward.gain })}</p>` : '') +
+      (foe.ghost && outcome !== 'fled' ? `<p class="muted">${t('dojo.ghostHalf')}</p>` : '');
     // Experience: what this battle added, the bar, and a stat point when the bar filled.
     const capped = !reward.learned && pet.battleXp >= XP_PER_POINT;
     const xp = reward.xp

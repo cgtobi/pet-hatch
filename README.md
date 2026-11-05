@@ -66,7 +66,8 @@ In development, run `npm run relay` next to `npm run dev`; the dev server forwar
 
 For ordinary web hosting with PHP but no way to run Node, there is a PHP relay (`server/php/relay.php`)
 with the same rooms and dojo. It works over plain HTTP (the game long-polls) instead of WebSockets, needs PHP 8.1
-or newer and no database, and keeps its little state in a `relay-data/` folder it creates next to itself.
+or newer and no database, and keeps its little state in a `relay-data/` folder it creates next to itself (live
+connections, the dojo's ghosts and their owners' tallies, and the dojo visitor count).
 
 ```bash
 npm install

@@ -14,6 +14,7 @@ import { sunAt } from './sim/sun';
 import { careLeaning, hatchStage, hoursUntilTurn, speckleMix, TURN_INTERVAL_H } from './sim/egg';
 import { advance, gameNow, isAway, newGame, pickUp } from './sim/game';
 import { ageHours, hygiene, isSleeping, LIFE_STAGES, lifeStageIndex, napCheck, SHELL_DAYS, stageHours } from './sim/pet';
+import { fetchGhostReport } from './net/dojo';
 import { findRelay } from './net/relayConfig';
 import { CHALLENGE_PARAM } from './sim/battlecode';
 import { speciesName } from './sim/evolution';
@@ -399,6 +400,36 @@ if (state.phase === 'hatched' && state.pet) {
 
 // Live battles only show up when this deployment has a relay.
 const relayReady = findRelay().then((url) => (arena.relay = url));
+
+// ---------- ghost news ----------
+
+/** Asking at most this often (on opening the game and coming back to it). */
+const GHOST_CHECK_MS = 10 * 60_000;
+let ghostCheckedAt = 0;
+/** How this pet's ghost did in the dojo since we last asked; told once nothing else is on screen. */
+async function checkGhost(): Promise<void> {
+  const pet = livePet();
+  const relay = await relayReady;
+  if (!relay || !pet?.ghostKey || Date.now() - ghostCheckedAt < GHOST_CHECK_MS) return;
+  ghostCheckedAt = Date.now();
+  const news = await fetchGhostReport(relay, pet.ghostKey);
+  if (!news || news.fights === 0 || state.pet !== pet) return;
+  const total = (pet.ghost ??= { fights: 0, wins: 0 });
+  total.fights += news.fights;
+  total.wins += news.wins;
+  saveGame(state);
+  const body =
+    news.fights === 1
+      ? t(news.wins ? 'ghost.reportOneWon' : 'ghost.reportOneLost', { name: pet.name })
+      : t('ghost.reportMany', { name: pet.name, n: news.fights, wins: news.wins });
+  const tell = () => {
+    if (hud.overlayOpen || sheet.isOpen) return void setTimeout(tell, 5000);
+    hud.showOverlay({ title: t('ghost.reportTitle'), body, button: t('ghost.reportOk'), onClose: () => {} });
+  };
+  setTimeout(tell, 2500);
+}
+void checkGhost();
+document.addEventListener('visibilitychange', () => document.hidden || void checkGhost());
 
 // A friend's challenge or live invite link: open the Battle tab with their code filled in.
 const challenge = params.get(CHALLENGE_PARAM) ?? params.get(LIVE_PARAM);

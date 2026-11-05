@@ -15,6 +15,8 @@ export function createRelay(options?: {
   maxPerVisitor?: number;
   /** How long two pets wait before an uneven offer (tests use less). */
   offerAfterMs?: number;
+  /** How long a player waits alone before a ghost steps in (tests use less). */
+  ghostAfterMs?: number;
 }): Relay;
 
 /** The visitor an address counts as: the IP itself, or an IPv6 address's /64 network. */

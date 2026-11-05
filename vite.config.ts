@@ -133,7 +133,13 @@ self.addEventListener('notificationclick', (event) => {
 export default defineConfig({
   base: './',
   // In development, /relay goes to the live battle relay (npm run relay) on port 8787.
-  server: { proxy: { '/relay': { target: 'ws://localhost:8787', ws: true } } },
+  server: {
+    proxy: {
+      '/relay': { target: 'ws://localhost:8787', ws: true },
+      '/dojo': { target: 'ws://localhost:8787', ws: true },
+      '/ghost': { target: 'http://localhost:8787' },
+    },
+  },
   build: { target: 'es2022', chunkSizeWarningLimit: 1000 },
   // Shown at the bottom of Settings.
   define: { __APP_VERSION__: JSON.stringify(APP_VERSION) },

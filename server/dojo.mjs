@@ -126,3 +126,55 @@ function takeClosest(candidates) {
 }
 
 export const pairKey = (x, y) => (x < y ? `${x}|${y}` : `${y}|${x}`);
+
+/**
+ * Ghosts: pets that visited the dojo, kept without their names, step in when nobody else is around. The game
+ * plays them on the player's own device (like a friend's battle code), and each result goes back to the pet's
+ * owner as a tally, which only the owner's game can fetch (with its secret key; the relay keeps only a hash).
+ */
+export const GHOSTS = {
+  /** A player who has waited this long without a match meets a ghost. */
+  afterMs: 20_000,
+  /** Ghosts are kept this long after their pet's last visit, and at most this many (the oldest go first). */
+  keepMs: 7 * 24 * 60 * 60_000,
+  maxPool: 300,
+  /** The same player doesn't meet the same ghost again within this time. */
+  againMs: 10 * 60_000,
+  /** A ghost battle's result is taken back within this time, once. */
+  ticketMs: 15 * 60_000,
+  /** Owners' tallies wait this long to be fetched, and at most this many. */
+  tallyKeepMs: 30 * 24 * 60 * 60_000,
+  maxTallies: 5000,
+};
+
+/**
+ * The same pet's battle code without its name (a space, which the game shows as the species), or null if it isn't
+ * a valid code. Ghosts only ever carry this, so a name a child typed never reaches anyone else.
+ */
+export function namelessCode(code) {
+  if (ratingFromCode(code) === null) return null;
+  const bytes = Buffer.from(code.replace(/-/g, '+').replace(/_/g, '/'), 'base64');
+  const body = Buffer.concat([bytes.subarray(0, 10), Buffer.from([0x20])]);
+  const all = Buffer.concat([body, Buffer.from([checksum(body)])]);
+  return all.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+/**
+ * The ghost a waiting player meets: the closest in strength within the dojo's widest window, never the player's own
+ * pet, and not one they met lately. Null if none fits.
+ * @param {{ id: string, rating: number, owner: string | null, self?: string }} player  self: its own ghost's key
+ * @param {{ key: string, code: string, rating: number, owner: string | null }[]} pool
+ * @param {Map<string, number>} met  player id|ghost key → when they last met
+ */
+export function pickGhost(player, pool, now, met) {
+  const allowed = Math.max(DOJO.minPoints, player.rating * DOJO.maxWindow);
+  let best = null;
+  for (const g of pool) {
+    if ((player.owner && g.owner === player.owner) || g.key === player.self) continue;
+    const diff = Math.abs(g.rating - player.rating);
+    if (diff > allowed) continue;
+    if (now - (met.get(`${player.id}|${g.key}`) ?? -Infinity) < GHOSTS.againMs) continue;
+    if (!best || diff < best.diff) best = { g, diff };
+  }
+  return best?.g ?? null;
+}

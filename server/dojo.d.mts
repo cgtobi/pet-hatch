@@ -36,3 +36,28 @@ export function findOffers<T extends Waiting>(
   afterMs?: number,
 ): [T, T][];
 export function pairKey(a: string, b: string): string;
+
+export const GHOSTS: {
+  afterMs: number;
+  keepMs: number;
+  maxPool: number;
+  againMs: number;
+  ticketMs: number;
+  tallyKeepMs: number;
+  maxTallies: number;
+};
+/** The same pet's battle code without its name, or null if it isn't a valid code. */
+export function namelessCode(code: string): string | null;
+export interface Ghost {
+  key: string;
+  code: string;
+  rating: number;
+  owner: string | null;
+}
+/** The ghost a waiting player meets, or null if none fits. */
+export function pickGhost<G extends Ghost>(
+  player: { id: string; rating: number; owner: string | null; self?: string },
+  pool: G[],
+  now: number,
+  met: Map<string, number>,
+): G | null;
