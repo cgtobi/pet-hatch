@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.1
+
+- Block training gets 4% faster with each successful block, so a good run ends much faster than it starts.
+- Recall training plays its pattern faster as the pet's Wits and life stage rise: from 600 ms per pad for a new
+  child down to 380 ms for an adult at 100 Wits.
+
 ## 0.9.0
 
 - Battles are rebalanced: no form wins most fights any more. With the same stat points, Power, Speed, Guard and
