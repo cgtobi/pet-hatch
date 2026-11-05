@@ -54,6 +54,26 @@ describe('egg hint', () => {
     expect(eggHint(egg(), at(23), settings, noRush).key).toBe('hint.sleep');
   });
 
+  it('walks the very first egg through four steps, then says when to come back', () => {
+    const e = egg();
+    expect(eggHint(e, at(10), settings, noRush, true)).toEqual({ key: 'hint.step.warm', params: { n: 1, of: 4 } });
+    e.stamps = ['warm', 'mist'];
+    expect(eggHint(e, at(10), settings, noRush, true)).toEqual({ key: 'hint.step.sing', params: { n: 3, of: 4 } });
+    // Out of order: misting first makes warming step 2.
+    const f = egg();
+    f.stamps = ['mist'];
+    expect(eggHint(f, at(10), settings, noRush, true)).toEqual({ key: 'hint.step.warm', params: { n: 2, of: 4 } });
+    e.stamps.push('sing', 'pamper');
+    expect(eggHint(e, at(10), settings, noRush, true).key).toBe('hint.firstDone');
+    e.stamps.push('turn');
+    expect(eggHint(e, at(10), settings, noRush, true).key).not.toBe('hint.firstDone');
+    // Later eggs, and urgent needs, aren't guided.
+    expect(eggHint(egg(), at(10), settings, noRush).key).toBe('hint.firstTime');
+    const cold = egg();
+    cold.warmth = 10;
+    expect(eggHint(cold, at(10), settings, noRush, true).key).toBe('hint.cold');
+  });
+
   it('cracks only from the third stage, fully while breaking out', () => {
     const e = egg();
     expect(crackLevel(e, noRush)).toBe(0);

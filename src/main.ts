@@ -156,7 +156,7 @@ function updateHud() {
       turn: hoursUntilTurn(egg, now) / TURN_INTERVAL_H,
     });
     hud.setLeaning(careLeaning(egg));
-    const hint = eggHint(egg, now, state.settings, eggCare.rush());
+    const hint = eggHint(egg, now, state.settings, eggCare.rush(), state.family.length === 0);
     if (atSchool && !egg.fading) hud.setHint(t('hint.school.egg', { time: schoolEnds() }));
     else if (eggCare.knocking()) hud.setHint(t('hint.knock'));
     else hud.setHint(egg.failed ? '' : t(hint.key, hint.params), hint.urgent);

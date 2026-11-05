@@ -236,6 +236,14 @@ export function migrateEggCare(egg: EggState): void {
   egg.pamperBudget = { warmth: PAMPER_PER_HOUR, humidity: PAMPER_PER_HOUR, bond: PAMPER_PER_HOUR };
 }
 
+/** The very first egg guides the player through these, one at a time; turning comes later (it isn't due yet). */
+export const FIRST_STEPS = ['warm', 'mist', 'sing', 'pamper'] as const satisfies readonly EggStamp[];
+
+/** How many of the first steps the egg has seen. */
+export function firstStepsDone(egg: EggState): number {
+  return FIRST_STEPS.filter((s) => egg.stamps?.includes(s)).length;
+}
+
 /** Give the egg a stamp; true if it is new. */
 export function stampEgg(egg: EggState, stamp: EggStamp): boolean {
   const stamps = (egg.stamps ??= []);

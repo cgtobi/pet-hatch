@@ -5,7 +5,15 @@
 import type { MusicMode } from '../feedback';
 import type { TextKey } from '../i18n';
 import { dayPart, isAsleep } from '../sim/clock';
-import { careLeaning, fadeHoursLeft, hatchStage, hoursUntilTurn, isTurnOverdue } from '../sim/egg';
+import {
+  careLeaning,
+  fadeHoursLeft,
+  FIRST_STEPS,
+  firstStepsDone,
+  hatchStage,
+  hoursUntilTurn,
+  isTurnOverdue,
+} from '../sim/egg';
 import { POWER_NAP_BELOW } from '../sim/pet';
 import { canTrain } from '../sim/training';
 import type { EggState, GameState, PetState, Settings } from '../sim/types';
@@ -24,7 +32,8 @@ export interface Rush {
   taps: number;
 }
 
-export function eggHint(egg: EggState, now: number, settings: Settings, rush: Rush): Hint {
+/** `guide`: the player's very first egg, which walks them through warming, misting, singing and extra care. */
+export function eggHint(egg: EggState, now: number, settings: Settings, rush: Rush, guide = false): Hint {
   if (egg.fading) return { key: 'hint.egg.fading', params: { h: Math.ceil(fadeHoursLeft(egg.fading, now)) }, urgent: true };
   if (rush.left !== null) return rush.left < rush.taps ? { key: 'hint.rush', params: { n: rush.left } } : { key: 'hint.ready' };
   if (isAsleep(now, settings)) return { key: 'hint.sleep' };
@@ -32,6 +41,12 @@ export function eggHint(egg: EggState, now: number, settings: Settings, rush: Ru
   if (isTurnOverdue(egg, now)) return { key: 'hint.turnNow', urgent: true };
   if (egg.humidity < 20) return { key: 'hint.dry', urgent: true };
   if (egg.bond < 20) return { key: 'hint.lonely', urgent: true };
+  if (guide) {
+    // The next step not done yet, numbered by how many are done, so steps taken out of order still count up.
+    const next = FIRST_STEPS.find((s) => !egg.stamps?.includes(s));
+    if (next) return { key: `hint.step.${next}`, params: { n: firstStepsDone(egg) + 1, of: FIRST_STEPS.length } };
+    if (!egg.stamps?.includes('turn')) return { key: 'hint.firstDone' };
+  }
   if (careLeaning(egg).total < 40) return { key: 'hint.firstTime' };
   const h = hoursUntilTurn(egg, now);
   return h < 1 ? { key: 'hint.turnSoonest' } : { key: 'hint.turnSoon', params: { h: Math.round(h) } };

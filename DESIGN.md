@@ -98,6 +98,11 @@ The egg simply rests at night; the light only matters once the pet has hatched.
   same number of taps with roughly the same gaps (within 45% or 0.15 s) pleases it (chimes, hearts) and brings the
   hatch 5 minutes closer, which is no kind of care, so the element is untouched. A wrong answer or none (3.5 s)
   just says it will knock again.
+- **First steps** (the very first egg, while the family list is empty): the hint line walks the player through
+  four steps, one at a time: "Step 1 of 4: press and hold the egg to warm it", then mist, Sing, and extra care
+  given when a bar is full. Each step done chimes and says "Step 2 of 4 done!"; after the last, the hint says
+  "All done! Come back in a few hours to turn it" until the egg is first turned (turning isn't due on the first
+  visit). Urgent needs still come first.
 - **Stamps:** the egg records firsts for a stamp card (`stamps` on the egg): warm, mist, sing, turn, the first
   pampering, an answered knock and the hatch. The card itself isn't shown yet.
 
