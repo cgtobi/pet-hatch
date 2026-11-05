@@ -192,8 +192,8 @@ island stays in view above the sheet; closing it glides back. (Every change of f
 |---|---|---|
 | Power | Smash | Mash to fill a meter before time runs out; 3 rounds, faster drain each round; only fast tapping fills the last one. |
 | Speed | Star catch | Tap stars before they fade; 20 s, they come faster and fade sooner. |
-| Guard | Block | Tap the side an attack comes from just before it lands; 12 attacks. Swinging at nothing leaves that side open briefly, so mashing fails. |
-| Wits | Recall | Repeat a growing sequence of four pads (3 → 8 long); one mistake ends it. |
+| Guard | Block | Tap the side an attack comes from just before it lands; 12 attacks. Each successful block makes the next attacks 4% faster. Swinging at nothing leaves that side open briefly, so mashing fails. |
+| Wits | Recall | Repeat a growing sequence of four pads (3 → 8 long); one mistake ends it. The pattern plays faster as the pet's Wits and life stage rise: one pad per 600 ms for a new child, down to 380 ms for an adult at 100 Wits. |
 | Endurance | Jump rope | Jump as the rope reaches the ground; it turns faster and faster (see below). |
 
 - A session costs 20% energy and a little food; a score of 0–100% earns 1–6 points. Each type learns one stat

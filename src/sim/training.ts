@@ -74,6 +74,12 @@ export function statCap(pet: PetState): number {
   return STAT_CAPS[Math.min(pet.stage, STAT_CAPS.length - 1)];
 }
 
+/** How hard a minigame plays, 0 … 1: mostly by the stat it trains, a little by life stage (child 0, adult 1). */
+export function trainLevel(pet: PetState, stat: TrainStat): number {
+  const grown = clamp((Math.min(pet.stage, 3) - 1) / 2, 0, 1);
+  return clamp((0.75 * trainValue(pet, stat)) / MAX_STAT + 0.25 * grown, 0, 1);
+}
+
 /** Points a session earns before the cap: 1 … 6 by score, faster for the favorite stat, slower the higher the stat. */
 export function trainGain(pet: PetState, stat: TrainStat, score: number): number {
   let gain = (1 + 5 * clamp(score, 0, 1)) * (1 - (SLOWDOWN * trainValue(pet, stat)) / 100);

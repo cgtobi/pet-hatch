@@ -7,6 +7,7 @@ import {
   statCap,
   TRAIN_ENERGY,
   TRAIN_STATS,
+  trainLevel,
   trainValue,
   type TrainCheck,
   type TrainResult,
@@ -134,6 +135,7 @@ export class Training {
         status: (s) => (sub.textContent = s),
       },
       text,
+      trainLevel(this.h.pet(), stat),
     );
     const game = this.game;
     void game.done.then((score) => {

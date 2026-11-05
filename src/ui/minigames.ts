@@ -24,7 +24,8 @@ export interface GameText {
   yourTurn: string;
 }
 
-type Factory = (area: HTMLElement, hooks: GameHooks, text: GameText) => Minigame;
+/** `level` is how hard to play, 0 … 1, from the pet's stat and life stage (see trainLevel). */
+type Factory = (area: HTMLElement, hooks: GameHooks, text: GameText, level: number) => Minigame;
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 const el = (cls: string, html = '') => Object.assign(document.createElement('div'), { className: cls, innerHTML: html });
@@ -194,6 +195,8 @@ const block: Factory = (area, hooks, text) =>
   game(area, (finish) => {
     const ATTACKS = 12;
     const ZONE: [number, number] = [0.55, 0.95];
+    /** Each successful block makes the following attacks this much faster. */
+    const SPEEDUP = 1.04;
     const colors = ['var(--ember)', 'var(--tide)', 'var(--bloom)'];
     const core = el('mg-core', icon('shield', 34));
     const shields = { left: el('mg-shield left'), right: el('mg-shield right') };
@@ -245,9 +248,10 @@ const block: Factory = (area, hooks, text) =>
         const node = el(`mg-shot ${side}`);
         node.style.background = colors[launched % colors.length];
         lanes[side].append(node);
-        shots.push({ side, node, p: 0, travel: 1.9 - 0.8 * k });
+        const pace = SPEEDUP ** blocked;
+        shots.push({ side, node, p: 0, travel: (1.9 - 0.8 * k) / pace });
         launched++;
-        nextShot = 1.5 - 0.6 * k + Math.random() * 0.3;
+        nextShot = (1.5 - 0.6 * k + Math.random() * 0.3) / pace;
       }
       for (const s of [...shots]) {
         s.p += dt / s.travel;
@@ -277,11 +281,14 @@ const block: Factory = (area, hooks, text) =>
   });
 
 /** Wits: repeat a growing sequence of pads. */
-const recall: Factory = (area, hooks, text) =>
+const recall: Factory = (area, hooks, text, level) =>
   game(area, (finish) => {
     const FIRST = 3;
     const LAST = 8;
     const ROUNDS = LAST - FIRST + 1;
+    /** The pattern plays faster the higher the pet's Wits and life stage: one pad per 600 ms down to 380 ms. */
+    const STEP = 600 - 220 * level;
+    const FLASH = 420 - 150 * level;
     const pads: { icon: IconName; tone: string }[] = [
       { icon: 'flame', tone: 'ember-btn' },
       { icon: 'drop', tone: 'tide-btn' },
@@ -317,8 +324,8 @@ const recall: Factory = (area, hooks, text) =>
       input = 0;
       hooks.status(text.watch);
       grid.classList.add('watching');
-      seq.forEach((pad, i) => later(500 + i * 600, () => flash(pad, 420)));
-      later(500 + seq.length * 600, () => {
+      seq.forEach((pad, i) => later(500 + i * STEP, () => flash(pad, FLASH)));
+      later(500 + seq.length * STEP, () => {
         listening = true;
         grid.classList.remove('watching');
         hooks.status(text.yourTurn);

@@ -3,7 +3,16 @@ import { HOUR } from './clock';
 import { formFor, speciesName, topStat } from './evolution';
 import { advance, DEFAULT_SETTINGS, hatch, newGame } from './game';
 import { feedPet, migratePet } from './pet';
-import { canTrain, finishTraining, maxEnergy, refusalChance, startTraining, STAT_CAPS, trainGain } from './training';
+import {
+  canTrain,
+  finishTraining,
+  maxEnergy,
+  refusalChance,
+  startTraining,
+  STAT_CAPS,
+  trainGain,
+  trainLevel,
+} from './training';
 import type { GameState, PetState } from './types';
 
 const at = (day: number, hour: number, min = 0) => new Date(2026, 0, day, hour, min).getTime();
@@ -40,6 +49,23 @@ describe('training', () => {
     s.pet.hunger = 80;
     s.pet.sick = true;
     expect(canTrain(s.pet, at(2, 10), s.settings)).toBe('sick');
+  });
+
+  it('plays harder as the stat grows and the pet grows up', () => {
+    const s = child();
+    s.pet.stats.wits = 0;
+    expect(trainLevel(s.pet, 'wits')).toBe(0);
+    s.pet.stats.wits = 30;
+    const childLevel = trainLevel(s.pet, 'wits');
+    s.pet.stage = 2;
+    expect(trainLevel(s.pet, 'wits')).toBeGreaterThan(childLevel);
+    s.pet.stats.wits = 60;
+    expect(trainLevel(s.pet, 'wits')).toBeCloseTo(0.575);
+    s.pet.stage = 3;
+    s.pet.stats.wits = 100;
+    expect(trainLevel(s.pet, 'wits')).toBe(1);
+    s.pet.stage = 4;
+    expect(trainLevel(s.pet, 'wits')).toBe(1);
   });
 
   it('turns a better score into a bigger gain and costs energy', () => {
