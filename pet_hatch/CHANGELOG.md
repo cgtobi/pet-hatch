@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.12.0
+
+- Training grows with your pet: Smash, Star catch, Block and Recall get harder the stronger your pet is, and
+  speed up during each session.
+- New twists as your pet grows up: a golden round and power surges in Smash; golden stars and dark stars to
+  leave alone in Star catch. Each game's intro explains what's new.
+- Recall starts with longer patterns for strong pets and now has a countdown for your whole answer.
+- The games take your pet's element colours: sparks, bubbles, petals or stars.
+- The result screen shows your best score in each game, and "New record!" when you beat it.
+
 ## 0.11.1
 
 - Your very first egg shows you around: the hint walks you through warming, misting, singing and extra care,
