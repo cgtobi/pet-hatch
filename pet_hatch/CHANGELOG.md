@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.15.2
+
+- A small gold dot on the menu button says the species book has something new; it goes away once you open the
+  book.
+
 ## 0.15.1
 
 - The "…" button is now a menu with Family, the species book and Settings. Family and the book have their own
