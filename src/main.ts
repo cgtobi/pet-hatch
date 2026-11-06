@@ -5,7 +5,7 @@ import '@fontsource/nunito/latin-700.css';
 import '@fontsource/nunito/latin-800.css';
 import './style.css';
 
-import { setHapticsEnabled, setMusicEnabled, setMusicMode, setSoundEnabled, sfx, suspendAudio, unlockAudio } from './feedback';
+import { haptic, setHapticsEnabled, setMusicEnabled, setMusicMode, setSoundEnabled, sfx, suspendAudio, unlockAudio } from './feedback';
 import { setLang, t, type TextKey } from './i18n';
 import { attachGestures } from './input/gestures';
 import { World } from './scene/world';
@@ -66,7 +66,7 @@ setHapticsEnabled(state.settings.haptics);
 advance(state, gameNow(state));
 
 const canvas = document.getElementById('scene') as HTMLCanvasElement;
-const world = new World(canvas, state.egg.seed);
+const world = new World(canvas, state.island ?? state.egg.seed, state.egg.seed);
 
 let insetKey = '';
 
@@ -75,7 +75,11 @@ const hud = new Hud({
   onAction: (action) => {
     unlockAudio();
     if (action === 'pickup') pickUpEarly();
-    else if (state.phase === 'egg') eggCare.action(action);
+    else if (state.phase === 'egg') {
+      eggCare.action(action);
+      // The elder waiting with its egg likes a song too.
+      if (action === 'sing') setTimeout(() => world.elder?.hop(), 250);
+    }
     else petCare.action(action);
   },
   onLightButton: () => {
@@ -126,7 +130,11 @@ const game: Game = {
   refresh: () => updateHud(),
   petCenter: () => world.pet?.center() ?? world.egg.center(),
 };
-const moments = createMoments(game, { reportStats: (status) => reportStats(status), stopWarming: () => eggCare.stopWarming() });
+const moments = createMoments(game, {
+  reportStats: (status) => reportStats(status),
+  reportElder,
+  stopWarming: () => eggCare.stopWarming(),
+});
 const eggCare = createEggCare(
   game,
   () => moments.hatchNow(),
@@ -166,9 +174,10 @@ function updateHud() {
         : asleep
           ? t('egg.sleeping')
           : t(EGG_MOODS[stage]);
+    const elder = state.elder?.pet;
     hud.setHeader(
       h ? t('egg.titleFrom', { name: h.parentName }) : t('egg.title'),
-      `${t('egg.day', { n: day })} · ${mood}`,
+      `${elder ? t('elder.waiting', { name: elder.name }) : t('egg.day', { n: day })} · ${mood}`,
       h ? [{ text: t('gen', { n: h.generation }), tone: 'neutral' }] : [],
     );
     hud.setStage(stage);
@@ -179,7 +188,8 @@ function updateHud() {
       turn: hoursUntilTurn(egg, now) / TURN_INTERVAL_H,
     });
     hud.setLeaning(careLeaning(egg));
-    const hint = eggHint(egg, now, state.settings, eggCare.rush(), state.family.length === 0);
+    // The first steps guide only the very first egg; an elder's egg gets a one-line reminder of the gestures.
+    const hint = eggHint(egg, now, state.settings, eggCare.rush(), state.family.length === 0 && !elder);
     if (atSchool && !egg.fading) hud.setHint(t('hint.school.egg', { time: schoolEnds() }));
     else if (eggCare.knocking()) hud.setHint(t('hint.knock'));
     else hud.setHint(egg.failed ? '' : t(hint.key, hint.params), hint.urgent);
@@ -190,9 +200,15 @@ function updateHud() {
       failed: egg.failed,
       fading: !!egg.fading,
     });
+    if (world.elder) {
+      world.elder.group.visible = !atSchool;
+      world.elder.setLook({ sleeping: asleep, sick: false, calling: false, mood: 80 });
+    }
   } else if (state.pet && !moments.endShown()) {
     const pet = state.pet;
     const stage = Math.min(pet.shownStage, LIFE_STAGES.length - 1);
+    // Elder week: the egg it found rests in the nest.
+    world.setRestingEgg(stage === LIFE_STAGES.length - 1 && pet.status === 'alive' && !state.elder);
     const sleeping = isSleeping(pet, now, state.settings);
     const feel = petFeel(pet, now, state.settings);
     hud.setMode(pet.fading ? 'fading' : atSchool ? 'away' : 'pet');
@@ -421,8 +437,9 @@ attachGestures(canvas, {
   onTurn: (direction) => eggCare.turn(direction),
   onTap: (target) => {
     unlockAudio();
-    if (target === 'egg') eggCare.tap();
+    if (target === 'egg') state.phase === 'egg' ? eggCare.tap() : tapRestingEgg();
     else if (target === 'shell') petCare.sweepShell();
+    else if (target === 'elder') tapElder();
     else petCare.tap();
   },
   onOrbit: (dx) => world.orbit(dx),
@@ -432,6 +449,25 @@ attachGestures(canvas, {
   tickling: () => petCare.playing() === 'tickle',
   onRub: (x, y, px) => petCare.rub(x, y, px),
 });
+
+/** The elder waiting with its egg: a tap gets a hop and a heart. */
+function tapElder() {
+  const elder = world.elder;
+  if (!elder || !state.elder) return;
+  elder.hop();
+  world.effects.emit('heart', elder.center(), 1);
+  sfx.tap();
+  haptic('tap');
+}
+
+/** Elder week: the egg in the nest only rocks a little. It wakes when the elder's days are over. */
+function tapRestingEgg() {
+  const pet = livePet();
+  if (!pet || pet.shownStage < LIFE_STAGES.length - 1) return;
+  world.egg.nudge(1.5);
+  sfx.knock();
+  hud.toast(t('elder.resting', { name: pet.name }));
+}
 
 window.addEventListener('resize', () => {
   world.resize();
@@ -450,14 +486,20 @@ window.addEventListener('pagehide', () => saveGame(state));
 
 // ---------- start ----------
 
+if (state.elder) {
+  const { pet } = state.elder;
+  world.showElder(pet.type, pet.seed, pet.form);
+}
 if (state.phase === 'hatched' && state.pet) {
   const pet = state.pet;
   if (!pet.revealSeen) setTimeout(() => moments.burstAndReveal(pet, pet.hatchedAlone), 700);
   else {
     world.showPet(pet.type, pet.seed, Math.min(pet.shownStage, LIFE_STAGES.length - 1), pet.shownForm, false);
     world.setDroppings(pet.droppings);
+    // Its egg hatched, but the goodbye hasn't been seen yet.
+    if (state.elder) setTimeout(() => moments.goodbye(), 900);
   }
-}
+} else if (state.elder && !state.elder.told) setTimeout(() => moments.handOver(), 700);
 
 // Live battles only show up when this deployment has a relay.
 const relayReady = findRelay().then((url) => (arena.relay = url));
@@ -523,13 +565,15 @@ function frame(ms: number) {
   const wasEgg = state.phase === 'egg';
   advance(state, now);
   if (wasEgg && state.phase === 'hatched' && state.pet) moments.burstAndReveal(state.pet, true);
+  // The elder's days ran out while the game was open: its egg wakes up.
+  if (!wasEgg && state.phase === 'egg' && state.elder) moments.handOver();
 
   eggCare.frame(dt, now);
   if (state.phase === 'egg' && state.egg.failed && !moments.endShown()) moments.eggFailed();
   petCare.frame(dt, now);
   watchSchool();
 
-  world.egg.update(dt, { warmth: state.egg.warmth, ready: eggCare.rush().left !== null });
+  world.egg.update(dt, { warmth: state.phase === 'egg' ? state.egg.warmth : 0, ready: eggCare.rush().left !== null });
   const lit = state.phase !== 'egg' && state.egg.lightsOn && dayPart(now, state.settings) !== 'day';
   world.render(dt, time, sunAt(skyHour ?? localHour(now), now, state.settings), { dark: roomDark(state, now), lamp: lit });
 
@@ -554,6 +598,14 @@ requestAnimationFrame(frame);
 
 /** Where anonymous pet stats go, if this server collects them (null until known, or when it doesn't). */
 let statsUrl: string | null = null;
+
+/** The elder retired: its last snapshot says so (the egg it waits with is a new pet in the stats). */
+function reportElder(): void {
+  const elder = state.elder;
+  if (!elder) return;
+  const egg = { ...state.egg, seed: elder.pet.seed, laidAt: elder.laidAt };
+  report(statsUrl, { ...state, phase: 'hatched', pet: elder.pet, egg }, __APP_VERSION__, 'retired');
+}
 
 /** Send this pet's snapshot if the player opted in and it's due (a new day, or something changed). */
 function reportStats(status?: PetEnding): void {

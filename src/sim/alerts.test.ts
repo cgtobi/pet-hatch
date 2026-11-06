@@ -89,7 +89,7 @@ describe('alerts', () => {
 
   it('has nothing to say once the pet’s story ended', () => {
     const state = petGame();
-    state.pet!.status = 'retired';
+    state.pet!.status = 'ranAway';
     expect(predictAlerts(state, at(1, 9))).toEqual([]);
   });
 });

@@ -8,7 +8,7 @@ import type { PetEnding } from '../net/stats';
 import { cleanName, decodeFighter } from '../sim/battlecode';
 import { giveEggVial } from '../sim/egg';
 import { speciesName } from '../sim/evolution';
-import { hatch, heritageOf, layNewEgg, NEGLECT_MODES } from '../sim/game';
+import { elderLeaves, hatch, heritageOf, layNewEgg, NEGLECT_MODES } from '../sim/game';
 import { giveVial, LIFE_STAGES } from '../sim/pet';
 import type { FormId, NeglectMode, PetState, Stat } from '../sim/types';
 import type { Game } from './context';
@@ -30,11 +30,18 @@ export interface Moments {
     check?: { label: string; checked: boolean },
   ): void;
   startNewEgg(): void;
+  /** The elder's days are over and its egg wakes up: say so, and choose how forgiving the new egg's game is. */
+  handOver(): void;
+  /** After its egg hatched, the elder says goodbye and leaves. */
+  goodbye(): void;
   /** The story's end (or a lost egg) is on screen. */
   endShown(): boolean;
 }
 
-export function createMoments(g: Game, deps: { reportStats(status?: PetEnding): void; stopWarming(): void }): Moments {
+export function createMoments(
+  g: Game,
+  deps: { reportStats(status?: PetEnding): void; reportElder(): void; stopWarming(): void },
+): Moments {
   let endShown = false;
 
   function hatchNow() {
@@ -79,6 +86,8 @@ export function createMoments(g: Game, deps: { reportStats(status?: PetEnding): 
           pet.revealSeen = true;
           g.save();
           g.refresh();
+          // The elder saw its egg hatch: time to say goodbye.
+          if (g.state.elder) return void setTimeout(goodbye, 900);
           // A friend's invite brought the player here: their challenge waits until the pet is old enough to battle.
           const friend = inviter();
           if (friend) setTimeout(() => g.hud.toast(t('invite.later', { name: friend.name, pet: pet.name })), 1200);
@@ -100,6 +109,23 @@ export function createMoments(g: Game, deps: { reportStats(status?: PetEnding): 
     sfx.grow();
     haptic('celebrate');
     const name = pet.name;
+    if (stage === LIFE_STAGES.length - 1) {
+      // An elder now, it lays the egg that will rest in the nest until its days are over.
+      g.world.setRestingEgg(true);
+      g.world.egg.jump(1);
+      g.world.effects.emit('spark', g.world.egg.center(), 12);
+      setTimeout(
+        () =>
+          g.hud.showOverlay({
+            title: t('elder.found.title', { name }),
+            body: t('elder.found.body', { name }),
+            button: t('elder.found.button'),
+            onClose: () => g.refresh(),
+          }),
+        1900,
+      );
+      return;
+    }
     if (!evolved) {
       g.hud.toast(t('toast.grew', { name, stage: t(`life.${LIFE_STAGES[stage]}`) }));
       return;
@@ -226,8 +252,55 @@ export function createMoments(g: Game, deps: { reportStats(status?: PetEnding): 
     });
   }
 
+  function handOver() {
+    const elder = g.state.elder;
+    if (!elder || elder.told || g.hud.overlayOpen) return;
+    endShown = true;
+    deps.stopWarming();
+    g.sheet.close();
+    const name = elder.pet.name;
+    const h = g.state.egg.heritage;
+    const stats = h ? listOf(Object.entries(h.stats).map(([s, n]) => `${t(`stat.${s as Stat}`)} +${n}`)) : '';
+    chooseNeglect(
+      t('elder.wake.title', { name }),
+      `${t('elder.wake.body', { name })} ${h ? `${t('elder.wake.heritage', { stats })} ` : ''}${t('newEgg.body')}`,
+      (mode) => {
+        g.state.settings.neglect = mode;
+        elder.told = true;
+        deps.reportElder();
+        g.save();
+        // Start over with the island showing the new egg and the elder beside it.
+        location.reload();
+      },
+    );
+  }
+
+  function goodbye() {
+    const elder = g.state.elder;
+    const baby = g.state.pet;
+    if (!elder || !baby) return;
+    const name = elder.pet.name;
+    g.world.elder?.hop();
+    g.world.effects.emit('heart', g.world.elder?.center() ?? g.petCenter(), 3);
+    g.hud.showOverlay({
+      title: t('elder.bye.title', { name }),
+      body: t('elder.bye.body', { name, baby: baby.name }),
+      button: t('elder.bye.button', { name }),
+      onClose: () => {
+        sfx.play();
+        g.world.elderLeaves(() => {
+          elderLeaves(g.state, g.now());
+          g.save();
+          g.refresh();
+        });
+      },
+    });
+  }
+
   return {
     hatchNow,
+    handOver,
+    goodbye,
     burstAndReveal,
     evolve,
     vial,

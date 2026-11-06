@@ -127,8 +127,8 @@ the current mode but can't change it.
 
 Egg 6–8 h of the day → **Baby** 1 d → **Child** 3 d → **Teen** 5 d → **Adult** 3 wk + 0–3 d → **Elder** 1 wk + 0–2 d. The extra
 adult and elder time is fixed per pet (from its seed), so a pet lives 36 to 41 days rather than always 36.
-The pet grows bigger at each stage, with a spin, flash and sparkle when it does. After the Elder stage it retires:
-it sets off on an adventure and leaves a new egg (see *Family*).
+The pet grows bigger at each stage, with a spin, flash and sparkle when it does. After the Elder stage it retires
+and hands over to a new egg (see *Family*).
 
 You name the baby when it hatches (a name is suggested).
 
@@ -453,6 +453,19 @@ A collection of all 36 species across every pet the player raises (`src/sim/book
 - No reward yet for completing an element; a natural next step.
 
 ### Family ✅
+
+- **The handover:** becoming an elder, the pet lays an egg ("Pip is an elder now!"). All elder week it rests in the
+  nest: no needs, no chores, no growing; the pet keeps around it, and tapping it rocks it a little. When the
+  elder's time is up (`handOver()` in `src/sim/game.ts`), the egg wakes up and inherits from it, and the elder
+  stays: its needs pause, it makes no calls, and it strolls about the nest (asleep at night, along to day care).
+  The egg is then like any other: 6–8 hours of the player's day, care deciding its element, the knocks; the
+  first-steps guide is only for the very first egg, so an elder's egg just gets the gesture reminder. The wake-up
+  says so and asks for the neglect mode, as every new egg does. The egg card reads "Pip waits with you", and the
+  elder hops when you sing. After the hatch and the naming, the elder says goodbye ("Pip sets off on an
+  adventure. Take good care of Mochi!"), walks to the far edge of the island and is gone in a sparkle; only then
+  does it join the family list (`elderLeaves()`). The new egg's seed comes from the elder's, so catch-up gives the
+  same egg, and the family keeps its island (`GameState.island`); a fresh start (a pet that ran away or died, a
+  lost egg, Settings › Start a new egg) gets a new island, and an elder still waiting then leaves at once.
 
 - A pet that **retires** (the happy ending) leaves an egg that inherits a head start: about a tenth of the
   parent's best stat (3–8 points) in that stat, plus 5 points in every other stat it had at 100 (at most

@@ -70,8 +70,12 @@ describe('aging', () => {
     s.settings.neglect = 'cozy';
     advance(s, lifeEnd - HOUR);
     expect(s.pet.status).toBe('alive');
+    const pet = s.pet;
     advance(s, lifeEnd + HOUR);
-    expect(s.pet.status).toBe('retired');
+    // It retires, and its egg wakes up while it waits beside it.
+    expect(pet.status).toBe('retired');
+    expect(s.phase).toBe('egg');
+    expect(s.elder?.pet).toBe(pet);
   });
 
   it('lives 37 to 42 days: up to 3 more as an adult and 2 more as an elder, fixed per pet', () => {

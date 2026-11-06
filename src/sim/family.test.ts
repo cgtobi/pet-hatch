@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { HOUR } from './clock';
-import { advance, DEFAULT_SETTINGS, hatch, heritageOf, layNewEgg, MASTERED_BONUS, newGame } from './game';
+import { advance, DEFAULT_SETTINGS, elderLeaves, handOver, hatch, heritageOf, isReadyToHatch, layNewEgg, MASTERED_BONUS, newGame } from './game';
 import { importSave, exportSave } from './save';
 import type { GameState, PetState } from './types';
 
@@ -98,5 +98,68 @@ describe('inheritance', () => {
     s.egg.heritage = { ...s.egg.heritage!, stats: undefined!, stat: 'guard', bonus: 6 } as GameState['egg']['heritage'];
     const loaded = importSave(exportSave(s));
     expect(loaded.egg.heritage).toEqual({ parentName: 'Pip', parentType: s.family[0].type, stats: { guard: 6 }, generation: 2 });
+  });
+});
+
+describe('handing over to the egg', () => {
+  it('wakes the egg when the elder retires: it inherits, and the elder waits with its needs paused', () => {
+    const s = withPet();
+    s.pet.stage = s.pet.shownStage = 4;
+    s.pet.status = 'retired';
+    const elder = s.pet;
+    advance(s, s.simTime + 60_000);
+    expect(s.phase).toBe('egg');
+    expect(s.pet).toBeNull();
+    expect(s.elder).toMatchObject({ pet: elder, told: false });
+    expect(s.island).toBe(11);
+    expect(s.egg.heritage).toMatchObject({ parentName: 'Pip', stats: { speed: 7 }, generation: 2 });
+    expect(s.family).toHaveLength(0);
+    const mood = elder.mood;
+    advance(s, s.simTime + 3 * HOUR);
+    expect(elder.mood).toBe(mood);
+  });
+
+  it('gives the same egg however the time is caught up', () => {
+    const a = withPet();
+    const b = withPet();
+    for (const s of [a, b]) {
+      s.pet.status = 'retired';
+      advance(s, s.simTime + 60_000);
+    }
+    expect(a.egg.seed).toBe(b.egg.seed);
+    expect(a.egg.seed).not.toBe(11);
+  });
+
+  it('lets the elder join the family once its egg has hatched and it said goodbye', () => {
+    const s = withPet();
+    s.pet.status = 'retired';
+    handOver(s, T0 + 900 * HOUR);
+    s.egg.readyAt = T0 + 905 * HOUR;
+    expect(isReadyToHatch(s)).toBe(true);
+    const baby = hatch(s, T0 + 906 * HOUR, false);
+    expect(baby.generation).toBe(2);
+    expect(s.elder?.pet.name).toBe('Pip');
+    elderLeaves(s, T0 + 906 * HOUR);
+    expect(s.elder).toBeUndefined();
+    expect(s.family.map((a) => [a.name, a.ending])).toEqual([['Pip', 'retired']]);
+  });
+
+  it('still lets the elder go when a new egg is started instead', () => {
+    const s = withPet();
+    s.pet.status = 'retired';
+    handOver(s, T0 + 900 * HOUR);
+    layNewEgg(s, T0 + 901 * HOUR, 12);
+    expect(s.elder).toBeUndefined();
+    expect(s.island).toBeUndefined();
+    expect(s.family.map((a) => a.name)).toEqual(['Pip']);
+  });
+
+  it('keeps a waiting elder in the save', () => {
+    const s = withPet();
+    s.pet.status = 'retired';
+    handOver(s, T0 + 900 * HOUR);
+    const back = importSave(exportSave(s));
+    expect(back.elder?.pet.name).toBe('Pip');
+    expect(back.phase).toBe('egg');
   });
 });

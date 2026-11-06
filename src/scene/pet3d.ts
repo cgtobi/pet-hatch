@@ -119,6 +119,8 @@ export class Pet3D {
   private chase: { x: number; z: number; done: () => void } | null = null;
   /** Being tickled: stand still and face the player instead of wandering off. */
   private staying = false;
+  /** A spot it likes to stay close to (an elder beside its egg): half its strolls end near it. */
+  near: THREE.Vector2 | null = null;
   private fainted = false;
 
   constructor(
@@ -547,11 +549,12 @@ export class Pet3D {
   }
 
   private pickTarget(): THREE.Vector2 {
+    const near = this.near && this.rand() < 0.5 ? this.near : null;
     for (let i = 0; i < 12; i++) {
       const a = this.rand() * Math.PI * 2;
-      const d = Math.sqrt(this.rand()) * WANDER_RADIUS;
-      const x = Math.cos(a) * d;
-      const z = Math.sin(a) * d;
+      const d = near ? 0.65 + this.rand() * 0.25 : Math.sqrt(this.rand()) * WANDER_RADIUS;
+      const x = (near?.x ?? 0) + Math.cos(a) * d;
+      const z = (near?.y ?? 0) + Math.sin(a) * d;
       if (this.obstacles.every(([ox, oz, r]) => Math.hypot(x - ox, z - oz) > r)) return new THREE.Vector2(x, z);
     }
     return new THREE.Vector2(0, 0.3);

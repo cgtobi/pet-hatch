@@ -119,8 +119,23 @@ export function isSound(s: GameState): boolean {
     (egg.stamps === undefined || (Array.isArray(egg.stamps) && egg.stamps.every((s) => isOneOf(s, EGG_STAMPS)))) &&
     (h === null ||
       (isName(h.parentName) && isOneOf(h.parentType, TYPES) && isStats(h.stats, 100) && isInt(h.generation, 1, 1e6)));
-  const petOk =
-    pet === null ||
+  const petOk = pet === null || isPetSound(pet);
+  const elderOk =
+    s.elder === undefined || (typeof s.elder?.told === 'boolean' && isNum(s.elder.laidAt) && isPetSound(s.elder.pet));
+  const islandOk = s.island === undefined || isInt(s.island, 0, 2 ** 32);
+  const b = s.book;
+  const bookOk =
+    b === undefined ||
+    (typeof b === 'object' &&
+      b !== null &&
+      [b.raised, b.seen, b.shown].every((list) => Array.isArray(list) && list.length <= 100 && list.every(isSpeciesKey)));
+  const inviteOk = s.invite === undefined || (typeof s.invite === 'string' && decodeFighter(s.invite) !== null);
+  return settings && game && family && eggOk && petOk && elderOk && islandOk && bookOk && inviteOk;
+}
+
+function isPetSound(pet: PetState): boolean {
+  return (
+    !!pet &&
     (isName(pet.name) &&
       isOneOf(pet.type, TYPES) &&
       isOneOf(pet.status, STATUSES) &&
@@ -150,15 +165,8 @@ export function isSound(s: GameState): boolean {
       isNum(pet.battleXp, 0, 1000) &&
       isList(pet.lessons, 100, (l: PetState['lessons'][number]) => isOneOf(l.stat, STATS) && isName(l.from)) &&
       isList(pet.droppings, 100, (d: Dropping) => isNum(d.angle) && isNum(d.dist, 0, 10) && isNum(d.at)) &&
-      isList(pet.mistakes, LIFE_STAGES.length, (n: number) => isInt(n, 0, 1e6)));
-  const b = s.book;
-  const bookOk =
-    b === undefined ||
-    (typeof b === 'object' &&
-      b !== null &&
-      [b.raised, b.seen, b.shown].every((list) => Array.isArray(list) && list.length <= 100 && list.every(isSpeciesKey)));
-  const inviteOk = s.invite === undefined || (typeof s.invite === 'string' && decodeFighter(s.invite) !== null);
-  return settings && game && family && eggOk && petOk && bookOk && inviteOk;
+      isList(pet.mistakes, LIFE_STAGES.length, (n: number) => isInt(n, 0, 1e6)))
+  );
 }
 
 function parseSave(json: string): GameState | null {
@@ -185,5 +193,6 @@ function parseSave(json: string): GameState | null {
   migrateEggCare(s.egg);
   migrateEggTime(s.egg);
   if (s.pet) s.pet = migratePet(s.pet);
+  if (s.elder) s.elder.pet = migratePet(s.elder.pet);
   return s;
 }

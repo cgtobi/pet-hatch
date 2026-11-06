@@ -5,7 +5,7 @@ import { topStat } from './evolution';
 import { createPet, tickPet } from './pet';
 import { randomSeed } from './rng';
 import { masteredStats } from './training';
-import type { GameState, Heritage, NeglectMode, PetState, Settings } from './types';
+import type { Ancestor, GameState, Heritage, NeglectMode, PetState, Settings } from './types';
 
 /** Fixed simulation step; catch-up replays missed time in these slices. */
 const STEP = MINUTE;
@@ -51,6 +51,7 @@ export function gameNow(state: GameState, realNow = Date.now()): number {
 /** Simulate everything that happened between state.simTime and `to`. */
 export function advance(state: GameState, to: number): void {
   if (to - state.simTime > MAX_CATCH_UP) state.simTime = to - MAX_CATCH_UP;
+  if (state.phase === 'hatched' && state.pet?.status === 'retired') handOver(state, state.simTime);
   while (state.simTime < to) {
     const dt = Math.min(STEP, to - state.simTime);
     const before = dayPart(state.simTime, state.settings);
@@ -61,6 +62,7 @@ export function advance(state: GameState, to: number): void {
     const away = isAway(state, state.simTime);
     if (state.phase === 'hatched' && state.pet) {
       tickPet(state.pet, state.simTime, dt / HOUR, state.settings, state.egg.lightsOn, away);
+      if (state.pet.status === 'retired') handOver(state, state.simTime);
     } else if (state.phase === 'egg') {
       tickEgg(state.egg, state.simTime, dt / HOUR, state.settings, away);
       const { readyAt } = state.egg;
@@ -108,6 +110,46 @@ export function heritageOf(pet: PetState): Heritage {
 }
 
 /**
+ * An elder's time is up: the egg that rested in the nest all through its elder week wakes up, inheriting from it,
+ * and the elder stays (needs paused, no calls) until the egg hatches. The egg then develops as any egg does; its
+ * seed comes from the elder's, so catching up gives the same egg.
+ */
+export function handOver(state: GameState, now: number): void {
+  const pet = state.pet;
+  if (!pet) return;
+  rememberRaised(state, pet.type, pet.path);
+  const egg = createEgg(now, Math.imul(pet.seed ^ 0x5eed, 0x9e3779b1) >>> 0, heritageOf(pet));
+  egg.lightsOn = state.egg.lightsOn;
+  state.island ??= state.egg.seed;
+  state.elder = { pet, laidAt: state.egg.laidAt, told: false };
+  state.egg = egg;
+  state.phase = 'egg';
+  state.pet = null;
+}
+
+/** The elder said goodbye after its egg hatched: it sets off on its adventure and joins the family list. */
+export function elderLeaves(state: GameState, now: number): void {
+  if (!state.elder) return;
+  state.family = [...state.family, ancestorOf(state.elder.pet, now)];
+  delete state.elder;
+}
+
+function ancestorOf(pet: PetState, now: number): Ancestor {
+  return {
+    name: pet.name,
+    type: pet.type,
+    form: pet.form,
+    generation: pet.generation,
+    ending: pet.status === 'alive' ? 'released' : pet.status,
+    wins: pet.battles.wins,
+    stars: masteredStats(pet).length,
+    ...(pet.vialUsed ? { saved: true } : {}),
+    hatchedAt: pet.hatchedAt,
+    endedAt: now,
+  };
+}
+
+/**
  * Replace the finished pet (or failed egg) with a fresh egg, keeping settings and debug clock.
  * The pet joins the family list; only a pet that retired passes something on to the new egg.
  * The new egg is the one moment the neglect mode can change.
@@ -116,21 +158,12 @@ export function layNewEgg(state: GameState, now: number, seed = randomSeed(), ne
   state.settings.neglect = neglect;
   const pet = state.pet;
   const family = [...state.family];
+  // An elder still waiting for its egg leaves now.
+  if (state.elder) family.push(ancestorOf(state.elder.pet, now));
   if (pet) {
     // Its forms stay in the species book.
     rememberRaised(state, pet.type, pet.path);
-    family.push({
-      name: pet.name,
-      type: pet.type,
-      form: pet.form,
-      generation: pet.generation,
-      ending: pet.status === 'alive' ? 'released' : pet.status,
-      wins: pet.battles.wins,
-      stars: masteredStats(pet).length,
-      ...(pet.vialUsed ? { saved: true } : {}),
-      hatchedAt: pet.hatchedAt,
-      endedAt: now,
-    });
+    family.push(ancestorOf(pet, now));
   }
   const fresh = newGame(now, state.settings, seed, pet?.status === 'retired' ? heritageOf(pet) : null);
   fresh.clockOffset = state.clockOffset;
@@ -138,5 +171,8 @@ export function layNewEgg(state: GameState, now: number, seed = randomSeed(), ne
   fresh.family = family;
   fresh.learned = state.learned;
   fresh.book = state.book;
+  // A fresh start gets a fresh island.
+  delete state.elder;
+  delete state.island;
   Object.assign(state, fresh);
 }

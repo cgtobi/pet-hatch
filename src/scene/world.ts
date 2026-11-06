@@ -4,7 +4,7 @@ import type { Dropping, ElementType, FormId } from '../sim/types';
 import { Effects } from './effects';
 import { Egg3D } from './egg3d';
 import { Fireflies } from './fireflies';
-import { GROUND_Y, Island } from './island';
+import { GROUND_Y, Island, type Obstacle } from './island';
 import { Ball3D } from './ball';
 import { Pet3D, SHELL } from './pet3d';
 import { Sky, skyAt } from './sky';
@@ -29,6 +29,9 @@ const BATTLE_SPOTS = {
   foe: [1.35, 0.55, -Math.PI / 2],
 } as const;
 const TARGET = new THREE.Vector3(0, -0.1, 0);
+/** The egg in the nest, in the island's middle: creatures walk around it while it is there. */
+const EGG_SPOT: Obstacle = [0, 0, 0.5];
+const NEST = new THREE.Vector2(0, 0);
 /** During a battle the camera looks at the island top and fighters, letting the rock below go off-screen. */
 const BATTLE_TARGET = new THREE.Vector3(0, 0.75, 0);
 const BATTLE_HALF_HEIGHT = 1.9;
@@ -74,6 +77,8 @@ export class World {
   pet: Pet3D | null = null;
   /** The opponent during a battle. */
   foe: Pet3D | null = null;
+  /** The elder staying with its egg until it hatches (see handOver in game.ts). */
+  elder: Pet3D | null = null;
   /** The toy ball for Play, and what to tell when the pet brought it back or it fell off the island. */
   private ball = new Ball3D();
   onBall: (result: 'fetched' | 'lost') => void = () => {};
@@ -98,15 +103,17 @@ export class World {
   private size = { w: 0, h: 0 };
   private insets: Insets = { top: 0, bottom: 0 };
 
+  /** `islandSeed` lays out the island (a family keeps its island from one generation to the next). */
   constructor(
     private canvas: HTMLCanvasElement,
-    seed: number,
+    islandSeed: number,
+    eggSeed: number,
   ) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'low-power' });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.island = new Island(seed);
-    this.egg = new Egg3D(seed);
-    this.fireflies = new Fireflies(seed);
+    this.island = new Island(islandSeed);
+    this.egg = new Egg3D(eggSeed);
+    this.fireflies = new Fireflies(islandSeed);
     this.sun.position.copy(SUN_OFFSET);
     this.scene.add(
       this.sky.group,
@@ -168,15 +175,18 @@ export class World {
   }
 
   /** Returns what is under a screen point. */
-  pick(clientX: number, clientY: number): 'egg' | 'pet' | 'shell' | null {
+  pick(clientX: number, clientY: number): 'egg' | 'pet' | 'elder' | 'shell' | null {
     const rect = this.canvas.getBoundingClientRect();
     const ndc = new THREE.Vector2(((clientX - rect.left) / rect.width) * 2 - 1, -((clientY - rect.top) / rect.height) * 2 + 1);
     this.raycaster.setFromCamera(ndc, this.camera);
     if (this.pet && this.raycaster.intersectObject(this.pet.group, true).length) return 'pet';
     const shell = this.egg.shellTarget;
     if (shell && this.raycaster.intersectObject(shell, false).length) return 'shell';
-    if (this.egg.group.visible && this.raycaster.intersectObjects(this.egg.hitTargets, true).length) return 'egg';
-    return null;
+    // The elder and its egg side by side: whichever is nearer gets the tap.
+    const egg = this.egg.group.visible ? this.raycaster.intersectObjects(this.egg.hitTargets, true)[0] : undefined;
+    const elder = this.elder ? this.raycaster.intersectObject(this.elder.group, true)[0] : undefined;
+    if (elder && (!egg || elder.distance < egg.distance)) return 'elder';
+    return egg ? 'egg' : null;
   }
 
   showPet(type: ElementType, seed: number, stage: number, form: FormId, animate: boolean): Pet3D {
@@ -280,6 +290,60 @@ export class World {
   endBall(): void {
     this.ball.hide();
     this.pet?.stopRunning();
+  }
+
+  // ---------- the elder and its egg ----------
+
+  /**
+   * Elder week: the egg it found rests in the nest, plain until it wakes. The pet keeps around it and doesn't
+   * walk through it.
+   */
+  setRestingEgg(on: boolean): void {
+    if (on === this.restingEgg) return;
+    this.restingEgg = on;
+    this.egg.setHatched(!on);
+    if (on) this.egg.draw({ crack: 0, mix: null, failed: false });
+    if (this.pet) {
+      this.pet.obstacles = this.pet.obstacles.filter((o) => o !== EGG_SPOT);
+      if (on) this.pet.obstacles.push(EGG_SPOT);
+      this.pet.near = on ? NEST : null;
+      // Standing in the nest, it steps aside for the egg.
+      const at = this.pet.group.position;
+      if (on && Math.hypot(at.x, at.z) < EGG_SPOT[2]) this.pet.placeAt(0.85, -0.3, 0);
+    }
+  }
+  private restingEgg = false;
+
+  /** The elder beside its waking egg: it strolls about the nest and stays close to the egg. */
+  showElder(type: ElementType, seed: number, form: FormId): Pet3D {
+    if (this.elder) this.scene.remove(this.elder.group);
+    const elder = new Pet3D(type, seed, form);
+    elder.obstacles.push(...this.island.obstacles, EGG_SPOT);
+    elder.setForm(form, 4, false);
+    elder.near = NEST;
+    elder.placeAt(0.85, -0.3, 0);
+    this.scene.add(elder.group);
+    this.elder = elder;
+    return elder;
+  }
+
+  /** Goodbye: the elder walks to the far edge of the island, hops once and is gone in a sparkle. */
+  elderLeaves(done: () => void): void {
+    const elder = this.elder;
+    if (!elder) return done();
+    elder.near = null;
+    const x = -Math.sin(this.yaw) * 1.85;
+    const z = -Math.cos(this.yaw) * 1.85;
+    elder.runTo(x, z, () => {
+      elder.hop();
+      setTimeout(() => {
+        this.effects.emit('spark', elder.center(), 16);
+        this.effects.emit('heart', elder.center(), 2);
+        this.scene.remove(elder.group);
+        if (this.elder === elder) this.elder = null;
+        done();
+      }, 600);
+    });
   }
 
   // ---------- tickling ----------
@@ -412,6 +476,7 @@ export class World {
     this.sun.position.copy(SUN_OFFSET).applyAxisAngle(UP, this.yaw);
     this.lamp.position.copy(LAMP_OFFSET).applyAxisAngle(UP, this.yaw);
     if (this.pet) this.pet.viewYaw = this.yaw;
+    if (this.elder) this.elder.viewYaw = this.yaw;
 
     // The sky follows the time of day only; the island's own light just changes how the island is lit.
     const look = skyAt(sun);
@@ -429,6 +494,7 @@ export class World {
     this.effects.update(dt);
     this.pet?.update(dt, time);
     this.foe?.update(dt, time);
+    this.elder?.update(dt, time);
     this.ball.update(dt, this.ball.kind === 'carried' && this.pet ? this.pet.mouth() : null);
     this.renderer.render(this.scene, this.camera);
   }

@@ -243,4 +243,11 @@ export interface GameState {
   book?: { raised: `${ElementType}.${FormId}`[]; seen: `${ElementType}.${FormId}`[]; shown: `${ElementType}.${FormId}`[] };
   /** A friend's battle code from the invite link that brought the player here, kept until they battle it. */
   invite?: string;
+  /**
+   * The elder whose time is up, staying until its egg hatches (see handOver in game.ts), with when its own egg was
+   * laid (it names the pet in the stats); `told`: the player has seen the egg wake up. Missing: no elder waiting.
+   */
+  elder?: { pet: PetState; laidAt: number; told: boolean };
+  /** Lays out the island: a family keeps its island from one generation to the next. Missing: the egg's seed. */
+  island?: number;
 }
