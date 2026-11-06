@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.18.0
+
+- Elder week has a new ending: when your pet becomes an elder, it lays an egg that rests in the nest. When its
+  elder days are over the egg wakes up, and the elder stays beside it while you warm, mist and sing to it.
+- Once the egg hatches, the elder says goodbye and sets off on an adventure. The baby inherits its head start and
+  grows up on the same island.
+
 ## 0.17.0
 
 - Play has a second game: sometimes your pet wants to be tickled instead of fetching the ball. Rub the sparkle on
