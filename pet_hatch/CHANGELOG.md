@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.15.1
+
+- The "…" button is now a menu with Family, the species book and Settings. Family and the book have their own
+  pages instead of being tucked away in Settings, and the menu shows when the book has something new.
+
 ## 0.15.0
 
 - Play is now a game of fetch: swipe up to throw the ball, and your pet runs after it and brings it back in its
