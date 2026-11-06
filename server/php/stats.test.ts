@@ -4,7 +4,7 @@
  * with PHP, next to the relay tests: PHP_RELAY_URL tells where relay.php is (stats.php sits next to it),
  * PHP_RELAY_DATA its data folder and PHP_STATS_TOKEN the dashboard's token. Skipped otherwise.
  */
-import { readdirSync, readFileSync } from 'node:fs';
+import { appendFileSync, existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join as joinPath } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { Fighter } from '../../src/sim/battle';
@@ -125,6 +125,29 @@ describe.skipIf(!url || !token)('PHP stats', () => {
     await send(snap({ pet: id, stage: 2, form: 'teen.physical', status: 'ranAway' }));
     const html = await dashboard('&days=30');
     expect(html).toMatch(/<th>Gentle<\/th><td>\d+<\/td><td>[1-9]/);
+  });
+
+  it.skipIf(!data)('3: tells how often players come back, and where they went quiet', async () => {
+    /** Log a snapshot `ago` days back, as stats.php would have on that day. */
+    const logged = (ago: number, row: unknown[]) => {
+      const at = Date.now() - ago * 86_400_000;
+      const file = joinPath(data!, `stats-${new Date(at).toISOString().slice(0, 10)}.php`);
+      if (!existsSync(file)) writeFileSync(file, '<?php exit; ?>\n');
+      appendFileSync(file, JSON.stringify([Math.floor(at / 1000), ...row]) + '\n');
+    };
+    // One pet played every day from 10 days ago until 3 days ago; another was opened once 10 days ago as an egg.
+    for (let ago = 10; ago >= 3; ago--) logged(ago, ['dailydaily0001', '0.15.2', 'pet', 1, 'tide', 'child.bright', 'cozy', 1, 'alive', 0]);
+    logged(10, ['onceonceonce01', '0.15.2', 'egg', 1, null, null, 'cozy', 1, 'alive', 0]);
+    const html = await dashboard();
+    const pct = (label: string) => new RegExp(`<b>([^<]+)</b><span>${label}</span>`).exec(html)?.[1];
+    const bar = (label: string, after: string) => Number(new RegExp(`<span>${label}</span><i[^>]*></i><b>(\\d+)</b>`).exec(html.split(after)[1])?.[1]);
+    expect(pct('back the next day')).toBe('50%');
+    expect(pct('still playing after 7 days')).toBe('50%');
+    expect(pct('still playing after 30 days')).toBe('–');
+    expect(bar('7 of 7', 'first week')).toBe(1);
+    expect(bar('1–2', 'first week')).toBe(1);
+    expect(bar('Egg', 'went quiet')).toBe(1);
+    expect(bar('Child', 'went quiet')).toBe(0);
   });
 
   it('keeps no IP address, browser or pet name anywhere', async () => {

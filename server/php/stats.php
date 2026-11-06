@@ -217,6 +217,7 @@ function add_snapshot(array &$pets, string $day, array $row): void
     $p = $pets[$id] ?? ['first' => $day, 'startedAsEgg' => $phase === 'egg', 'reached' => -1, 'stars' => 0];
     if ($phase === 'pet') $p['reached'] = max($p['reached'], $stage);
     $p['last'] = $day;
+    $p['days'][$day] = true;
     $p['mode'] = $mode;
     $p['gen'] = max($p['gen'] ?? 1, $gen);
     $p['stars'] = max($p['stars'], $stars);
@@ -349,6 +350,32 @@ function dashboard(): never
     $statusHead = implode('', array_map(fn($s) => '<th>' . h(ucfirst(preg_replace('/(?<!^)[A-Z]/', ' $0', $s))) . '</th>',
         array_slice(STATUSES, 1)));
     $joined = count($pets) - count($eggs);
+
+    // Coming back: a pet reports on each day its game is opened, so its days tell how often its player returns.
+    $dayNo = fn(string $d): int => intdiv((int) strtotime("$d 00:00:00 UTC"), 86400);
+    $todayNo = $dayNo(gmdate('Y-m-d'));
+    $span = fn(array $p): int => $dayNo($p['last']) - $dayNo($p['first']);
+    // Pets that can tell whether their player was back $after days on: first seen long enough ago, and not ended
+    // before then (the player's next egg is a new pet, so that wouldn't say they stopped).
+    $askable = fn(int $after) => array_filter($pets, fn($p) => $todayNo - $dayNo($p['first']) >= $after
+        && ($p['status'] === 'alive' || $span($p) >= $after));
+    $share = fn(array $of, callable $yes): string => $of
+        ? round(100 * count(array_filter($of, $yes)) / count($of)) . '%' : '–';
+    $nextDay = fn($p) => isset($p['days'][gmdate('Y-m-d', ($dayNo($p['first']) + 1) * 86400)]);
+    $backKpis = implode('', array_map(fn($k) => "<div class=\"kpi\"><b>{$k[0]}</b><span>{$k[1]}</span></div>", [
+        [$share($askable(1), $nextDay), 'back the next day'],
+        [$share($askable(7), fn($p) => $span($p) >= 7), 'still playing after 7 days'],
+        [$share($askable(30), fn($p) => $span($p) >= 30), 'still playing after 30 days'],
+    ]));
+    $week = array_fill_keys(['7 of 7', '5–6', '3–4', '1–2'], 0);
+    foreach ($askable(7) as $p) {
+        $played = count(array_filter(array_keys($p['days']), fn($d) => $dayNo($d) - $dayNo($p['first']) < 7));
+        $week[$played >= 7 ? '7 of 7' : ($played >= 5 ? '5–6' : ($played >= 3 ? '3–4' : '1–2'))]++;
+    }
+    $quiet = array_fill_keys(['Egg', ...STAGES], 0);
+    foreach ($pets as $p) {
+        if ($p['status'] === 'alive' && $todayNo - $dayNo($p['last']) >= 7) $quiet[STAGES[$p['reached']] ?? 'Egg']++;
+    }
     $detailDays = min($days, KEEP_LOG_DAYS);
 
     $links = implode(' · ', array_map(
@@ -413,6 +440,15 @@ function dashboard(): never
     <section><h3>How far pets get</h3>
       <p class="muted">Eggs first seen in the last $detailDays days, and how many reached each stage. $joined more pets
       joined after hatching (their players opted in later) and are left out here.</p>{$b($funnel, true)}</section>
+    <section><h3>Coming back</h3>
+      <p class="muted">A pet reports once on each day its game is opened, so this counts days played, not visits. Of the
+      pets first seen in the last $detailDays days that are old enough to tell; a pet whose story ended sooner is left
+      out, since its player's next egg is a new pet.</p><div class="kpis">$backKpis</div></section>
+    <div class="grid">
+      <section><h3>Days played in a pet's first week</h3>{$b($week, true)}</section>
+      <section><h3>Where players went quiet</h3><p class="muted">Pets still alive but not seen for 7 days, by where they
+      were. A player who switched sharing off looks the same.</p>{$b($quiet, true)}</section>
+    </div>
     <section><h3>How stories ended</h3><p class="muted">Pets seen in the last $detailDays days whose story is over, by mode.</p>
       <table><tr><th>Mode</th>$statusHead</tr>$endingRows</table></section>
     <div class="grid">
