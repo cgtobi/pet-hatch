@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.16.0
+
+- Invite a friend, from the menu: send the game's link, or show a QR code for a friend's phone right next to
+  yours. Once your pet is a child, the link is also a challenge to battle it.
+- A friend who arrives through your link sees who invited them, and your challenge waits for them until their
+  own pet is big enough to battle.
+- Shared links show as a card with a picture of the island in chat apps. The app fills in its own address, so
+  there is nothing to set up.
+- The stats dashboard (PHP hosting) shows how often players come back, from the anonymous pet stats players
+  opted into. Nothing new is collected.
+
 ## 0.15.2
 
 - A small gold dot on the menu button says the species book has something new; it goes away once you open the
