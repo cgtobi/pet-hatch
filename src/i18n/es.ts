@@ -66,6 +66,7 @@ export const es: Dict = {
   'hint.firstDone': '¡Listo! Vuelve en unas horas para girarlo',
   'hint.play.throw': '¡Desliza hacia arriba para lanzarle la pelota a {name}!',
   'hint.play.fetch': '¡{name} va a por la pelota!',
+  'hint.play.tickle': '¡Frota el destello de {name} de un lado a otro!',
   'hint.firstTime': 'Mantén para calentar · desliza hacia arriba para rociar · acaricia para consolar',
 
   'toast.knockBack': '¡Te ha oído responder!',
@@ -75,6 +76,10 @@ export const es: Dict = {
   'toast.ballLost': '¡Uy, se cayó de la isla! Aquí tienes otra pelota',
   'toast.fetchedOne': '¡{name} ha traído la pelota!',
   'toast.fetched': '¡{name} ha traído la pelota {n} veces!',
+  'toast.tickleWant': '¡{name} quiere cosquillas!',
+  'toast.giggledOne': '¡{name} se ha partido de risa!',
+  'toast.giggled': '¡{name} se ha partido de risa {n} veces!',
+  'toast.tickleEnough': '¡Jiji, basta! {name} se escapa retorciéndose',
   'toast.turned': '¡Girado!',
   'toast.turnedRecently': 'Lo acaban de girar',
   'toast.toasty': 'Calentito y cómodo',

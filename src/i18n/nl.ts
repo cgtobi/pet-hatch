@@ -66,6 +66,7 @@ export const nl: Dict = {
   'hint.firstDone': 'Klaar! Kom over een paar uur terug om het te draaien',
   'hint.play.throw': 'Veeg omhoog om de bal naar {name} te gooien!',
   'hint.play.fetch': '{name} haalt de bal!',
+  'hint.play.tickle': 'Wrijf heen en weer over het glinsteren op {name}!',
   'hint.firstTime': 'Vasthouden om te verwarmen · omhoog vegen om te sproeien · aaien om te troosten',
 
   'toast.knockBack': 'Het hoorde je terugkloppen!',
@@ -75,6 +76,10 @@ export const nl: Dict = {
   'toast.ballLost': 'Oeps, die vloog van het eiland! Hier is een nieuwe bal',
   'toast.fetchedOne': '{name} heeft de bal teruggebracht!',
   'toast.fetched': '{name} heeft de bal {n} keer teruggebracht!',
+  'toast.tickleWant': '{name} wil gekieteld worden!',
+  'toast.giggledOne': '{name} lag dubbel van het lachen!',
+  'toast.giggled': '{name} lag {n} keer dubbel van het lachen!',
+  'toast.tickleEnough': 'Hihi, genoeg! {name} wriemelt weg',
   'toast.turned': 'Gedraaid!',
   'toast.turnedRecently': 'Het is net pas gedraaid',
   'toast.toasty': 'Lekker warm',

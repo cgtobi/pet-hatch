@@ -13,7 +13,7 @@ const SICK_TINT = new THREE.Color('#a8b88a');
 const ELDER_TINT = new THREE.Color('#d9d2c8');
 const FADING_TINT = new THREE.Color('#b8b7c8');
 
-type Anim = 'hop' | 'eat' | 'cower' | 'dance' | 'evolve' | 'pop' | 'lunge' | 'hurt';
+type Anim = 'hop' | 'eat' | 'cower' | 'dance' | 'evolve' | 'pop' | 'lunge' | 'hurt' | 'giggle' | 'laugh';
 
 export interface PetLook {
   sleeping: boolean;
@@ -117,6 +117,8 @@ export class Pet3D {
   private post: { x: number; z: number; heading: number } | null = null;
   /** Playing fetch: run to this spot, then call back. */
   private chase: { x: number; z: number; done: () => void } | null = null;
+  /** Being tickled: stand still and face the player instead of wandering off. */
+  private staying = false;
   private fainted = false;
 
   constructor(
@@ -463,6 +465,26 @@ export class Pet3D {
   cower(): void {
     this.play('cower', 1.2);
   }
+  /** Squirm while being tickled; each call keeps it going a moment longer. */
+  giggle(): void {
+    if (!this.anim || this.anim.kind === 'giggle') this.play('giggle', 0.35);
+  }
+  /** Burst out laughing, each element in its own way: Ember jumps, Tide wobbles, Bloom spins, Astral floats up. */
+  laugh(): void {
+    this.play('laugh', 1.3);
+  }
+  /** Stand still facing the player (being tickled), or wander again. */
+  stay(on: boolean): void {
+    this.staying = on;
+    if (on) {
+      this.target = null;
+      this.idleFor = 0.5;
+    }
+  }
+  /** How big it is now (it grows with each life stage). */
+  get size(): number {
+    return this.scale;
+  }
   /** Jump toward the opponent (battle attack). */
   lunge(): void {
     this.play('lunge', 0.5);
@@ -546,6 +568,7 @@ export class Pet3D {
     let flashColor = 0xffffff;
     let lunge = 0;
     let shake = 0;
+    let wobble = 0;
     let scaleMul = 1;
 
     if (this.anim) {
@@ -581,6 +604,21 @@ export class Pet3D {
           flash = 0.9 * (1 - p);
           flashColor = 0xff3b2f;
           break;
+        case 'giggle':
+          squash = Math.sin(a.t * 34) * 0.07;
+          wobble = Math.sin(a.t * 21) * 0.09;
+          break;
+        case 'laugh': {
+          const fade = 1 - p;
+          squash = Math.sin(a.t * 26) * 0.06 * fade;
+          if (this.type === 'ember') hopY = Math.abs(Math.sin(p * Math.PI * 2)) * 0.4;
+          else if (this.type === 'tide') wobble = Math.sin(p * Math.PI * 4) * 0.28 * fade;
+          else if (this.type === 'bloom') {
+            spin = p * Math.PI * 2;
+            hopY = Math.sin(p * Math.PI) * 0.12;
+          } else hopY = Math.sin(p * Math.PI) * 0.55;
+          break;
+        }
         case 'evolve': {
           const target = STAGE_SCALE[this.stage];
           this.scale += (target - this.scale) * Math.min(1, dt * 3);
@@ -636,8 +674,9 @@ export class Pet3D {
         // Face the opponent in a battle, otherwise the player while standing around.
         this.heading = turnToward(this.heading, this.post?.heading ?? this.viewYaw, dt * (this.post ? 6 : 2));
         if (!this.post) {
+          // Being tickled, it stays put.
           this.idleFor -= dt;
-          if (this.idleFor <= 0) this.target = this.pickTarget();
+          if (this.idleFor <= 0 && !this.staying) this.target = this.pickTarget();
         } else if (Math.hypot(pos.x - this.post.x, pos.z - this.post.z) > 0.05) {
           // An animation interrupted the walk to the battle spot.
           this.target = new THREE.Vector2(this.post.x, this.post.z);
@@ -649,7 +688,7 @@ export class Pet3D {
 
     this.group.scale.setScalar(this.scale * scaleMul);
     this.body.position.set(Math.sin(this.heading) * lunge + shake, hopY, Math.cos(this.heading) * lunge);
-    const roll = down ? 1.35 : walking ? Math.sin(this.walkPhase) * 0.1 : 0;
+    const roll = (down ? 1.35 : walking ? Math.sin(this.walkPhase) * 0.1 : 0) + wobble;
     this.body.rotation.set(tilt, this.heading + spin, roll);
     this.body.scale.set(1 + squash, 1 - squash, 1 + squash);
 
@@ -660,11 +699,13 @@ export class Pet3D {
 
     // Face.
     this.blinkIn -= dt;
-    const closed = sleeping || down || this.blinkIn < 0.12 || this.anim?.kind === 'cower';
+    // Eyes squeeze shut when it cowers, and when it giggles or laughs.
+    const tickled = this.anim?.kind === 'giggle' || this.anim?.kind === 'laugh';
+    const closed = sleeping || down || this.blinkIn < 0.12 || this.anim?.kind === 'cower' || tickled;
     for (const e of this.eyes) e.scale.y = closed ? 0.15 : 1.15 * this.eyeOpen;
     if (this.blinkIn < 0) this.blinkIn = 2 + this.rand() * 3;
-    const happy = mood >= 60 && !sick;
-    const sad = mood < 30 || sick || down || this.anim?.kind === 'cower' || this.anim?.kind === 'hurt';
+    const happy = (mood >= 60 || tickled) && !sick;
+    const sad = (mood < 30 && !tickled) || sick || down || this.anim?.kind === 'cower' || this.anim?.kind === 'hurt';
     this.smile.visible = happy && !sad;
     this.frown.visible = sad;
     this.flat.visible = !this.smile.visible && !this.frown.visible;

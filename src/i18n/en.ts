@@ -65,6 +65,7 @@ export const en = {
   'hint.firstDone': 'All done! Come back in a few hours to turn it',
   'hint.play.throw': 'Swipe up to throw the ball for {name}!',
   'hint.play.fetch': '{name} is fetching the ball!',
+  'hint.play.tickle': 'Rub the sparkle on {name} back and forth!',
   'hint.firstTime': 'Hold to warm · swipe up to mist · stroke to comfort',
 
   'toast.knockBack': 'It heard you knock back!',
@@ -74,6 +75,10 @@ export const en = {
   'toast.ballLost': 'Oops, it flew off the island! Here’s another ball',
   'toast.fetchedOne': '{name} brought the ball back!',
   'toast.fetched': '{name} brought the ball back {n} times!',
+  'toast.tickleWant': '{name} wants to be tickled!',
+  'toast.giggledOne': '{name} burst out laughing!',
+  'toast.giggled': '{name} burst out laughing {n} times!',
+  'toast.tickleEnough': 'Hihi, enough! {name} wriggles away',
   'toast.turned': 'Turned!',
   'toast.turnedRecently': 'It was just turned',
   'toast.toasty': 'Warm and toasty',

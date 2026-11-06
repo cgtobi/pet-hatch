@@ -66,6 +66,7 @@ export const it: Dict = {
   'hint.firstDone': 'Fatto! Torna tra qualche ora per girarlo',
   'hint.play.throw': 'Scorri verso l’alto per lanciare la palla a {name}!',
   'hint.play.fetch': '{name} va a prendere la palla!',
+  'hint.play.tickle': 'Strofina il luccichio su {name} avanti e indietro!',
   'hint.firstTime': 'Tieni premuto per scaldare · scorri su per spruzzare · accarezza per consolare',
 
   'toast.knockBack': 'Ti ha sentito rispondere!',
@@ -75,6 +76,10 @@ export const it: Dict = {
   'toast.ballLost': 'Ops, è volata giù dall’isola! Ecco un’altra palla',
   'toast.fetchedOne': '{name} ha riportato la palla!',
   'toast.fetched': '{name} ha riportato la palla {n} volte!',
+  'toast.tickleWant': '{name} vuole il solletico!',
+  'toast.giggledOne': '{name} è scoppiato a ridere!',
+  'toast.giggled': '{name} è scoppiato a ridere {n} volte!',
+  'toast.tickleEnough': 'Ihih, basta! {name} scappa via dimenandosi',
   'toast.turned': 'Girato!',
   'toast.turnedRecently': 'È stato girato da poco',
   'toast.toasty': 'Bello caldino',

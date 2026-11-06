@@ -13,6 +13,7 @@ import {
   lightSwitched,
   lowestNeed,
   migratePet,
+  playChoice,
   playWith,
   canPlay,
   scold,
@@ -223,6 +224,35 @@ describe('attention calls and discipline', () => {
     expect(fetchFour.pet.mood - plain.pet.mood).toBe(6);
     fetchFour.pet.energy = 5;
     expect(canPlay(fetchFour.pet, at(1, 9, 2), fetchFour.settings)).toBe('tired');
+  });
+
+  it('tickling costs half the energy of fetch and also pays a little extra per laugh', () => {
+    const fetch = hatched();
+    const tickle = hatched();
+    fetch.pet.mood = tickle.pet.mood = 40;
+    fetch.pet.energy = tickle.pet.energy = 50;
+    playWith(fetch.pet, at(1, 9, 1), fetch.settings, 3, 'fetch');
+    playWith(tickle.pet, at(1, 9, 1), tickle.settings, 5, 'tickle');
+    expect(tickle.pet.mood).toBe(fetch.pet.mood);
+    expect(fetch.pet.energy).toBe(38);
+    expect(tickle.pet.energy).toBe(44);
+  });
+
+  it('asks to be tickled sometimes, more often as a baby or tired, and always when too tired for fetch', () => {
+    const s = hatched();
+    const share = (stage: number, energy: number) => {
+      s.pet.stage = stage;
+      s.pet.energy = energy;
+      let n = 0;
+      for (let m = 0; m < 2000; m++) if (playChoice(s.pet, at(2, 9) + m * 60_000) === 'tickle') n++;
+      return n / 2000;
+    };
+    expect(share(1, 80)).toBeCloseTo(0.25, 1);
+    expect(share(0, 80)).toBeCloseTo(0.5, 1);
+    expect(share(1, 20)).toBeCloseTo(0.6, 1);
+    expect(share(1, 8)).toBe(1);
+    s.pet.energy = 8;
+    expect(canPlay(s.pet, at(2, 9), s.settings)).toBe('ok');
   });
 
   it('gets upset when scolded for a real need', () => {

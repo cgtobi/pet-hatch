@@ -84,8 +84,17 @@ const MEAL = 35;
 const PLAY_MOOD = 20;
 /** A game of fetch: this many throws, each ball brought back a little extra mood. */
 export const FETCH_THROWS = 3;
+/** Tickling: this many laughs, each a little extra mood, like a ball brought back. */
+export const TICKLE_LAUGHS = 3;
 const FETCH_MOOD = 2;
 const PLAY_ENERGY = 12;
+/** Tickling is the calmer game: half the energy of running after a ball. */
+const TICKLE_ENERGY = 6;
+/** How often the pet asks to be tickled instead of fetching: babies and tired pets more often. */
+const TICKLE_CHANCE = { baby: 0.5, tired: 0.6, other: 0.25 };
+/** Below this much energy a pet counts as tired when choosing a game. */
+const TICKLE_TIRED = 30;
+const PLAY_SALT = 0x7177;
 const SCOLD_DISCIPLINE = 20;
 
 const NAMES = ['Pip', 'Mochi', 'Bean', 'Nori', 'Tofu', 'Kiwi', 'Pebble', 'Sprout', 'Dot', 'Momo', 'Puff', 'Biscuit'];
@@ -392,6 +401,7 @@ export function tickPet(pet: PetState, t: number, dtH: number, settings: Setting
 
 export type FeedResult = 'ok' | 'full' | 'asleep';
 export type PlayResult = 'ok' | 'tired' | 'asleep';
+export type PlayGame = 'fetch' | 'tickle';
 export type MedicineResult = 'cured' | 'dose' | 'notSick';
 export type ScoldResult = 'disciplined' | 'unfair' | 'confused';
 export type NapResult = 'ok' | 'notSleepy' | 'needsCare' | 'night' | 'napping';
@@ -435,18 +445,31 @@ export function cleanUp(pet: PetState): number {
   return n;
 }
 
-/** Whether the pet can play now. */
+/** Whether the pet can play now; a pet too tired for fetch can still be tickled. */
 export function canPlay(pet: PetState, now: number, settings: Settings): PlayResult {
   if (isSleeping(pet, now, settings)) return 'asleep';
-  return pet.energy < PLAY_ENERGY ? 'tired' : 'ok';
+  return pet.energy < TICKLE_ENERGY ? 'tired' : 'ok';
 }
 
-/** Play with the pet; `fetched`: balls it brought back in a game of fetch, each a little extra mood. */
-export function playWith(pet: PetState, now: number, settings: Settings, fetched = 0): PlayResult {
+/**
+ * Which game the pet wants when the player taps Play: usually fetch, sometimes a tickle (more often as a baby or
+ * when tired), and always a tickle when it is too tired to run after a ball. Fixed per minute, like other rolls.
+ */
+export function playChoice(pet: PetState, now: number): PlayGame {
+  if (pet.energy < PLAY_ENERGY) return 'tickle';
+  const chance = pet.energy < TICKLE_TIRED ? TICKLE_CHANCE.tired : pet.stage === 0 ? TICKLE_CHANCE.baby : TICKLE_CHANCE.other;
+  return roll(pet.seed, now, PLAY_SALT) < chance ? 'tickle' : 'fetch';
+}
+
+/**
+ * Play with the pet; `extra`: balls it brought back in a game of fetch, or times it burst out laughing when
+ * tickled, each a little extra mood. Tickling costs half the energy.
+ */
+export function playWith(pet: PetState, now: number, settings: Settings, extra = 0, game: PlayGame = 'fetch'): PlayResult {
   const can = canPlay(pet, now, settings);
   if (can !== 'ok') return can;
-  pet.mood = clamp(pet.mood + PLAY_MOOD + FETCH_MOOD * Math.min(fetched, FETCH_THROWS));
-  pet.energy = clamp(pet.energy - PLAY_ENERGY, 0, maxEnergy(pet));
+  pet.mood = clamp(pet.mood + PLAY_MOOD + FETCH_MOOD * Math.min(extra, game === 'fetch' ? FETCH_THROWS : TICKLE_LAUGHS));
+  pet.energy = clamp(pet.energy - (game === 'fetch' ? PLAY_ENERGY : TICKLE_ENERGY), 0, maxEnergy(pet));
   pet.hunger = clamp(pet.hunger - 4);
   return 'ok';
 }

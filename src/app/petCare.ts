@@ -15,12 +15,16 @@ import {
   isSleeping,
   lightSwitched,
   pat,
+  playChoice,
   playWith,
   scold,
   startPowerNap,
+  TICKLE_LAUGHS,
   wakeAtNight,
+  type PlayGame,
 } from '../sim/pet';
 import type { PetState } from '../sim/types';
+import type { TickleSpot } from '../scene/world';
 import type { DockAction } from '../ui/hud';
 import { lightButtonKind } from '../ui/status';
 import type { Game } from './context';
@@ -36,19 +40,45 @@ export interface PetCare {
   frame(dt: number, now: number): void;
   /** Whether the player has tapped the pet yet (the hint suggests it until then). */
   tapped(): boolean;
-  /** A game of fetch under way: the ball ready to throw, or the pet after it. */
-  playing(): 'throw' | 'fetch' | null;
+  /** A game under way: fetch with the ball ready to throw, or the pet after it; or tickling. */
+  playing(): 'throw' | 'fetch' | 'tickle' | null;
   /** A swipe while the ball is ready. */
   throwBall(dx: number, dy: number, ms: number): void;
+  /** Rubbing while tickling: where the finger is, and how far it moved (CSS pixels). */
+  rub(x: number, y: number, px: number): void;
 }
 
 /** A game of fetch ends after this long without a throw. */
 const FETCH_IDLE_S = 12;
+/** Tickling ends after this long without rubbing. */
+const TICKLE_IDLE_S = 10;
+/** Rubbing on the ticklish spot this far (CSS pixels, back and forth) makes the pet burst out laughing. */
+const TICKLE_FILL_PX = 800;
+/** Rubbing the pet elsewhere tickles too, just less. */
+const TICKLE_OFF_SPOT = 0.25;
+/** How long a laugh lasts; rubbing on through it this far is too much, and the pet wriggles away. */
+const LAUGH_S = 1.3;
+const TOO_MUCH_PX = 500;
+const SPOTS: TickleSpot[] = ['left', 'right', 'top'];
 
 export function createPetCare(g: Game, moments: Pick<Moments, 'evolve' | 'showEnding' | 'endShown' | 'vial'>): PetCare {
   let tapped = false;
   /** A game of fetch: throws so far, balls brought back, and seconds left to throw the next one. */
   let fetch: { throws: number; fetched: number; idle: number } | null = null;
+  /**
+   * Tickling: the ticklish spot, how full the giggle is (0…1), laughs so far, seconds left without rubbing, the
+   * laugh still playing (seconds), rubbing during it, and when the glint and squeak are next due.
+   */
+  let tickle: {
+    spot: TickleSpot;
+    fill: number;
+    laughs: number;
+    idle: number;
+    laughing: number;
+    pushed: number;
+    glint: number;
+    squeak: number;
+  } | null = null;
 
   /** Play: lay out the ball. The pet gets its play once the game of fetch ends. */
   function startFetch() {
@@ -89,22 +119,104 @@ export function createPetCare(g: Game, moments: Pick<Moments, 'evolve' | 'showEn
     fetch = null;
     g.world.endBall();
     g.world.onBall = () => {};
-    if (done && !cancelled) finishPlay(done.fetched, false);
+    if (done && !cancelled) finishPlay(done.fetched, false, 'fetch');
     else g.refresh();
   }
 
-  function finishPlay(fetched: number, woke: boolean) {
+  /** Play: the pet wants a tickle. It stands still, and a glint shows where it is ticklish. */
+  function startTickle() {
+    const pet = g.livePet();
+    if (tickle || !pet || !g.world.pet) return;
+    const spot = SPOTS[Math.floor(Math.random() * SPOTS.length)];
+    tickle = { spot, fill: 0, laughs: 0, idle: TICKLE_IDLE_S, laughing: 0, pushed: 0, glint: 0, squeak: 0 };
+    g.world.pet.stay(true);
+    g.world.pet.giggle();
+    sfx.giggle();
+    g.hud.toast(t('toast.tickleWant', { name: pet.name }));
+    g.refresh();
+  }
+
+  function rub(x: number, y: number, px: number) {
+    const view = g.world.pet;
+    if (!tickle || !view || px <= 0) return;
+    const center = g.world.toScreen(g.petCenter());
+    const at = g.world.tickleSpot(tickle.spot);
+    const radius = g.world.petRadiusPx();
+    const spot = at ? g.world.toScreen(at) : center;
+    // A fingertip around the glint counts; a baby on a phone is only about 30 px tall.
+    const onSpot = Math.hypot(x - spot.x, y - spot.y) < Math.max(24, radius * 0.8);
+    const onPet = onSpot || Math.hypot(x - center.x, y - center.y) < Math.max(40, radius * 1.3);
+    if (!onPet) return;
+    tickle.idle = TICKLE_IDLE_S;
+    if (tickle.laughing > 0) {
+      // Still laughing: rubbing on regardless is too much, and it wriggles away (once per laugh).
+      if (tickle.pushed >= 0 && (tickle.pushed += px) > TOO_MUCH_PX) {
+        tickle.pushed = -1;
+        wriggleAway();
+      }
+      return;
+    }
+    tickle.fill += (px * (onSpot ? 1 : TICKLE_OFF_SPOT)) / TICKLE_FILL_PX;
+    view.giggle();
+    if (tickle.squeak <= 0) {
+      sfx.giggle();
+      tickle.squeak = onSpot ? 0.16 : 0.35;
+    }
+    if (tickle.fill >= 1) laugh();
+  }
+
+  /** The giggle is full: the pet bursts out laughing, and the ticklish spot moves somewhere else. */
+  function laugh() {
+    if (!tickle || !g.world.pet) return;
+    tickle.laughs++;
+    tickle.fill = 0;
+    tickle.laughing = LAUGH_S;
+    tickle.pushed = 0;
+    tickle.spot = SPOTS.filter((s) => s !== tickle!.spot)[Math.floor(Math.random() * (SPOTS.length - 1))];
+    g.world.pet.laugh();
+    g.world.effects.emit('heart', g.petCenter(), 3);
+    g.world.effects.emit('note', g.petCenter(), 1);
+    sfx.laugh();
+    haptic('success');
+  }
+
+  /** "Hihi, enough!": the pet scampers a few steps away, and the game goes on there. */
+  function wriggleAway() {
+    const pet = g.livePet();
+    const view = g.world.pet;
+    if (!pet || !view) return;
+    const pos = view.group.position;
+    const a = Math.random() * Math.PI * 2;
+    let x = pos.x + Math.cos(a) * 0.7;
+    let z = pos.z + Math.sin(a) * 0.7;
+    const r = Math.hypot(x, z);
+    if (r > 1.3) [x, z] = [(x / r) * 1.3, (z / r) * 1.3];
+    view.runTo(x, z, () => {});
+    g.hud.toast(t('toast.tickleEnough', { name: pet.name }));
+  }
+
+  /** Tickling is over: the pet gets its play, more cheerful for each time it burst out laughing. */
+  function endTickle(cancelled = false) {
+    const done = tickle;
+    tickle = null;
+    g.world.pet?.stay(false);
+    if (done && !cancelled) finishPlay(done.laughs, false, 'tickle');
+    else g.refresh();
+  }
+
+  function finishPlay(extra: number, woke: boolean, game: PlayGame) {
     const pet = g.livePet();
     if (!pet) return;
-    const r = playWith(pet, g.now(), g.state.settings, fetched);
+    const r = playWith(pet, g.now(), g.state.settings, extra, game);
     if (r === 'ok') {
       g.world.pet?.dance();
       sfx.play();
       haptic('success');
       for (let i = 0; i < 4; i++) setTimeout(() => g.world.effects.emit(i % 2 ? 'note' : 'heart', g.petCenter(), 1), i * 300);
       if (!woke) {
-        const key = fetched === 0 ? 'toast.played' : fetched === 1 ? 'toast.fetchedOne' : 'toast.fetched';
-        g.hud.toast(t(key, { name: pet.name, n: fetched }));
+        const [one, many] = game === 'fetch' ? (['toast.fetchedOne', 'toast.fetched'] as const) : (['toast.giggledOne', 'toast.giggled'] as const);
+        const key = extra === 0 ? 'toast.played' : extra === 1 ? one : many;
+        g.hud.toast(t(key, { name: pet.name, n: extra }));
       }
     }
     g.save();
@@ -229,7 +341,7 @@ export function createPetCare(g: Game, moments: Pick<Moments, 'evolve' | 'showEn
         break;
       }
       case 'play': {
-        if (night === 'asleep' || fetch) break;
+        if (night === 'asleep' || fetch || tickle) break;
         const r = canPlay(pet, now, g.state.settings);
         if (r !== 'ok') {
           if (night !== 'woke') {
@@ -237,9 +349,10 @@ export function createPetCare(g: Game, moments: Pick<Moments, 'evolve' | 'showEn
             g.hud.toast(t(r === 'tired' ? 'toast.tired' : 'toast.asleep', name));
           }
         } else if (night === 'woke' || !view) {
-          // Woken at night: a quick cuddle, no game of fetch.
-          finishPlay(0, night === 'woke');
-        } else startFetch();
+          // Woken at night: a quick cuddle, no game.
+          finishPlay(0, night === 'woke', playChoice(pet, now));
+        } else if (playChoice(pet, now) === 'tickle') startTickle();
+        else startFetch();
         break;
       }
       case 'medicine': {
@@ -301,6 +414,22 @@ export function createPetCare(g: Game, moments: Pick<Moments, 'evolve' | 'showEn
     haptic('tap');
   }
 
+  function tickleFrame(dt: number) {
+    if (!tickle) return;
+    tickle.squeak -= dt;
+    if (tickle.laughing > 0) {
+      if ((tickle.laughing -= dt) <= 0 && tickle.laughs >= TICKLE_LAUGHS) return endTickle();
+      return;
+    }
+    if ((tickle.idle -= dt) <= 0) return endTickle();
+    // The glint twinkles faster as the giggle fills up.
+    if ((tickle.glint -= dt) <= 0) {
+      const at = g.world.tickleSpot(tickle.spot);
+      if (at) g.world.effects.emit('twinkle', at, tickle.fill > 0.5 ? 2 : 1);
+      tickle.glint = 0.3 - tickle.fill * 0.2;
+    }
+  }
+
   function frame(dt: number, now: number) {
     const pet = g.state.pet;
     const view = g.world.pet;
@@ -308,6 +437,11 @@ export function createPetCare(g: Game, moments: Pick<Moments, 'evolve' | 'showEn
       // The game of fetch stops if the pet can't play on (asleep, a sheet opened); it ends with no throw for a while.
       if (!pet || !view || g.sheet.isOpen || isSleeping(pet, now, g.state.settings)) endFetch(true);
       else if (g.world.ballReady && (fetch.idle -= dt) <= 0) endFetch();
+    }
+    if (tickle) {
+      // Tickling stops like fetch; it ends after the last laugh, or with no rubbing for a while.
+      if (!pet || !view || g.sheet.isOpen || isSleeping(pet, now, g.state.settings)) endTickle(true);
+      else tickleFrame(dt);
     }
     if (g.state.phase !== 'hatched' || !pet || !view) return;
     if (pet.status !== 'alive') {
@@ -356,7 +490,8 @@ export function createPetCare(g: Game, moments: Pick<Moments, 'evolve' | 'showEn
     sweepShell,
     frame,
     tapped: () => tapped,
-    playing: () => (fetch ? (g.world.ballReady ? 'throw' : 'fetch') : null),
+    playing: () => (fetch ? (g.world.ballReady ? 'throw' : 'fetch') : tickle ? 'tickle' : null),
     throwBall,
+    rub,
   };
 }

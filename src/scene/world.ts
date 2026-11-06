@@ -61,6 +61,9 @@ export interface Insets {
 /** How much wider the view is while a sheet is open (the camera eases back as the sheet rises). */
 const SHEET_ZOOM_OUT = 1.18;
 
+/** A ticklish spot on the pet, as seen from the camera. */
+export type TickleSpot = 'left' | 'right' | 'top';
+
 /** Owns the renderer, camera, lights and all scene objects. */
 export class World {
   readonly renderer: THREE.WebGLRenderer;
@@ -277,6 +280,38 @@ export class World {
   endBall(): void {
     this.ball.hide();
     this.pet?.stopRunning();
+  }
+
+  // ---------- tickling ----------
+
+  /**
+   * Where the pet is ticklish: its left or right side or the top of its head as seen from the camera, a little
+   * in front of the body so the glint isn't hidden by it.
+   */
+  tickleSpot(spot: TickleSpot, target = new THREE.Vector3()): THREE.Vector3 | null {
+    if (!this.pet) return null;
+    const size = this.pet.size;
+    const center = this.pet.center(target);
+    const right = new THREE.Vector3().setFromMatrixColumn(this.camera.matrixWorld, 0).setY(0).normalize();
+    const toward = this.camera.position.clone().sub(center).setY(0).normalize();
+    if (spot === 'top') return center.addScaledVector(toward, 0.15 * size).setY(center.y + 0.38 * size);
+    return center.addScaledVector(right, (spot === 'left' ? -0.36 : 0.36) * size).addScaledVector(toward, 0.22 * size);
+  }
+
+  /** A point in the scene as a position on the page, in CSS pixels. */
+  toScreen(at: THREE.Vector3): { x: number; y: number } {
+    const rect = this.canvas.getBoundingClientRect();
+    const v = at.clone().project(this.camera);
+    return { x: rect.left + ((v.x + 1) / 2) * rect.width, y: rect.top + ((1 - v.y) / 2) * rect.height };
+  }
+
+  /** About how big the pet looks on the page: the distance from its middle to its top, in CSS pixels. */
+  petRadiusPx(): number {
+    if (!this.pet) return 0;
+    const center = this.pet.center();
+    const a = this.toScreen(center);
+    const b = this.toScreen(center.clone().setY(center.y + 0.45 * this.pet.size));
+    return Math.hypot(a.x - b.x, a.y - b.y);
   }
 
   removePet(): void {

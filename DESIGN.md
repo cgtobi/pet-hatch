@@ -148,6 +148,16 @@ You name the baby when it hatches (a name is suggested).
   game: the usual play (+20 mood, −12 energy) plus +2 mood per ball brought back ("Pip brought the ball back 3
   times!"). It stops without a reward if the pet falls asleep or a sheet opens; a pet woken at night just gets a
   quick cuddle instead (`src/scene/ball.ts`, the fetch in `src/scene/world.ts` and `src/app/petCare.ts`).
+- **Sometimes it wants a tickle instead** (`playChoice`): a quarter of the time, half as a baby, 60% below 30
+  energy, and always when it is too tired for fetch (below 12 energy; tickling needs 6). The roll is fixed per
+  minute. "Pip wants to be tickled!": the pet stands still facing the player, and a glint marks a ticklish spot
+  (its left or right side or the top of its head, as seen from the camera; a fingertip around the glint counts). Rubbing back and forth there fills a
+  hidden giggle (about 800 px of rubbing; elsewhere on the pet counts a quarter), with squirming, squeaks and a
+  glint that twinkles faster as it fills. Full, the pet bursts out laughing in its element's way (Ember jumps, Tide
+  wobbles, Bloom spins, Astral floats up) and the spot moves. Rubbing on through a laugh is too much: "Hihi,
+  enough!", and it scampers a few steps away, with no penalty. Three laughs, or 10 s without rubbing, end it:
+  the usual play mood with half the energy (−6), plus +2 mood per laugh. While tickling, any drag rubs instead of
+  turning the island. It stops like fetch (asleep, a sheet opened).
 - **Naps:** a pet that runs out of energy during the day naps on its own until it has 40% again (about 1.5 h).
   Energy never triggers a call, because the player can't fix it directly.
 - **The round button beside More** changes with the time of day: **Nap** (then **Wake up**) by day, **Light** in

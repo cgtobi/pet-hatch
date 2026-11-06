@@ -17,6 +17,9 @@ export interface GestureHandlers {
   /** Playing fetch with the ball ready: any swipe is a throw (pixels moved, and how long it took). */
   throwing(): boolean;
   onThrow(dx: number, dy: number, ms: number): void;
+  /** Tickling the pet: any drag rubs (where the finger is now, and pixels moved since the last call). */
+  tickling(): boolean;
+  onRub(x: number, y: number, px: number): void;
 }
 
 const HOLD_MS = 220;
@@ -31,7 +34,7 @@ const STROKE_REVERSALS = 2;
  */
 export function attachGestures(el: HTMLElement, h: GestureHandlers): void {
   let id: number | null = null;
-  let mode: 'egg' | 'pet' | 'shell' | 'orbit' | 'throw' = 'orbit';
+  let mode: 'egg' | 'pet' | 'shell' | 'orbit' | 'throw' | 'tickle' = 'orbit';
   let startX = 0;
   let startY = 0;
   let startT = 0;
@@ -76,7 +79,7 @@ export function attachGestures(el: HTMLElement, h: GestureHandlers): void {
     vx = 0;
     lastDir = 0;
     reversals = 0;
-    const hit = h.throwing() ? 'throw' : h.pick(e.clientX, e.clientY);
+    const hit = h.throwing() ? 'throw' : h.tickling() ? 'tickle' : h.pick(e.clientX, e.clientY);
     mode = hit ?? 'orbit';
     if (mode === 'egg') {
       holdTimer = window.setTimeout(() => {
@@ -102,6 +105,7 @@ export function attachGestures(el: HTMLElement, h: GestureHandlers): void {
       vx = vx * 0.6 + (dx / dt) * 1000 * 0.4;
       return;
     }
+    if (mode === 'tickle') return h.onRub(e.clientX, e.clientY, Math.abs(dx) + Math.abs(dy));
     if (mode !== 'egg') return;
     if (moved() > TAP_SLOP) clearTimeout(holdTimer);
     if (Math.abs(dx) > 2) {

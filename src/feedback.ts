@@ -231,6 +231,11 @@ export const sfx = {
       tone(300, now() + at, 0.07, { type: 'triangle', vol: 0.05, slideTo: 220 });
     }),
   play: () => [0, 7, 4, 12].forEach((s, i) => chime(note(s), now() + i * 0.1, 0.1)),
+  /** A little squeak while being tickled, never twice the same. */
+  giggle: () => tone(950 + Math.random() * 350, now(), 0.07, { type: 'triangle', vol: 0.05, slideTo: 1400 + Math.random() * 300 }),
+  /** Bursting out laughing: "ha-ha-ha-ha", each a little lower. */
+  laugh: () =>
+    [0, 1, 2, 3].forEach((i) => tone(1150 - i * 90, now() + i * 0.12, 0.09, { type: 'triangle', vol: 0.07, slideTo: 1400 - i * 90 })),
   cure: () => [7, 12, 16].forEach((s, i) => chime(note(s), now() + i * 0.08, 0.09)),
   scold: () => tone(190, now(), 0.25, { type: 'sawtooth', vol: 0.05, slideTo: 120 }),
   grow: () => [0, 4, 7, 12, 16, 19, 24].forEach((s, i) => chime(note(s - 5), now() + i * 0.09, 0.1)),

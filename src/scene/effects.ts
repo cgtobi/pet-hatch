@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { GROUND_Y } from './island';
 import { toon } from './toon';
 
-export type ParticleKind = 'drop' | 'heart' | 'note' | 'spark' | 'zzz';
+export type ParticleKind = 'drop' | 'heart' | 'note' | 'spark' | 'twinkle' | 'zzz';
 
 function icon(draw: (g: CanvasRenderingContext2D) => void): THREE.CanvasTexture {
   const c = document.createElement('canvas');
@@ -64,6 +64,19 @@ const textures: Record<ParticleKind, () => THREE.CanvasTexture> = {
       }
       g.fill();
     }),
+  twinkle: () =>
+    icon((g) => {
+      g.fillStyle = '#fff6c2';
+      g.shadowColor = '#ffd36b';
+      g.shadowBlur = 10;
+      g.beginPath();
+      for (let i = 0; i < 8; i++) {
+        const r = i % 2 ? 6 : 26;
+        const a = (i / 8) * Math.PI * 2 - Math.PI / 2;
+        g.lineTo(32 + Math.cos(a) * r, 32 + Math.sin(a) * r);
+      }
+      g.fill();
+    }),
   zzz: () =>
     icon((g) => {
       g.fillStyle = '#ffffff';
@@ -90,7 +103,7 @@ interface Shard {
   life: number;
 }
 
-/** Pooled sprite particles (mist, hearts, notes, sparkles, z's) and eggshell shards. */
+/** Pooled sprite particles (mist, hearts, notes, sparkles, glints, z's) and eggshell shards. */
 export class Effects {
   readonly group = new THREE.Group();
   private maps = new Map<ParticleKind, THREE.CanvasTexture>();
@@ -116,6 +129,9 @@ export class Effects {
     }
     p.kind = kind;
     p.sprite.material.map = this.map(kind);
+    // A glint marks a spot on the pet: it shows on top of the body instead of hiding inside it.
+    p.sprite.material.depthTest = kind !== 'twinkle';
+    p.sprite.renderOrder = kind === 'twinkle' ? 10 : 0;
     p.sprite.material.needsUpdate = true;
     p.sprite.visible = true;
     return p;
@@ -147,6 +163,13 @@ export class Effects {
           p.maxLife = 0.9;
           break;
         }
+        case 'twinkle':
+          // Marks a spot (where the pet is ticklish): it barely drifts, just glints and fades.
+          s.add(new THREE.Vector3(rnd() * 0.08, rnd() * 0.08, rnd() * 0.08));
+          p.vel.set(0, 0.12, 0);
+          p.size = 0.3 + Math.random() * 0.12;
+          p.maxLife = 0.8;
+          break;
         case 'zzz':
           s.add(new THREE.Vector3(0.3, 0.6, 0));
           p.vel.set(0.25, 0.35, 0);
