@@ -82,6 +82,9 @@ const DISCIPLINED_GAP = 3;
 const FULL = 90;
 const MEAL = 35;
 const PLAY_MOOD = 20;
+/** A game of fetch: this many throws, each ball brought back a little extra mood. */
+export const FETCH_THROWS = 3;
+const FETCH_MOOD = 2;
 const PLAY_ENERGY = 12;
 const SCOLD_DISCIPLINE = 20;
 
@@ -432,10 +435,17 @@ export function cleanUp(pet: PetState): number {
   return n;
 }
 
-export function playWith(pet: PetState, now: number, settings: Settings): PlayResult {
+/** Whether the pet can play now. */
+export function canPlay(pet: PetState, now: number, settings: Settings): PlayResult {
   if (isSleeping(pet, now, settings)) return 'asleep';
-  if (pet.energy < PLAY_ENERGY) return 'tired';
-  pet.mood = clamp(pet.mood + PLAY_MOOD);
+  return pet.energy < PLAY_ENERGY ? 'tired' : 'ok';
+}
+
+/** Play with the pet; `fetched`: balls it brought back in a game of fetch, each a little extra mood. */
+export function playWith(pet: PetState, now: number, settings: Settings, fetched = 0): PlayResult {
+  const can = canPlay(pet, now, settings);
+  if (can !== 'ok') return can;
+  pet.mood = clamp(pet.mood + PLAY_MOOD + FETCH_MOOD * Math.min(fetched, FETCH_THROWS));
   pet.energy = clamp(pet.energy - PLAY_ENERGY, 0, maxEnergy(pet));
   pet.hunger = clamp(pet.hunger - 4);
   return 'ok';

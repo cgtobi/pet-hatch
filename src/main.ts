@@ -200,7 +200,9 @@ function updateHud() {
       knowsNightWake: !!state.learned?.nightWake,
       tapped: petCare.tapped(),
     });
+    const fetching = petCare.playing();
     if (atSchool && !pet.fading) hud.setHint(t('hint.school', { name: pet.name, time: schoolEnds() }));
+    else if (fetching) hud.setHint(t(fetching === 'throw' ? 'hint.play.throw' : 'hint.play.fetch', { name: pet.name }));
     else hud.setHint(t(hint.key, hint.params), hint.urgent);
     hud.setDockState(
       {
@@ -380,6 +382,8 @@ attachGestures(canvas, {
   },
   onOrbit: (dx) => world.orbit(dx),
   onOrbitEnd: (vx) => world.release(vx),
+  throwing: () => petCare.playing() === 'throw',
+  onThrow: (dx, dy, ms) => petCare.throwBall(dx, dy, ms),
 });
 
 window.addEventListener('resize', () => {

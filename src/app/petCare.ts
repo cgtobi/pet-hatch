@@ -6,8 +6,10 @@ import { haptic, sfx } from '../feedback';
 import { t, type TextKey } from '../i18n';
 import { dayPart, isAsleep } from '../sim/clock';
 import {
+  canPlay,
   cleanUp,
   endPowerNap,
+  FETCH_THROWS,
   feedPet,
   giveMedicine,
   isSleeping,
@@ -34,10 +36,80 @@ export interface PetCare {
   frame(dt: number, now: number): void;
   /** Whether the player has tapped the pet yet (the hint suggests it until then). */
   tapped(): boolean;
+  /** A game of fetch under way: the ball ready to throw, or the pet after it. */
+  playing(): 'throw' | 'fetch' | null;
+  /** A swipe while the ball is ready. */
+  throwBall(dx: number, dy: number, ms: number): void;
 }
+
+/** A game of fetch ends after this long without a throw. */
+const FETCH_IDLE_S = 12;
 
 export function createPetCare(g: Game, moments: Pick<Moments, 'evolve' | 'showEnding' | 'endShown' | 'vial'>): PetCare {
   let tapped = false;
+  /** A game of fetch: throws so far, balls brought back, and seconds left to throw the next one. */
+  let fetch: { throws: number; fetched: number; idle: number } | null = null;
+
+  /** Play: lay out the ball. The pet gets its play once the game of fetch ends. */
+  function startFetch() {
+    if (fetch) return;
+    fetch = { throws: 0, fetched: 0, idle: FETCH_IDLE_S };
+    g.world.onBall = (result) => {
+      if (!fetch) return;
+      if (result === 'fetched') {
+        fetch.fetched++;
+        g.world.effects.emit('heart', g.petCenter(), 3);
+        sfx.hit();
+        haptic('success');
+      } else {
+        sfx.miss();
+        g.hud.toast(t('toast.ballLost'));
+      }
+      fetch.idle = FETCH_IDLE_S;
+      if (fetch.throws >= FETCH_THROWS) endFetch();
+      else g.refresh();
+    };
+    g.world.playBall();
+    sfx.tap();
+    g.refresh();
+  }
+
+  function throwBall(dx: number, dy: number, ms: number) {
+    if (!fetch || !g.world.throwBall(dx / innerWidth, dy / innerHeight, ms)) return;
+    fetch.throws++;
+    fetch.idle = FETCH_IDLE_S;
+    sfx.whoosh();
+    haptic('tap');
+    g.refresh();
+  }
+
+  /** The game of fetch is over: the pet gets its play, more cheerful for each ball it brought back. */
+  function endFetch(cancelled = false) {
+    const done = fetch;
+    fetch = null;
+    g.world.endBall();
+    g.world.onBall = () => {};
+    if (done && !cancelled) finishPlay(done.fetched, false);
+    else g.refresh();
+  }
+
+  function finishPlay(fetched: number, woke: boolean) {
+    const pet = g.livePet();
+    if (!pet) return;
+    const r = playWith(pet, g.now(), g.state.settings, fetched);
+    if (r === 'ok') {
+      g.world.pet?.dance();
+      sfx.play();
+      haptic('success');
+      for (let i = 0; i < 4; i++) setTimeout(() => g.world.effects.emit(i % 2 ? 'note' : 'heart', g.petCenter(), 1), i * 300);
+      if (!woke) {
+        const key = fetched === 0 ? 'toast.played' : fetched === 1 ? 'toast.fetchedOne' : 'toast.fetched';
+        g.hud.toast(t(key, { name: pet.name, n: fetched }));
+      }
+    }
+    g.save();
+    g.refresh();
+  }
 
   /** Nap or Wake up by day; in the evening and at night, the light. */
   function lightButton() {
@@ -157,18 +229,17 @@ export function createPetCare(g: Game, moments: Pick<Moments, 'evolve' | 'showEn
         break;
       }
       case 'play': {
-        if (night === 'asleep') break;
-        const r = playWith(pet, now, g.state.settings);
-        if (r === 'ok') {
-          view?.dance();
-          sfx.play();
-          haptic('success');
-          for (let i = 0; i < 4; i++) setTimeout(() => g.world.effects.emit(i % 2 ? 'note' : 'heart', at(), 1), i * 300);
-          if (night !== 'woke') g.hud.toast(t('toast.played'));
-        } else if (night !== 'woke') {
-          sfx.nope();
-          g.hud.toast(t(r === 'tired' ? 'toast.tired' : 'toast.asleep', name));
-        }
+        if (night === 'asleep' || fetch) break;
+        const r = canPlay(pet, now, g.state.settings);
+        if (r !== 'ok') {
+          if (night !== 'woke') {
+            sfx.nope();
+            g.hud.toast(t(r === 'tired' ? 'toast.tired' : 'toast.asleep', name));
+          }
+        } else if (night === 'woke' || !view) {
+          // Woken at night: a quick cuddle, no game of fetch.
+          finishPlay(0, night === 'woke');
+        } else startFetch();
         break;
       }
       case 'medicine': {
@@ -233,6 +304,11 @@ export function createPetCare(g: Game, moments: Pick<Moments, 'evolve' | 'showEn
   function frame(dt: number, now: number) {
     const pet = g.state.pet;
     const view = g.world.pet;
+    if (fetch) {
+      // The game of fetch stops if the pet can't play on (asleep, a sheet opened); it ends with no throw for a while.
+      if (!pet || !view || g.sheet.isOpen || isSleeping(pet, now, g.state.settings)) endFetch(true);
+      else if (g.world.ballReady && (fetch.idle -= dt) <= 0) endFetch();
+    }
     if (g.state.phase !== 'hatched' || !pet || !view) return;
     if (pet.status !== 'alive') {
       if (!moments.endShown() && pet.revealSeen) moments.showEnding(pet);
@@ -273,5 +349,14 @@ export function createPetCare(g: Game, moments: Pick<Moments, 'evolve' | 'showEn
     if (sleeping && Math.random() < dt / 2) g.world.effects.emit('zzz', view.center(), 1);
   }
 
-  return { action: petAction, lightButton, tap: tapPet, sweepShell, frame, tapped: () => tapped };
+  return {
+    action: petAction,
+    lightButton,
+    tap: tapPet,
+    sweepShell,
+    frame,
+    tapped: () => tapped,
+    playing: () => (fetch ? (g.world.ballReady ? 'throw' : 'fetch') : null),
+    throwBall,
+  };
 }

@@ -14,6 +14,9 @@ export interface GestureHandlers {
   /** Dragging on empty space rotates the view. */
   onOrbit(dxPixels: number): void;
   onOrbitEnd(vxPixelsPerSec: number): void;
+  /** Playing fetch with the ball ready: any swipe is a throw (pixels moved, and how long it took). */
+  throwing(): boolean;
+  onThrow(dx: number, dy: number, ms: number): void;
 }
 
 const HOLD_MS = 220;
@@ -28,7 +31,7 @@ const STROKE_REVERSALS = 2;
  */
 export function attachGestures(el: HTMLElement, h: GestureHandlers): void {
   let id: number | null = null;
-  let mode: 'egg' | 'pet' | 'shell' | 'orbit' = 'orbit';
+  let mode: 'egg' | 'pet' | 'shell' | 'orbit' | 'throw' = 'orbit';
   let startX = 0;
   let startY = 0;
   let startT = 0;
@@ -59,6 +62,7 @@ export function attachGestures(el: HTMLElement, h: GestureHandlers): void {
       h.onTap(mode);
     }
     if (mode === 'orbit') h.onOrbitEnd(cancelled ? 0 : vx);
+    if (mode === 'throw' && !cancelled) h.onThrow(lastX - startX, lastY - startY, performance.now() - startT);
     id = null;
   };
 
@@ -72,7 +76,7 @@ export function attachGestures(el: HTMLElement, h: GestureHandlers): void {
     vx = 0;
     lastDir = 0;
     reversals = 0;
-    const hit = h.pick(e.clientX, e.clientY);
+    const hit = h.throwing() ? 'throw' : h.pick(e.clientX, e.clientY);
     mode = hit ?? 'orbit';
     if (mode === 'egg') {
       holdTimer = window.setTimeout(() => {

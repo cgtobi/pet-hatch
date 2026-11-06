@@ -138,6 +138,13 @@ You name the baby when it hatches (a name is suggested).
 | Energy | −5 awake; +25 asleep in the dark, +10 with the light on or dozing | Sleep, **Nap** by day |
 | Clean | One dropping 1.5–3 h after each meal (max 5) | **Clean** |
 
+- **Play is a game of fetch:** Play lays a ball on the island's edge nearest the player ("Swipe up to throw the ball
+  for Pip!"). A swipe up throws it: about half the screen's height reaches the far edge, a quick swipe a little
+  further, a slanted one to the side. The pet runs for it, carries it back in its mouth and drops it at the edge
+  again; a ball thrown off the island falls away and a new one appears. Three throws, or 12 s without one, end the
+  game: the usual play (+20 mood, −12 energy) plus +2 mood per ball brought back ("Pip brought the ball back 3
+  times!"). It stops without a reward if the pet falls asleep or a sheet opens; a pet woken at night just gets a
+  quick cuddle instead (`src/scene/ball.ts`, the fetch in `src/scene/world.ts` and `src/app/petCare.ts`).
 - **Naps:** a pet that runs out of energy during the day naps on its own until it has 40% again (about 1.5 h).
   Energy never triggers a call, because the player can't fix it directly.
 - **The round button beside More** changes with the time of day: **Nap** (then **Wake up**) by day, **Light** in

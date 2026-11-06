@@ -5,6 +5,7 @@ import { Effects } from './effects';
 import { Egg3D } from './egg3d';
 import { Fireflies } from './fireflies';
 import { GROUND_Y, Island } from './island';
+import { Ball3D } from './ball';
 import { Pet3D, SHELL } from './pet3d';
 import { Sky, skyAt } from './sky';
 import { toon } from './toon';
@@ -70,6 +71,9 @@ export class World {
   pet: Pet3D | null = null;
   /** The opponent during a battle. */
   foe: Pet3D | null = null;
+  /** The toy ball for Play, and what to tell when the pet brought it back or it fell off the island. */
+  private ball = new Ball3D();
+  onBall: (result: 'fetched' | 'lost') => void = () => {};
   private droppings = new Map<number, THREE.Group>();
   private droppingMats = [toon('#9a6b4c'), toon('#a87756'), toon('#b5845f')];
 
@@ -106,6 +110,7 @@ export class World {
       this.island.group,
       this.egg.group,
       this.effects.group,
+      this.ball.group,
       this.fireflies.points,
       this.hemi,
       this.sun,
@@ -204,6 +209,74 @@ export class World {
     this.pet?.release();
     this.egg.setShellVisible(true);
     this.resize();
+  }
+
+  // ---------- fetch ----------
+
+  /** Where the ball waits to be thrown: on the island's edge nearest the player, which turns with the view. */
+  private readySpot(distance = 2.0): THREE.Vector3 {
+    return new THREE.Vector3(Math.sin(this.yaw) * distance, GROUND_Y, Math.cos(this.yaw) * distance);
+  }
+
+  /** Lay the ball out for a game of fetch. */
+  playBall(): void {
+    const at = this.readySpot();
+    this.ball.placeReady(at.x, at.z);
+  }
+
+  /** Whether the ball lies ready for a throw. */
+  get ballReady(): boolean {
+    return this.ball.kind === 'ready';
+  }
+
+  /**
+   * Throw the ball with a swipe, as shares of the screen's width and height, and how long it took: a longer swipe
+   * throws further (about half the screen's height reaches the far edge), a quick one a little further still, and
+   * a slanted one to the side. False if the ball isn't ready or the swipe wasn't upwards.
+   */
+  throwBall(dx: number, dy: number, ms: number): boolean {
+    const up = -dy;
+    if (this.ball.kind !== 'ready' || up < 0.04) return false;
+    const speed = THREE.MathUtils.clamp(up / Math.max(0.1, ms / 1000) / 1.5, 0.85, 1.15);
+    const distance = THREE.MathUtils.clamp((1 + 8 * up) * speed, 0.8, 6.5);
+    const side = THREE.MathUtils.clamp((dx / Math.max(up, 0.05)) * distance * 0.8, -3, 3);
+    const forward = new THREE.Vector3(-Math.sin(this.yaw), 0, -Math.cos(this.yaw));
+    const right = new THREE.Vector3(Math.cos(this.yaw), 0, -Math.sin(this.yaw));
+    const to = this.readySpot().addScaledVector(forward, distance).addScaledVector(right, side);
+    to.y = GROUND_Y + 0.13;
+    this.ball.fly(to, (inside) => {
+      const pet = this.pet;
+      if (!inside) {
+        pet?.cower();
+        setTimeout(() => {
+          if (this.ball.kind === 'hidden' || this.ball.kind === 'falling') {
+            const at = this.readySpot();
+            this.ball.placeReady(at.x, at.z);
+            this.onBall('lost');
+          }
+        }, 1300);
+        return;
+      }
+      if (!pet) return this.onBall('fetched');
+      // Run to the ball, pick it up, bring it back to the player and drop it there.
+      pet.runTo(to.x, to.z, () => {
+        this.ball.carry();
+        const back = this.readySpot(1.7);
+        pet.runTo(back.x, back.z, () => {
+          const at = this.readySpot();
+          this.ball.drop(at.x, at.z);
+          pet.hop();
+          this.onBall('fetched');
+        });
+      });
+    });
+    return true;
+  }
+
+  /** Put the ball away. */
+  endBall(): void {
+    this.ball.hide();
+    this.pet?.stopRunning();
   }
 
   removePet(): void {
@@ -321,6 +394,7 @@ export class World {
     this.effects.update(dt);
     this.pet?.update(dt, time);
     this.foe?.update(dt, time);
+    this.ball.update(dt, this.ball.kind === 'carried' && this.pet ? this.pet.mouth() : null);
     this.renderer.render(this.scene, this.camera);
   }
 }

@@ -14,6 +14,7 @@ import {
   lowestNeed,
   migratePet,
   playWith,
+  canPlay,
   scold,
   stageHours,
   startPowerNap,
@@ -210,6 +211,18 @@ describe('attention calls and discipline', () => {
     const good = count(100);
     expect(good).toBeGreaterThan(0);
     expect(good).toBeLessThan(wild / 2);
+  });
+
+  it('plays fetch: a little extra mood for each ball brought back, at most three', () => {
+    const plain = hatched();
+    const fetchFour = hatched();
+    plain.pet.mood = fetchFour.pet.mood = 40;
+    expect(canPlay(plain.pet, at(1, 9, 1), plain.settings)).toBe('ok');
+    playWith(plain.pet, at(1, 9, 1), plain.settings);
+    playWith(fetchFour.pet, at(1, 9, 1), fetchFour.settings, 4);
+    expect(fetchFour.pet.mood - plain.pet.mood).toBe(6);
+    fetchFour.pet.energy = 5;
+    expect(canPlay(fetchFour.pet, at(1, 9, 2), fetchFour.settings)).toBe('tired');
   });
 
   it('gets upset when scolded for a real need', () => {

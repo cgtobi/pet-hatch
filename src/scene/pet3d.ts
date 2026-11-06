@@ -115,6 +115,8 @@ export class Pet3D {
   obstacles: Obstacle[] = [SHELL];
   /** In a battle: hold this spot and facing instead of wandering. */
   private post: { x: number; z: number; heading: number } | null = null;
+  /** Playing fetch: run to this spot, then call back. */
+  private chase: { x: number; z: number; done: () => void } | null = null;
   private fainted = false;
 
   constructor(
@@ -482,6 +484,27 @@ export class Pet3D {
     this.fainted = false;
   }
 
+  /** Run to a spot (fetching the ball), then call `done`. */
+  runTo(x: number, z: number, done: () => void): void {
+    this.chase = { x, z, done };
+    this.target = new THREE.Vector2(x, z);
+    this.idleFor = 0;
+  }
+
+  /** Stop running after the ball. */
+  stopRunning(): void {
+    this.chase = null;
+    this.target = null;
+  }
+
+  /** Where the pet holds the ball while carrying it: in front of its face. */
+  mouth(target = new THREE.Vector3()): THREE.Vector3 {
+    const s = this.scale;
+    return target
+      .copy(this.group.position)
+      .add(new THREE.Vector3(Math.sin(this.heading) * 0.36 * s, 0.2 * s + this.body.position.y * s, Math.cos(this.heading) * 0.36 * s));
+  }
+
   release(): void {
     this.post = null;
     this.fainted = false;
@@ -586,15 +609,21 @@ export class Pet3D {
     const pos = this.group.position;
     let walking = false;
     if (!this.anim && !sleeping && !down) {
+      // An animation cleared the target: carry on after the ball.
+      if (this.chase && !this.target) this.target = new THREE.Vector2(this.chase.x, this.chase.z);
       if (this.target) {
         const dx = this.target.x - pos.x;
         const dz = this.target.y - pos.z;
         const dist = Math.hypot(dx, dz);
         // Hurry to the spot when a battle starts.
-        const speed = (sick ? 0.2 : 0.4) * (this.scale / 1.3) * (this.post ? 3 : 1);
-        if (dist < 0.05) {
+        // Running after the ball is quicker still.
+        const speed = (sick ? 0.2 : 0.4) * (this.scale / 1.3) * (this.post ? 3 : this.chase ? 3.2 : 1);
+        if (dist < (this.chase ? 0.15 : 0.05)) {
           this.target = null;
           this.idleFor = 2 + this.rand() * 5;
+          const chase = this.chase;
+          this.chase = null;
+          chase?.done();
         } else {
           if (this.post) walking = true;
           walking = true;
