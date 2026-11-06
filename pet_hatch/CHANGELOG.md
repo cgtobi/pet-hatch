@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.15.0
+
+- Play is now a game of fetch: swipe up to throw the ball, and your pet runs after it and brings it back in its
+  mouth. Each ball it returns lifts its mood a little more. Throw too far and the ball drops off the island, but
+  a new one appears. A pet woken at night still just gets a quick cuddle.
+
 ## 0.14.0
 
 - New species book in Settings: all 36 species, filled in as your pets grow into them or meet them in battle.
