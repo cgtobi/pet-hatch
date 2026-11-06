@@ -436,7 +436,7 @@ button:focus:not(:focus-visible) {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  bottom: calc(env(safe-area-inset-bottom) + 122px);
+  bottom: calc(max(env(safe-area-inset-bottom), 14px) + 108px);
   width: max-content;
   max-width: min(100% - 2 * var(--gutter), 420px);
   margin: 0;
@@ -457,7 +457,7 @@ button:focus:not(:focus-visible) {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  bottom: calc(env(safe-area-inset-bottom) + 192px);
+  bottom: calc(max(env(safe-area-inset-bottom), 14px) + 178px);
   width: max-content;
   max-width: min(100% - 2 * var(--gutter), 420px);
   display: flex;
@@ -521,7 +521,7 @@ button:focus:not(:focus-visible) {
 
 .dock {
   position: absolute;
-  bottom: calc(env(safe-area-inset-bottom) + 14px);
+  bottom: max(env(safe-area-inset-bottom), 14px);
   left: 50%;
   transform: translateX(-50%);
   width: min(100% - 2 * var(--gutter), 440px);
