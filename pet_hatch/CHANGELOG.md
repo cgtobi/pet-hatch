@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.16.1
+
+- On iPhones the care buttons sit right above the home bar, leaving less empty space below them.
+
 ## 0.16.0
 
 - Invite a friend, from the menu: send the game's link, or show a QR code for a friend's phone right next to
