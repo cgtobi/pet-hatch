@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.17.0
+
+- Play has a second game: sometimes your pet wants to be tickled instead of fetching the ball. Rub the sparkle on
+  it back and forth until it bursts out laughing, three times; each element laughs its own way.
+- Babies and tired pets ask for tickles more often, and a pet too tired for fetch can still be tickled. Tickling
+  uses half the energy.
+
 ## 0.16.1
 
 - On iPhones the care buttons sit right above the home bar, leaving less empty space below them.
