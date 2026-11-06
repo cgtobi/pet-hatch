@@ -1,9 +1,12 @@
-# Pet Hatch: the game's update check (version.json) goes through stats.php, which answers with the same file and
-# counts open games per day (no cookies, nothing stored on the player's device). Without mod_rewrite version.json
-# is served as a plain file and nothing is counted. To stop counting, remove these four lines.
+# Pet Hatch, with mod_rewrite:
+# - The game's update check (version.json) goes through stats.php, which answers with the same file and counts open
+#   games per day (no cookies, nothing stored on the player's device). To stop counting, remove its RewriteRule.
+# - The game page goes through page.php, which gives its link preview picture a full address, so chat apps show it.
+# Without mod_rewrite both are served as plain files: nothing is counted, and link cards show no picture.
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteRule ^version\.json$ stats.php [L,QSA]
+  RewriteRule ^(index\.html)?$ page.php [L,QSA]
 </IfModule>
 
 # The secret files, if they are kept here rather than in a pet-hatch-private folder outside the web folder: never

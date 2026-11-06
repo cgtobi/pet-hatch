@@ -21,6 +21,9 @@ Status of each part: ✅ built, 🔜 planned.
   3. opt-in pet details (`src/net/stats.ts`): unticked box on the welcome screen, one-time question for existing
      players, Settings toggle; a snapshot per pet once a day and on every change, plus its ending. Only asked where
      a `stats.json` sits next to the game.
+     The dashboard reads from these how often players come back, counted in days played: back the next day, still
+     playing after 7 and 30 days, days played in a pet's first week, and the stage at which live pets went quiet
+     (no report for 7 days). Pets whose story ended sooner are left out, since the next egg is a new pet.
   Install needs HTTPS (or `localhost`).
 - ✅ Saves live in `localStorage`. Settings › Backup copies/loads a save code to move between devices. An imported
   code is checked field by field (types, ranges, known forms and languages, name lengths) and refused otherwise,
@@ -276,10 +279,25 @@ Evolution happens in the simulation, so it also happens while you're away; the a
 ### Menu ✅
 
 The ☰ button at the top right of the status card drops down a menu (`src/ui/menu.ts`): **Family** (with the
-number of past pets), **Species book** (discovered/36, "New" while there are unseen discoveries) and **Settings**.
+number of past pets), **Species book** (discovered/36, "New" while there are unseen discoveries), **Invite a friend** and **Settings**.
 While the book has unseen discoveries, the ☰ button carries a gold dot (gold, not the red of a need).
 Each opens its own page of the sheet (`openSettings(…, page)` in `src/ui/settings.ts`), so the collections
 aren't buried among the settings.
+
+### Inviting friends ✅
+
+- **Invite a friend** (menu) sends the game's link through the share sheet ("Hatch your own egg in Pet Hatch,
+  then battle my Pyrollo Pip!") or shows it as a QR code (`src/ui/qr.ts`, qrcode-generator) for a friend's phone
+  right next to this one. Once the pet is a child, the link carries its battle code (`?challenge=`), so it is an
+  invite and a challenge in one; before that it is the plain game link.
+- A friend who opens it without a pet to battle with keeps the challenge (`GameState.invite`): their welcome says
+  "Pip the Pyrollo invited you!", the reveal says the challenge waits until their pet is a child, growing into one
+  says it's ready, and the Battle tab has the code filled in until they battle it. A player who already has a pet
+  gets the challenge straight away, as before.
+- A shared link shows as a card in chats: `og:` tags in `index.html` and `public/og.jpg` (the island with an egg,
+  captured from the game). Chat apps only load the picture from a full address, so the servers fill it in from
+  the request the page came in at: `server/relay.mjs` (behind a proxy, from X-Forwarded-Host and -Proto) and
+  `server/php/page.php` (the `.htaccess` sends the page there). A plain static server shows no picture.
 
 ### Help ✅
 

@@ -102,6 +102,26 @@ export function speaksForRelay(text) {
   }
 }
 
+const PREVIEW_IMAGE = '<meta property="og:image" content="og.jpg" />';
+
+/**
+ * The game page with its link preview picture at a full address, which chat apps need (they read the page without
+ * running it). The address is the one the request came in at, as a proxy in front passes it on; `dir` is the page's
+ * folder. A host that doesn't look like one leaves the page as it is.
+ * @param {string} html @param {import('node:http').IncomingMessage} req @param {string} dir
+ */
+export function withPreviewAddress(html, req, dir) {
+  const first = (/** @type {unknown} */ h) => String(h ?? '').split(',')[0].trim();
+  const host = first(req.headers['x-forwarded-host']) || first(req.headers.host);
+  const proto = first(req.headers['x-forwarded-proto']) === 'https' ? 'https' : 'http';
+  if (!/^[a-z0-9.-]+(:\d{1,5})?$/i.test(host) || !/^\/[\w.~%/-]*$/.test(dir)) return html;
+  const base = `${proto}://${host}${dir}`;
+  return html.replace(
+    PREVIEW_IMAGE,
+    `<meta property="og:image" content="${base}og.jpg" />\n    <meta property="og:url" content="${base}" />`,
+  );
+}
+
 /**
  * @param {{ staticDir?: string | null, log?: (msg: string) => void, maxPerVisitor?: number, offerAfterMs?: number,
  *   ghostAfterMs?: number }} [options]
@@ -172,7 +192,13 @@ export function createRelay({
       file = join(root, 'index.html');
     }
     try {
-      const body = await readFile(file);
+      let body = await readFile(file);
+      if (file === join(root, 'index.html')) {
+        // The page's folder: where it was asked for, or the top for paths that fall back to it.
+        const at = url.pathname;
+        const dir = at.endsWith('/') ? at : at.endsWith('/index.html') ? at.slice(0, -'index.html'.length) : '/';
+        body = Buffer.from(withPreviewAddress(body.toString('utf8'), req, dir));
+      }
       const noCache = file.endsWith('sw.js') || file.endsWith('.html') || file.endsWith('version.json');
       res.writeHead(200, {
         'content-type': TYPES[extname(file)] ?? 'application/octet-stream',

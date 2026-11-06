@@ -5,7 +5,7 @@
 import { haptic, sfx } from '../feedback';
 import { listOf, t } from '../i18n';
 import type { PetEnding } from '../net/stats';
-import { cleanName } from '../sim/battlecode';
+import { cleanName, decodeFighter } from '../sim/battlecode';
 import { giveEggVial } from '../sim/egg';
 import { speciesName } from '../sim/evolution';
 import { hatch, heritageOf, layNewEgg, NEGLECT_MODES } from '../sim/game';
@@ -79,6 +79,9 @@ export function createMoments(g: Game, deps: { reportStats(status?: PetEnding): 
           pet.revealSeen = true;
           g.save();
           g.refresh();
+          // A friend's invite brought the player here: their challenge waits until the pet is old enough to battle.
+          const friend = inviter();
+          if (friend) setTimeout(() => g.hud.toast(t('invite.later', { name: friend.name, pet: pet.name })), 1200);
         },
         field: { label: t('reveal.nameLabel'), value: pet.name },
       });
@@ -113,10 +116,20 @@ export function createMoments(g: Game, deps: { reportStats(status?: PetEnding): 
           title: t('evolve.title', { name }),
           body: `${t('evolve.body', { name, species })} ${why}`,
           button: t('evolve.button'),
-          onClose: () => g.refresh(),
+          onClose: () => {
+            g.refresh();
+            // Now a child, the pet can take the challenge of the friend who invited the player.
+            const friend = pet.stage === 1 ? inviter() : null;
+            if (friend) setTimeout(() => g.hud.toast(t('invite.waiting', { name: friend.name, pet: name })), 600);
+          },
         }),
       1900,
     );
+  }
+
+  /** The friend whose invite brought the player here, while their challenge hasn't been taken yet. */
+  function inviter() {
+    return g.state.invite ? decodeFighter(g.state.invite) : null;
   }
 
   function vial() {

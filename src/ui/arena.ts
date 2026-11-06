@@ -43,6 +43,10 @@ export interface ArenaHandlers {
   /** Invite link for a live battle room. */
   liveLink(room: string): string;
   share(text: string, link: string): void;
+  /** The battle code of the friend whose invite brought the player here, until they battle it. */
+  invite(): string | null;
+  /** A battle against this code began: if it was the invite, it's done. */
+  inviteUsed(code: string): void;
   /** Bring the opponent onto the island. */
   begin(foe: Fighter): void;
   /** 3D and sound for one battle event; `me` is the side the player controls. */
@@ -221,7 +225,7 @@ export class Arena {
         }
         <div class="bt-code-row">
           <input class="bt-input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false"
-            placeholder="${esc(t('battle.paste'))}" value="${esc(this.prefill)}" />
+            placeholder="${esc(t('battle.paste'))}" value="${esc(this.prefill || this.h.invite() || '')}" />
           <button type="button" class="secondary bt-fight" ${ok ? '' : 'disabled'}>${t('battle.fight')}</button>
         </div>
         <p class="bt-error" hidden>${t('battle.badCode')}</p>
@@ -244,8 +248,9 @@ export class Arena {
       const room = this.relay ? parseRoomCode(input.value) : null;
       if (room) return this.lobby('guest', room);
       const foe = decodeFighter(input.value);
-      if (foe) void this.fight(foe);
-      else error.hidden = false;
+      if (!foe) return void (error.hidden = false);
+      this.h.inviteUsed(input.value.trim());
+      void this.fight(foe);
     });
     this.s.layout();
   }

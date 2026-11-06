@@ -17,7 +17,8 @@ import { ageHours, hygiene, isSleeping, LIFE_STAGES, lifeStageIndex, napCheck, S
 import { fetchGhostReport } from './net/dojo';
 import { ALL_SPECIES, discoveredSpecies, markBookShown, newInBook, raisedSpecies } from './sim/book';
 import { findRelay } from './net/relayConfig';
-import { CHALLENGE_PARAM } from './sim/battlecode';
+import { fighterFromPet } from './sim/battle';
+import { CHALLENGE_PARAM, decodeFighter, encodeFighter } from './sim/battlecode';
 import { speciesName } from './sim/evolution';
 import { exportSave, importSave, loadGame, saveGame } from './sim/save';
 import { masteredStats, maxEnergy } from './sim/training';
@@ -32,6 +33,7 @@ import type { Game } from './app/context';
 import { createEggCare } from './app/eggCare';
 import { createMoments } from './app/moments';
 import { createPetCare } from './app/petCare';
+import { shareLink } from './app/share';
 import { icon } from './ui/icons';
 import { watchForUpdates } from './update';
 import { findStats, report, type PetEnding } from './net/stats';
@@ -95,6 +97,7 @@ const hud = new Hud({
         tag: newInBook(state).length ? t('book.newTag') : undefined,
         onPick: () => showSettings('book'),
       },
+      { icon: 'invite', label: t('invite.title'), onPick: () => showSettings('invite') },
       { icon: 'sliders', label: t('settings.title'), onPick: () => showSettings() },
     ]),
 });
@@ -289,11 +292,34 @@ function installState(): InstallState {
   };
 }
 
+/**
+ * The link that invites a friend to the game, with a message for the share sheet. Once the player's pet has hatched
+ * and grown into a child, the link carries its battle code, so the friend can battle it when their own egg hatches.
+ */
+function invite(): { link: string; message: string; blurb: string } {
+  const url = new URL(location.href);
+  url.search = '';
+  url.hash = '';
+  const pet = state.pet;
+  if (!pet || pet.status !== 'alive' || !pet.revealSeen || pet.stage < 1) {
+    return { link: url.toString(), message: t('invite.message'), blurb: t('invite.body') };
+  }
+  url.searchParams.set(CHALLENGE_PARAM, encodeFighter(fighterFromPet(pet)));
+  const species = speciesName(pet.type, pet.form);
+  return {
+    link: url.toString(),
+    message: t('invite.messagePet', { name: pet.name, species }),
+    blurb: t('invite.bodyPet', { name: pet.name }),
+  };
+}
+
 function showSettings(page: SheetPage = 'settings') {
   const install = installState();
+  const inviting = invite();
   const alertsReady = pushConfig ? pushSupport(install.ios, install.standalone) : 'no';
   openSettings(document.getElementById('settings') as HTMLDialogElement, state.settings, install, {
     family: state.family,
+    invite: { ...inviting, share: () => void shareLink(inviting.message, inviting.link, (m) => hud.toast(m)) },
     book: {
       discovered: discoveredSpecies(state),
       raised: raisedSpecies(state),
@@ -471,8 +497,14 @@ if (challenge) {
   url.searchParams.delete(CHALLENGE_PARAM);
   url.searchParams.delete(LIVE_PARAM);
   history.replaceState(null, '', url);
+  const friend = params.has(CHALLENGE_PARAM) ? decodeFighter(challenge) : null;
   if (livePet()?.revealSeen) void relayReady.then(() => setTimeout(() => arena.challenge(challenge), 600));
-  else setTimeout(() => hud.toast(t('battle.needPet')), 800);
+  else if (friend) {
+    // An invite before there's a pet to battle with: kept until the egg hatches (see the welcome and the reveal).
+    state.invite = challenge;
+    saveGame(state);
+    if (saved) setTimeout(() => hud.toast(t('invite.kept', { name: friend.name })), 800);
+  } else setTimeout(() => hud.toast(t('battle.needPet')), 800);
 }
 
 let last = performance.now();
@@ -613,10 +645,12 @@ document.addEventListener('visibilitychange', syncAlerts);
 // The very first egg: welcome, choose how forgiving the game is, and (where the server collects them) whether
 // to share anonymous pet stats: unticked, so only a player who ticks it shares.
 if (!saved) {
+  const friend = state.invite ? decodeFighter(state.invite) : null;
+  const invitedBy = friend && { name: friend.name, species: speciesName(friend.type, friend.form) };
   void statsKnown.then(() =>
     moments.chooseNeglect(
       t('welcome.title'),
-      t('welcome.body'),
+      (invitedBy ? `${t('welcome.invited', invitedBy)} ` : '') + t('welcome.body'),
       (mode, share) => {
         state.settings.neglect = mode;
         if (statsUrl) state.settings.shareStats = share;

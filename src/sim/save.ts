@@ -1,4 +1,5 @@
 import { LANGUAGES } from '../i18n';
+import { decodeFighter } from './battlecode';
 import { isSpeciesKey } from './book';
 import { migrateEggCare, migrateEggTime } from './egg';
 import { DEFAULT_SETTINGS, NEGLECT_MODES } from './game';
@@ -156,7 +157,8 @@ export function isSound(s: GameState): boolean {
     (typeof b === 'object' &&
       b !== null &&
       [b.raised, b.seen, b.shown].every((list) => Array.isArray(list) && list.length <= 100 && list.every(isSpeciesKey)));
-  return settings && game && family && eggOk && petOk && bookOk;
+  const inviteOk = s.invite === undefined || (typeof s.invite === 'string' && decodeFighter(s.invite) !== null);
+  return settings && game && family && eggOk && petOk && bookOk && inviteOk;
 }
 
 function parseSave(json: string): GameState | null {

@@ -19,6 +19,9 @@ export function createRelay(options?: {
   ghostAfterMs?: number;
 }): Relay;
 
+/** The game page with its link preview picture at the full address the request came in at. */
+export function withPreviewAddress(html: string, req: import('node:http').IncomingMessage, dir: string): string;
+
 /** The visitor an address counts as: the IP itself, or an IPv6 address's /64 network. */
 export function visitorOf(address?: string): string;
 

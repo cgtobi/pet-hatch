@@ -34,6 +34,10 @@ installed as an app and played offline.
 `README.txt`: `static/` (the game alone), `php/` (with the PHP relay) and `node/` (with the Node relay, started
 with `npm start`). See the live battle sections below.
 
+A shared link shows as a card in chat apps (title, description and `public/og.jpg`). Chat apps only show the
+picture from a full address, which the PHP and Node servers fill in from each request (`page.php`, through the
+`.htaccess`; `server/relay.mjs`). On a plain static server the card shows only the title and description.
+
 To change the app icon, edit `public/app-icons/icon.svg`, then run `npm run icons`.
 
 ## Live battles (optional)

@@ -7,6 +7,7 @@ import { speciesName } from '../sim/evolution';
 import { DEFAULT_SCHOOL, SCHOOL_MAX_H } from '../sim/clock';
 import type { Ancestor, SchoolTime, Settings } from '../sim/types';
 import { icon } from './icons';
+import { qrSvg } from './qr';
 
 export interface InstallState {
   /** The browser offered an install prompt we can trigger (Chrome, Edge, Android). */
@@ -20,6 +21,8 @@ export interface InstallState {
 export interface SettingsHandlers {
   /** Earlier pets, oldest first. */
   family: Ancestor[];
+  /** Inviting a friend: the game's link (with the pet's battle code once it has one), what to say, and sharing it. */
+  invite: { link: string; blurb: string; share(): void };
   /** The species book: what was discovered and raised (keys like 'tide.adult.speed'), what's new since last opened. */
   book: { discovered: Set<string>; raised: Set<string>; fresh: Set<string>; markShown(): void };
   onChange(patch: Partial<Settings>): void;
@@ -162,8 +165,8 @@ export function timeFields(
   return { sleep, school: schoolField };
 }
 
-/** A page of the sheet: the settings, the family story, or the species book. */
-export type SheetPage = 'settings' | 'family' | 'book';
+/** A page of the sheet: the settings, the family story, the species book, or inviting a friend. */
+export type SheetPage = 'settings' | 'family' | 'book' | 'invite';
 
 /** Builds the sheet from scratch each time it opens (cheap, and picks up language changes). */
 export function openSettings(
@@ -395,6 +398,30 @@ export function openSettings(
     );
   };
 
+  /** Inviting a friend: send the link, or let a phone right next to this one scan it. */
+  const showInvite = () => {
+    const share = el('button', { type: 'button', className: 'primary' }, t('invite.share'));
+    share.onclick = () => h.invite.share();
+    const qr = el('div', { className: 'invite-qr' });
+    qr.innerHTML = qrSvg(h.invite.link, t('invite.qrLabel'));
+    dialog.replaceChildren(
+      el(
+        'div',
+        { className: 'settings-body' },
+        el('div', { className: 'settings-head' }, el('h2', { id: 'settings-title' }, t('invite.title')), closeButton()),
+        el('p', { className: 'invite-blurb' }, h.invite.blurb),
+        share,
+        el(
+          'div',
+          { className: 'field invite-scan' },
+          el('span', { className: 'field-title' }, t('invite.scanTitle')),
+          qr,
+          el('small', {}, t('invite.scanHint')),
+        ),
+      ),
+    );
+  };
+
   /** The species book: each element's nine species, raised, seen in battle, or still a silhouette. */
   const showBook = () => {
     const body = el(
@@ -440,6 +467,7 @@ export function openSettings(
   }
 
   if (page === 'book') showBook();
+  else if (page === 'invite') showInvite();
   else if (page === 'family') showFamily();
   else render();
   if (!dialog.open) dialog.showModal();

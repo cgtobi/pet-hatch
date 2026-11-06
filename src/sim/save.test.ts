@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { resolveLang } from '../i18n';
 import { HOUR } from './clock';
 import { DEFAULT_SETTINGS, hatch, newGame } from './game';
+import { fighterFromPet } from './battle';
+import { encodeFighter } from './battlecode';
 import { exportSave, importSave } from './save';
 import type { GameState } from './types';
 
@@ -44,6 +46,14 @@ describe('importing a save code', () => {
       (s) => (s.pet!.energy = Number.POSITIVE_INFINITY),
     ];
     for (const change of bad) expect(() => importSave(tampered(change))).toThrow();
+  });
+
+  it('keeps a friend’s invite only if it is a real battle code', () => {
+    // Battle codes start at the child stage.
+    const pet = { ...game().pet!, stage: 1, form: 'child.bright' as const };
+    const friend = encodeFighter(fighterFromPet(pet));
+    expect(importSave(tampered((s) => (s.invite = friend))).invite).toBe(friend);
+    expect(() => importSave(tampered((s) => (s.invite = '<b>hi</b>')))).toThrow();
   });
 
   it('falls back to the device language for a language it doesn’t know', () => {

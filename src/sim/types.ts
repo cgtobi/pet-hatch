@@ -241,4 +241,6 @@ export interface GameState {
   pickedUpAt?: number;
   /** The species book (see book.ts; missing: made from the family list on first use). */
   book?: { raised: `${ElementType}.${FormId}`[]; seen: `${ElementType}.${FormId}`[]; shown: `${ElementType}.${FormId}`[] };
+  /** A friend's battle code from the invite link that brought the player here, kept until they battle it. */
+  invite?: string;
 }

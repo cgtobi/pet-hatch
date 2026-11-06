@@ -214,7 +214,7 @@ describe('relay web server', () => {
     const { tmpdir } = await import('node:os');
     const { join } = await import('node:path');
     const dir = mkdtempSync(join(tmpdir(), 'pet-hatch-'));
-    writeFileSync(join(dir, 'index.html'), '<!doctype html><title>Pet Hatch</title>');
+    writeFileSync(join(dir, 'index.html'), '<!doctype html><title>Pet Hatch</title><meta property="og:image" content="og.jpg" />');
     writeFileSync(join(dir, 'app.js'), 'console.log(1)');
     const web = createRelay({ staticDir: dir });
     const port = await web.listen(0, '127.0.0.1');
@@ -232,6 +232,14 @@ describe('relay web server', () => {
       expect((await get('/%E0')).status).toBe(400);
       expect((await get('/%')).status).toBe(400);
       expect((await get('/relay.json')).status).toBe(200);
+      // The link preview's picture at the address the page was asked for, as a proxy in front passes it on.
+      const behindProxy = await fetch(`http://127.0.0.1:${port}/`, {
+        headers: { 'x-forwarded-host': 'pets.example.org', 'x-forwarded-proto': 'https' },
+      });
+      expect(await behindProxy.text()).toContain('content="https://pets.example.org/og.jpg"');
+      expect(await (await get('/some/page')).text()).toContain(`content="http://127.0.0.1:${port}/og.jpg"`);
+      const odd = await fetch(`http://127.0.0.1:${port}/`, { headers: { 'x-forwarded-host': 'evil"><script>' } });
+      expect(await odd.text()).toContain('content="og.jpg"');
     } finally {
       await web.close();
     }

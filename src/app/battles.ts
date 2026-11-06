@@ -14,6 +14,7 @@ import { speciesName } from '../sim/evolution';
 import { Arena } from '../ui/arena';
 import { Training } from '../ui/training';
 import type { Game } from './context';
+import { shareLink } from './share';
 
 /** Invite links for live battles: ?live=ROOM. */
 export const LIVE_PARAM = 'live';
@@ -98,7 +99,14 @@ export function setUpBattles(g: Game): Arena {
       url.searchParams.set(LIVE_PARAM, room);
       return url.toString();
     },
-    share: (text, link) => void shareText(text, link),
+    share: (text, link) => void shareLink(text, link, (m) => g.hud.toast(m)),
+    invite: () => g.state.invite ?? null,
+    inviteUsed: (code) => {
+      if (g.state.invite && code === g.state.invite) {
+        delete g.state.invite;
+        g.save();
+      }
+    },
     begin: (foe) => {
       g.world.startBattle(foe.type, foe.seed, foe.form, foe.stage);
       sfx.grow();
@@ -175,24 +183,6 @@ export function setUpBattles(g: Game): Arena {
     },
     end: () => g.world.endBattle(),
   });
-
-  async function shareText(text: string, link: string) {
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: 'Pet Hatch', text, url: link });
-        return;
-      }
-    } catch (e) {
-      // The share g.sheet was dismissed: nothing to do.
-      if ((e as Error).name === 'AbortError') return;
-    }
-    try {
-      await navigator.clipboard.writeText(`${text} ${link}`);
-      g.hud.toast(t('toast.linkCopied'));
-    } catch {
-      g.hud.toast(t('toast.copyFailed'));
-    }
-  }
 
   return arena;
 }
