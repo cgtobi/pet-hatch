@@ -149,6 +149,7 @@ function updateHud() {
   const now = gameNow(state);
   const egg = state.egg;
   const atSchool = away();
+  hud.setMenuNew(newInBook(state).length > 0);
   if (state.phase === 'egg') {
     const stage = hatchStage(egg);
     const day = Math.floor((now - egg.laidAt) / (24 * HOUR)) + 1;
@@ -300,6 +301,7 @@ function showSettings(page: SheetPage = 'settings') {
       markShown: () => {
         markBookShown(state);
         saveGame(state);
+        updateHud();
       },
     },
     onChange: (patch) => {

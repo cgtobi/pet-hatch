@@ -610,6 +610,27 @@ button:focus:not(:focus-visible) {
   display: block;
 }
 
+/* Something new in the species book: a gold dot on the menu button (not red: nothing needs fixing). */
+#btn-more {
+  position: relative;
+}
+
+#btn-more .dot {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 6px;
+  background: var(--star);
+  border: 2px solid #fff;
+  display: none;
+}
+
+#btn-more.fresh .dot {
+  display: block;
+}
+
 .ember-btn {
   background: var(--ember-bg);
   color: var(--ember-ink);

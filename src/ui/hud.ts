@@ -119,7 +119,7 @@ export class Hud {
   private overlayClose: Overlay['onClose'] | null = null;
 
   constructor(handlers: HudHandlers) {
-    this.more.innerHTML = icon('menu', 22);
+    this.more.innerHTML = `${icon('menu', 22)}<span class="dot"></span>`;
     this.more.setAttribute('aria-haspopup', 'menu');
     this.more.addEventListener('click', () => handlers.onMore(this.more));
     this.lights.addEventListener('click', () => handlers.onLightButton());
@@ -274,6 +274,11 @@ export class Hud {
   setHint(text: string, urgent = false): void {
     if (this.hint.textContent !== text) this.hint.textContent = text;
     this.hint.classList.toggle('urgent', urgent);
+  }
+
+  /** A dot on the menu button while the species book has discoveries the player hasn't looked at. */
+  setMenuNew(fresh: boolean): void {
+    this.more.classList.toggle('fresh', fresh);
   }
 
   /** Red dots on dock buttons that need attention. */

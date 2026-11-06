@@ -277,6 +277,7 @@ Evolution happens in the simulation, so it also happens while you're away; the a
 
 The ☰ button at the top right of the status card drops down a menu (`src/ui/menu.ts`): **Family** (with the
 number of past pets), **Species book** (discovered/36, "New" while there are unseen discoveries) and **Settings**.
+While the book has unseen discoveries, the ☰ button carries a gold dot (gold, not the red of a need).
 Each opens its own page of the sheet (`openSettings(…, page)` in `src/ui/settings.ts`), so the collections
 aren't buried among the settings.
 
