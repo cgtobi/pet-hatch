@@ -2,7 +2,7 @@ import type { Dict } from '.';
 
 export const de: Dict = {
   'aria.scene': 'Deine schwebende Insel',
-  'aria.more': 'Mehr',
+  'aria.more': 'Menü',
   'aria.status': 'Status',
   'aria.dock': 'Pflege-Aktionen',
 
@@ -277,11 +277,7 @@ export const de: Dict = {
   'family.title': 'Familie',
   'family.empty': 'Hier erscheinen deine früheren Tiere und wie ihre Geschichte endete.',
   'book.title': 'Artenbuch',
-  'book.open': 'Buch öffnen',
-  'book.count': '{n} von {of} Arten entdeckt',
-  'book.new': '{n} neu',
   'book.summary': '{n} von {of} entdeckt, {raised} davon selbst großgezogen. Zieh Tiere groß und kämpfe, um es zu füllen.',
-  'book.back': 'Zurück',
   'book.raised': 'Großgezogen',
   'book.seen': 'Im Kampf gesehen',
   'book.newTag': 'Neu',

@@ -2,7 +2,7 @@ import type { Dict } from '.';
 
 export const nl: Dict = {
   'aria.scene': 'Je zwevende eiland',
-  'aria.more': 'Meer',
+  'aria.more': 'Menu',
   'aria.status': 'Status',
   'aria.dock': 'Verzorgingsacties',
 
@@ -277,11 +277,7 @@ export const nl: Dict = {
   'family.title': 'Familie',
   'family.empty': 'Hier verschijnen je vorige dieren en hoe hun verhaal eindigde.',
   'book.title': 'Soortenboek',
-  'book.open': 'Boek openen',
-  'book.count': '{n} van {of} soorten ontdekt',
-  'book.new': '{n} nieuw',
   'book.summary': '{n} van {of} ontdekt, waarvan {raised} grootgebracht door jouw dieren. Breng dieren groot en vecht om het te vullen.',
-  'book.back': 'Terug',
   'book.raised': 'Grootgebracht',
   'book.seen': 'Gezien in gevecht',
   'book.newTag': 'Nieuw',

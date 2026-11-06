@@ -20,7 +20,8 @@ export interface HudHandlers {
   onWarm(active: boolean): void;
   onAction(action: DockAction): void;
   onLightButton(): void;
-  onMore(): void;
+  /** The menu button: opens the menu of Family, the species book and Settings. */
+  onMore(button: HTMLElement): void;
 }
 
 interface NeedDef {
@@ -118,8 +119,9 @@ export class Hud {
   private overlayClose: Overlay['onClose'] | null = null;
 
   constructor(handlers: HudHandlers) {
-    this.more.innerHTML = icon('dots', 22);
-    this.more.addEventListener('click', () => handlers.onMore());
+    this.more.innerHTML = icon('menu', 22);
+    this.more.setAttribute('aria-haspopup', 'menu');
+    this.more.addEventListener('click', () => handlers.onMore(this.more));
     this.lights.addEventListener('click', () => handlers.onLightButton());
     const closeOverlay = () => {
       const close = this.overlayClose;

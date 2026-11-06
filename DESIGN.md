@@ -273,6 +273,13 @@ shell, orbs, plus the type's color, crest and accent). Each has its own species 
 Evolution happens in the simulation, so it also happens while you're away; the animation and an explanation
 ("…its strongest side, Power, shaped its adult form") play the next time you look.
 
+### Menu ✅
+
+The ☰ button at the top right of the status card drops down a menu (`src/ui/menu.ts`): **Family** (with the
+number of past pets), **Species book** (discovered/36, "New" while there are unseen discoveries) and **Settings**.
+Each opens its own page of the sheet (`openSettings(…, page)` in `src/ui/settings.ts`), so the collections
+aren't buried among the settings.
+
 ### Help ✅
 
 Settings › How to play (one collapsed entry) explains the mechanics in ten short topics (egg, types, care, calls and
@@ -403,13 +410,14 @@ A public waiting room for live battles against strangers of similar strength.
 
 ### Species book ✅
 
-A collection of all 36 species across every pet the player raises (`src/sim/book.ts`, Settings › Species book).
+A collection of all 36 species across every pet the player raises (`src/sim/book.ts`, menu › Species book).
 
 - **Raised:** a species one of the player's own pets became (the current pet's `path`, plus every past pet's,
   kept in `book.raised` when its story ends; older saves start from the family list, each pet a baby once).
 - **Seen:** a species met in battle (wild creatures, friends' pets, dojo opponents and ghosts), recorded when the
   battle begins; a new one says "New in your species book: Shellwarden!".
-- **The book:** Settings shows "7 of 36 species discovered · 2 new" and an Open button; the book page lists each
+- **The book:** the menu shows "Species book 7/36", with a "New" tag while there are discoveries not looked at;
+  the book page lists each
   element's nine species three to a row with the evolution-tree renders (`public/species/`): raised in full with
   "Raised", seen with "Seen in battle", undiscovered as a faint silhouette with "???". Discoveries not looked at
   yet carry a "New" tag until the book is opened (`book.shown`).
@@ -422,7 +430,7 @@ A collection of all 36 species across every pet the player raises (`src/sim/book
   8 + 5 + 5 + 5 with four stars). The egg is called "Pip's egg", and the new pet carries a
   **generation** chip (Gen 2, Gen 3, …). The reveal tells you what it inherited.
 - A pet that ran away or died, or a manual restart, passes nothing on; the next egg is a fresh first generation.
-- Settings › **Family** (always shown; before the first past pet it says they will appear there) lists every past
+- Menu › **Family** (always there; before the first past pet it says they will appear there) lists every past
   pet, newest first: generation, name, species, how its story ended, how
   long it lived, its battle wins and its stars.
 

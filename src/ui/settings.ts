@@ -162,17 +162,26 @@ export function timeFields(
   return { sleep, school: schoolField };
 }
 
-/** Builds the settings sheet from scratch each time it opens (cheap, and picks up language changes). */
+/** A page of the sheet: the settings, the family story, or the species book. */
+export type SheetPage = 'settings' | 'family' | 'book';
+
+/** Builds the sheet from scratch each time it opens (cheap, and picks up language changes). */
 export function openSettings(
   dialog: HTMLDialogElement,
   settings: Settings,
   install: InstallState,
   h: SettingsHandlers,
+  page: SheetPage = 'settings',
 ): void {
-  const render = () => {
+  const closeButton = () => {
     const close = el('button', { type: 'button', className: 'round', ariaLabel: t('settings.done') });
     close.innerHTML = icon('close', 20);
     close.onclick = () => dialog.close();
+    return close;
+  };
+
+  const render = () => {
+    const close = closeButton();
 
     const languageSelect = el('select', { ariaLabel: t('settings.language') });
     for (const code of ['auto', ...LANGUAGES] as Settings['language'][]) {
@@ -201,22 +210,6 @@ export function openSettings(
     );
 
     const { sleep, school: schoolField } = timeFields(settings, (patch) => h.onChange(patch));
-
-    // The species book: a count here, the book itself on its own page of the sheet.
-    const openBook = el('button', { type: 'button', className: 'secondary' }, t('book.open'));
-    openBook.onclick = () => showBook();
-    const bookField = el(
-      'div',
-      { className: 'field' },
-      el('span', { className: 'field-title' }, t('book.title')),
-      el(
-        'small',
-        {},
-        t('book.count', { n: h.book.discovered.size, of: ALL_SPECIES.length }) +
-          (h.book.fresh.size ? ` · ${t('book.new', { n: h.book.fresh.size })}` : ''),
-      ),
-      el('div', { className: 'row' }, openBook),
-    );
 
     // Collapsed topics; each body line becomes a bullet.
     // One collapsed "How to play" entry holding the topics, so the settings themselves stay in view.
@@ -296,37 +289,6 @@ export function openSettings(
       el('div', { className: 'row' }, exportBtn, importBtn),
     );
 
-    // Newest first: the family story, one line per past pet. Shown even before there is one, so players know it exists.
-    const family = el('div', { className: 'field' }, el('span', { className: 'field-title' }, t('family.title')));
-    if (!h.family.length) family.append(el('small', {}, t('family.empty')));
-    for (const a of [...h.family].reverse()) {
-      const days = Math.max(1, Math.round((a.endedAt - a.hatchedAt) / 86_400_000));
-      family.append(
-        el(
-          'div',
-          { className: 'family-row' },
-          el('span', { className: `chip ${a.type}` }, t('gen', { n: a.generation })),
-          el(
-            'span',
-            { className: 'family-text' },
-            el(
-              'span',
-              {},
-              el('b', {}, a.name),
-              ...(a.stars ? [el('span', { className: 'stars', title: t('family.stars', { n: a.stars }) }, '★'.repeat(a.stars))] : []),
-              ` · ${speciesName(a.type, a.form)}`,
-            ),
-            el(
-              'small',
-              {},
-              `${t(`family.${a.ending}`)} · ${t('family.days', { d: days })} · ${t('family.wins', { n: a.wins })}` +
-                (a.saved ? ` · ${t('family.saved')}` : ''),
-            ),
-          ),
-        ),
-      );
-    }
-
     const newEgg = el('button', { type: 'button', className: 'secondary' }, t('settings.newEgg'));
     newEgg.onclick = () => {
       if (confirm(t('settings.newEggConfirm'))) {
@@ -345,8 +307,6 @@ export function openSettings(
       schoolField,
       sound,
       app,
-      bookField,
-      family,
       backup,
       el('div', { className: 'row' }, newEgg),
       language,
@@ -394,15 +354,53 @@ export function openSettings(
     dialog.replaceChildren(body);
   };
 
+  /** The family story, newest first: one line per past pet. Shown even before there is one, so players know it exists. */
+  const showFamily = () => {
+    const family = el('div', { className: 'field' });
+    if (!h.family.length) family.append(el('small', {}, t('family.empty')));
+    for (const a of [...h.family].reverse()) {
+      const days = Math.max(1, Math.round((a.endedAt - a.hatchedAt) / 86_400_000));
+      family.append(
+        el(
+          'div',
+          { className: 'family-row' },
+          el('span', { className: `chip ${a.type}` }, t('gen', { n: a.generation })),
+          el(
+            'span',
+            { className: 'family-text' },
+            el(
+              'span',
+              {},
+              el('b', {}, a.name),
+              ...(a.stars ? [el('span', { className: 'stars', title: t('family.stars', { n: a.stars }) }, '★'.repeat(a.stars))] : []),
+              ` · ${speciesName(a.type, a.form)}`,
+            ),
+            el(
+              'small',
+              {},
+              `${t(`family.${a.ending}`)} · ${t('family.days', { d: days })} · ${t('family.wins', { n: a.wins })}` +
+                (a.saved ? ` · ${t('family.saved')}` : ''),
+            ),
+          ),
+        ),
+      );
+    }
+    dialog.replaceChildren(
+      el(
+        'div',
+        { className: 'settings-body' },
+        el('div', { className: 'settings-head' }, el('h2', { id: 'settings-title' }, t('family.title')), closeButton()),
+        family,
+      ),
+    );
+  };
+
   /** The species book: each element's nine species, raised, seen in battle, or still a silhouette. */
   const showBook = () => {
-    const back = el('button', { type: 'button', className: 'round', ariaLabel: t('book.back') });
-    back.innerHTML = icon('close', 20);
-    back.onclick = () => render();
     const body = el(
       'div',
       { className: 'settings-body' },
-      el('div', { className: 'settings-head' }, el('h2', {}, t('book.title')), back),
+      el('div', { className: 'settings-head' }, el('h2', { id: 'settings-title' }, t('book.title')), closeButton()),
       el(
         'small',
         { className: 'book-summary' },
@@ -441,6 +439,8 @@ export function openSettings(
     dialog.addEventListener('close', () => clearInterval(tick), { once: true });
   }
 
-  render();
+  if (page === 'book') showBook();
+  else if (page === 'family') showFamily();
+  else render();
   if (!dialog.open) dialog.showModal();
 }

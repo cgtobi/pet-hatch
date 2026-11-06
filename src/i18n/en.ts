@@ -1,7 +1,7 @@
 /** English: the source language. Every other language must translate each key. */
 export const en = {
   'aria.scene': 'Your floating island',
-  'aria.more': 'More',
+  'aria.more': 'Menu',
   'aria.status': 'Status',
   'aria.dock': 'Care actions',
 
@@ -276,11 +276,7 @@ export const en = {
   'family.title': 'Family',
   'family.empty': 'Your past pets will appear here, with how their story ended.',
   'book.title': 'Species book',
-  'book.open': 'Open the book',
-  'book.count': '{n} of {of} species discovered',
-  'book.new': '{n} new',
   'book.summary': '{n} of {of} discovered, {raised} of them raised by your pets. Raise pets and battle to fill it.',
-  'book.back': 'Back',
   'book.raised': 'Raised',
   'book.seen': 'Seen in battle',
   'book.newTag': 'New',

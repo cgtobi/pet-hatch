@@ -2,7 +2,7 @@ import type { Dict } from '.';
 
 export const es: Dict = {
   'aria.scene': 'Tu isla flotante',
-  'aria.more': 'Más',
+  'aria.more': 'Menú',
   'aria.status': 'Estado',
   'aria.dock': 'Acciones de cuidado',
 
@@ -277,11 +277,7 @@ export const es: Dict = {
   'family.title': 'Familia',
   'family.empty': 'Aquí aparecerán tus mascotas anteriores y cómo terminó su historia.',
   'book.title': 'Libro de especies',
-  'book.open': 'Abrir el libro',
-  'book.count': '{n} de {of} especies descubiertas',
-  'book.new': '{n} nuevas',
   'book.summary': '{n} de {of} descubiertas, {raised} criadas por tus mascotas. Cría mascotas y combate para completarlo.',
-  'book.back': 'Volver',
   'book.raised': 'Criada',
   'book.seen': 'Vista en combate',
   'book.newTag': 'Nueva',

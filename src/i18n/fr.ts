@@ -2,7 +2,7 @@ import type { Dict } from '.';
 
 export const fr: Dict = {
   'aria.scene': 'Ton île flottante',
-  'aria.more': 'Plus',
+  'aria.more': 'Menu',
   'aria.status': 'État',
   'aria.dock': 'Actions de soin',
 
@@ -277,11 +277,7 @@ export const fr: Dict = {
   'family.title': 'Famille',
   'family.empty': 'Tes anciens compagnons apparaîtront ici, avec la fin de leur histoire.',
   'book.title': 'Livre des espèces',
-  'book.open': 'Ouvrir le livre',
-  'book.count': '{n} espèces sur {of} découvertes',
-  'book.new': '{n} nouvelles',
   'book.summary': '{n} sur {of} découvertes, dont {raised} élevées par tes compagnons. Élève des compagnons et combats pour le remplir.',
-  'book.back': 'Retour',
   'book.raised': 'Élevé',
   'book.seen': 'Vu en combat',
   'book.newTag': 'Nouveau',

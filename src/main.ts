@@ -15,7 +15,7 @@ import { careLeaning, hatchStage, hoursUntilTurn, speckleMix, TURN_INTERVAL_H } 
 import { advance, gameNow, isAway, newGame, pickUp } from './sim/game';
 import { ageHours, hygiene, isSleeping, LIFE_STAGES, lifeStageIndex, napCheck, SHELL_DAYS, stageHours } from './sim/pet';
 import { fetchGhostReport } from './net/dojo';
-import { discoveredSpecies, markBookShown, newInBook, raisedSpecies } from './sim/book';
+import { ALL_SPECIES, discoveredSpecies, markBookShown, newInBook, raisedSpecies } from './sim/book';
 import { findRelay } from './net/relayConfig';
 import { CHALLENGE_PARAM } from './sim/battlecode';
 import { speciesName } from './sim/evolution';
@@ -23,7 +23,8 @@ import { exportSave, importSave, loadGame, saveGame } from './sim/save';
 import { masteredStats, maxEnergy } from './sim/training';
 import type { GameState, PetState, Settings } from './sim/types';
 import { Hud } from './ui/hud';
-import { openSettings, timeFields, type InstallState } from './ui/settings';
+import { toggleMenu } from './ui/menu';
+import { openSettings, timeFields, type InstallState, type SheetPage } from './ui/settings';
 import { ActivitySheet } from './ui/sheet';
 import { crackLevel, eggHint, lightButtonKind, musicFor, petFeel, petHealth, petHint, roomDark } from './ui/status';
 import { LIVE_PARAM, setUpBattles } from './app/battles';
@@ -79,7 +80,23 @@ const hud = new Hud({
     unlockAudio();
     petCare.lightButton();
   },
-  onMore: () => showSettings(),
+  onMore: (button) =>
+    toggleMenu(button, [
+      {
+        icon: 'family',
+        label: t('family.title'),
+        note: state.family.length ? String(state.family.length) : undefined,
+        onPick: () => showSettings('family'),
+      },
+      {
+        icon: 'book',
+        label: t('book.title'),
+        note: `${discoveredSpecies(state).size}/${ALL_SPECIES.length}`,
+        tag: newInBook(state).length ? t('book.newTag') : undefined,
+        onPick: () => showSettings('book'),
+      },
+      { icon: 'sliders', label: t('settings.title'), onPick: () => showSettings() },
+    ]),
 });
 
 const sheet = new ActivitySheet(() => {
@@ -271,7 +288,7 @@ function installState(): InstallState {
   };
 }
 
-function showSettings() {
+function showSettings(page: SheetPage = 'settings') {
   const install = installState();
   const alertsReady = pushConfig ? pushSupport(install.ios, install.standalone) : 'no';
   openSettings(document.getElementById('settings') as HTMLDialogElement, state.settings, install, {
@@ -363,7 +380,7 @@ function showSettings() {
           getSkyHour: () => skyHour ?? localHour(gameNow(state)),
         }
       : null,
-  });
+  }, page);
 }
 
 // ---------- input ----------
