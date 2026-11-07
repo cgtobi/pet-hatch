@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.19.0
+
+- Elder week has a purpose: the resting egg watches everything the elder trains, even stats already at 100. The
+  stat it trains most, at least 3 times, becomes the baby's talent, and the baby learns it faster.
+- The talent shows when the egg wakes, when it hatches, on the Train sheet and in the family list.
+
 ## 0.18.0
 
 - Elder week has a new ending: when your pet becomes an elder, it lays an egg that rests in the nest. When its
