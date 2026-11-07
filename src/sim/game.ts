@@ -4,7 +4,7 @@ import { createEgg, eggType, HATCH_WAIT_H, tickEgg } from './egg';
 import { topStat } from './evolution';
 import { createPet, tickPet } from './pet';
 import { randomSeed } from './rng';
-import { masteredStats } from './training';
+import { masteredStats, talentOf } from './training';
 import type { Ancestor, GameState, Heritage, NeglectMode, PetState, Settings } from './types';
 
 /** Fixed simulation step; catch-up replays missed time in these slices. */
@@ -106,7 +106,8 @@ export function heritageOf(pet: PetState): Heritage {
   const best = topStat(pet);
   const stats: Heritage['stats'] = { [best]: Math.min(8, Math.max(3, Math.round(pet.stats[best] * 0.1))) };
   for (const s of masteredStats(pet)) stats[s] ??= MASTERED_BONUS;
-  return { parentName: pet.name, parentType: pet.type, stats, generation: pet.generation + 1 };
+  const talent = talentOf(pet);
+  return { parentName: pet.name, parentType: pet.type, stats, ...(talent ? { talent } : {}), generation: pet.generation + 1 };
 }
 
 /**
@@ -144,6 +145,7 @@ function ancestorOf(pet: PetState, now: number): Ancestor {
     wins: pet.battles.wins,
     stars: masteredStats(pet).length,
     ...(pet.vialUsed ? { saved: true } : {}),
+    ...(pet.talent ? { talent: pet.talent } : {}),
     hatchedAt: pet.hatchedAt,
     endedAt: now,
   };

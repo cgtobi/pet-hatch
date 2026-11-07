@@ -76,7 +76,8 @@ export function createMoments(
               parent: h.parentName,
               stats: listOf(Object.entries(h.stats).map(([s, n]) => `${t(`stat.${s as Stat}`)} +${n}`)),
             })}`
-          : '');
+          : '') +
+        (h?.talent ? ` ${t('reveal.talent', { stat: t(`stat.${h.talent}`) })}` : '');
       g.hud.showOverlay({
         title: t('reveal.title', { type }),
         body,
@@ -263,7 +264,9 @@ export function createMoments(
     const stats = h ? listOf(Object.entries(h.stats).map(([s, n]) => `${t(`stat.${s as Stat}`)} +${n}`)) : '';
     chooseNeglect(
       t('elder.wake.title', { name }),
-      `${t('elder.wake.body', { name })} ${h ? `${t('elder.wake.heritage', { stats })} ` : ''}${t('newEgg.body')}`,
+      `${t('elder.wake.body', { name })} ${h ? `${t('elder.wake.heritage', { stats })} ` : ''}${
+        h?.talent ? `${t('elder.wake.talent', { stat: t(`stat.${h.talent}`) })} ` : ''
+      }${t('newEgg.body')}`,
       (mode) => {
         g.state.settings.neglect = mode;
         elder.told = true;

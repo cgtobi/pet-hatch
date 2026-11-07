@@ -5,6 +5,8 @@ import {
   grade,
   MAX_STAT,
   statCap,
+  TALENT_SESSIONS,
+  talentOf,
   TRAIN_ENERGY,
   TRAIN_STATS,
   trainLevel,
@@ -53,6 +55,8 @@ const TONES: Record<TrainStat, string> = { power: 'ember', speed: 'amber', guard
 const GOALS = ['train.goal.1', 'train.goal.2', 'train.goal.3', 'train.goal.4'] as const satisfies readonly TextKey[];
 
 /** A star for each battle stat at 100; endurance has none. */
+/** An elder trains in front of its resting egg. */
+const watched = (pet: PetState) => pet.stage >= LIFE_STAGES.length - 1;
 const starred = (pet: PetState, stat: TrainStat) => stat !== 'endurance' && trainValue(pet, stat) >= MAX_STAT;
 
 /** The Training tab: stats overview, then one minigame, then the result. */
@@ -87,12 +91,13 @@ export class Training {
       // Always a number on screen, whatever a save might hold.
       const v = Math.round(Number(trainValue(pet, stat)));
       const maxed = cap > 0 && v >= cap;
-      const disabled = check !== 'ok' || maxed;
+      // An elder may keep training a maxed stat: its egg still watches and learns.
+      const disabled = check !== 'ok' || (maxed && !watched(pet));
       return `<button type="button" class="train-row" data-stat="${stat}" ${disabled ? 'disabled' : ''}>
         <span class="bubble ${TONES[stat]}-btn">${icon(STAT_ICONS[stat], 22)}</span>
         <span class="train-row-main">
           <span class="train-row-top">
-            <b>${t(`stat.${stat}`)}</b><span class="muted">${t(`game.${stat}`)}</span>
+            <b>${t(`stat.${stat}`)}</b>${pet.talent === stat ? `<span class="train-talent">✦ ${t('train.talent')}</span>` : ''}<span class="muted">${t(`game.${stat}`)}</span>
             <span class="train-val">${maxed ? `${starred(pet, stat) ? '<span class="star">★</span> ' : ''}${t('train.max')}` : `${v} / ${cap}`}</span>
           </span>
           <span class="track"><span class="fill ${TONES[stat]}-fill" style="width:${cap ? (v / cap) * 100 : 0}%"></span></span>
@@ -102,7 +107,7 @@ export class Training {
     }).join('');
     const note = check === 'ok' ? t('train.cost', { n: TRAIN_ENERGY }) : t(`train.no.${check}`, { name: pet.name });
     this.sheet.innerHTML = `${this.s.head({ tab: 'train', sub, closeLabel: t('train.close') })}
-      <p class="train-goal">${t(GOALS[Math.max(1, stage) - 1])}</p>
+      <p class="train-goal">${t(GOALS[Math.max(1, stage) - 1], { name: pet.name })}</p>
       <div class="train-rows">${rows}</div>
       <p class="train-note ${check === 'ok' ? '' : 'bad'}">${esc(note)}</p>`;
     this.s.bindHead();
@@ -169,19 +174,23 @@ export class Training {
 
   private result(stat: TrainStat, score: number, r: TrainResult): void {
     const name = t(`stat.${stat}`);
-    const again = this.h.check() === 'ok' && !r.capped;
-    const gain = r.gain > 0 ? `<p class="train-gain ${TONES[stat]}">${t('train.gain', { stat: name, n: r.gain })}</p>` : '';
     const pet = this.h.pet();
-    const capped = r.capped
-      ? `<p class="train-goal">${t(starred(pet, stat) ? 'train.star' : 'train.capped', { stat: name })}</p>`
-      : '';
+    const elder = watched(pet);
+    const again = this.h.check() === 'ok' && (!r.capped || elder);
+    const gain = r.gain > 0 ? `<p class="train-gain ${TONES[stat]}">${t('train.gain', { stat: name, n: r.gain })}</p>` : '';
+    // An elder already at the top trains for its egg, so the limit needs no mention.
+    const capped =
+      r.capped && !(elder && r.gain === 0)
+        ? `<p class="train-goal">${t(starred(pet, stat) ? 'train.star' : 'train.capped', { stat: name })}</p>`
+        : '';
+    const watch = elder ? `<p class="train-goal">${eggWatchLine(pet, stat)}</p>` : '';
     this.sheet.innerHTML = `<div class="train-result">
         <span class="bubble ${TONES[stat]}-btn">${icon(STAT_ICONS[stat], 34)}</span>
         <h2>${t(`train.grade.${grade(score)}`)}</h2>
         <p class="muted">${t('train.score', { n: Math.round(score * 100) })} · ${
           r.record ? `<strong class="train-record">${t('train.record')}</strong>` : t('train.best', { n: r.best })
         }</p>
-        ${gain}${capped}
+        ${gain}${capped}${watch}
         <div class="train-actions">
           <button type="button" class="secondary train-again" ${again ? '' : 'disabled'}>${t('train.again')}</button>
           <button type="button" class="primary train-done">${t('train.done')}</button>
@@ -194,4 +203,14 @@ export class Training {
     });
     this.s.layout();
   }
+}
+
+/** After an elder's session: what its egg made of it, on the way to the talent it will pass on. */
+function eggWatchLine(pet: PetState, stat: TrainStat): string {
+  const talent = talentOf(pet);
+  const name = t(`stat.${stat}`);
+  if (talent === stat) return t('train.watch.talent', { stat: name });
+  if (talent) return t('train.watch.other', { stat: name, talent: t(`stat.${talent}`) });
+  const n = (pet.eggWatch ?? []).filter((s) => s === stat).length;
+  return t('train.watch.more', { stat: name, n, of: TALENT_SESSIONS });
 }

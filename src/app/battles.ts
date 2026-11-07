@@ -57,6 +57,8 @@ export function setUpBattles(g: Game): Arena {
         g.world.effects.emit('spark', at, 4);
         sfx.tap();
       }
+      // The resting egg watched the elder train.
+      if (pet.stage >= 4) setTimeout(() => g.world.egg.jump(1), 600);
       g.save();
       g.refresh();
       return r;

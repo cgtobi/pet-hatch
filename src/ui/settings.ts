@@ -382,7 +382,8 @@ export function openSettings(
               'small',
               {},
               `${t(`family.${a.ending}`)} · ${t('family.days', { d: days })} · ${t('family.wins', { n: a.wins })}` +
-                (a.saved ? ` · ${t('family.saved')}` : ''),
+                (a.saved ? ` · ${t('family.saved')}` : '') +
+                (a.talent ? ` · ${t('family.talent', { stat: t(`stat.${a.talent}`) })}` : ''),
             ),
           ),
         ),

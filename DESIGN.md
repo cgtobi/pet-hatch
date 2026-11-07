@@ -248,7 +248,8 @@ and within each session. Some unlock a twist as the pet grows up, and they take 
 | Endurance | Jump rope | Jump as the rope comes down; it turns faster and faster (see below). It stays as it is: no level, twists or element colors. |
 
 - A session costs 20% energy and a little food; a score of 0–100% earns 1–6 points. Each type learns one stat
-  25% faster (Ember Power, Tide Speed, Bloom Guard, Astral Wits); scruffy children learn 20% slower, elders 50%.
+  25% faster (Ember Power, Tide Speed, Bloom Guard, Astral Wits), and a pet with a **talent** (see *Family*) 25% faster
+  again in that stat; scruffy children learn 20% slower, elders 50%.
 - **Slower at the top:** gains shrink as the stat climbs (×1 at 0, ×0.55 at 60, ×0.25 at 100; at least 1 point).
   At a 70% score a stat takes about 8 sessions to reach the child cap, 10 more for the teen cap and 25 more for
   100 (6, 8 and 18 for the favourite stat), so maxing all four takes most of the adult stage.
@@ -469,7 +470,15 @@ A collection of all 36 species across every pet the player raises (`src/sim/book
 
 - A pet that **retires** (the happy ending) leaves an egg that inherits a head start: about a tenth of the
   parent's best stat (3–8 points) in that stat, plus 5 points in every other stat it had at 100 (at most
-  8 + 5 + 5 + 5 with four stars). The egg is called "Pip's egg", and the new pet carries a
+  8 + 5 + 5 + 5 with four stars).
+- **The egg watches:** everything the elder trains during elder week is counted for its resting egg (the egg hops
+  after each session, and the result says what it made of it), even a stat already at 100, so a maxed elder still
+  has a reason to train; such rows stay open on the Train sheet. The stat trained most, at least 3 times (ties: the
+  latest), becomes the baby's **talent** (`talentOf()` in `src/sim/training.ts`): it learns that stat 25% faster,
+  Endurance included. The wake-up and the reveal name it, the Train sheet marks its row "✦ Talent", and the family
+  list keeps it. Talents don't add up down the family: each pet has only its parent's, so keeping one going means
+  training it again in the next elder week. A week without enough training still passes on the head start.
+- The egg is called "Pip's egg", and the new pet carries a
   **generation** chip (Gen 2, Gen 3, …). The reveal tells you what it inherited.
 - A pet that ran away or died, or a manual restart, passes nothing on; the next egg is a fresh first generation.
 - Menu › **Family** (always there; before the first past pet it says they will appear there) lists every past

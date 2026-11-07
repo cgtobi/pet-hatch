@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { HOUR } from './clock';
 import { advance, DEFAULT_SETTINGS, elderLeaves, handOver, hatch, heritageOf, isReadyToHatch, layNewEgg, MASTERED_BONUS, newGame } from './game';
 import { importSave, exportSave } from './save';
+import { finishTraining, talentOf, trainGain } from './training';
 import type { GameState, PetState } from './types';
 
 const T0 = new Date(2026, 0, 1, 9).getTime();
@@ -161,5 +162,71 @@ describe('handing over to the egg', () => {
     const back = importSave(exportSave(s));
     expect(back.elder?.pet.name).toBe('Pip');
     expect(back.phase).toBe('egg');
+  });
+});
+
+describe('the egg watching its elder train', () => {
+  const elderPet = () => {
+    const s = withPet();
+    s.pet.stage = s.pet.shownStage = 4;
+    return s;
+  };
+
+  it('only counts what an elder trains', () => {
+    const s = withPet();
+    s.pet.stage = 3;
+    finishTraining(s.pet, 'guard', 0.7);
+    expect(s.pet.eggWatch).toBeUndefined();
+    s.pet.stage = 4;
+    finishTraining(s.pet, 'guard', 0.7);
+    finishTraining(s.pet, 'endurance', 0.2);
+    expect(s.pet.eggWatch).toEqual(['guard', 'endurance']);
+  });
+
+  it('counts a stat already at 100, though the elder gains nothing', () => {
+    const s = elderPet();
+    s.pet.stats.speed = 100;
+    expect(finishTraining(s.pet, 'speed', 0.9).gain).toBe(0);
+    expect(s.pet.eggWatch).toEqual(['speed']);
+  });
+
+  it('makes the most trained stat the talent, from 3 sessions on, ties to the latest', () => {
+    const s = elderPet();
+    const watch = (list: PetState['eggWatch']) => talentOf({ ...s.pet, eggWatch: list });
+    expect(watch(undefined)).toBeNull();
+    expect(watch(['power', 'power', 'wits'])).toBeNull();
+    expect(watch(['power', 'wits', 'power', 'power'])).toBe('power');
+    expect(watch(['wits', 'wits', 'wits', 'power', 'power', 'power', 'power'])).toBe('power');
+    expect(watch(['power', 'power', 'power', 'wits', 'wits', 'wits'])).toBe('wits');
+    expect(watch(['wits', 'power', 'power', 'power', 'wits', 'wits'])).toBe('wits');
+  });
+
+  it('passes the talent to the baby, which learns it faster, and keeps it in the save and the family', () => {
+    const s = elderPet();
+    for (let i = 0; i < 3; i++) finishTraining(s.pet, 'guard', 0.7);
+    s.pet.status = 'retired';
+    handOver(s, T0 + 900 * HOUR);
+    expect(s.egg.heritage?.talent).toBe('guard');
+    expect(importSave(exportSave(s)).egg.heritage?.talent).toBe('guard');
+    s.egg.readyAt = T0 + 905 * HOUR;
+    const baby = hatch(s, T0 + 906 * HOUR, false);
+    expect(baby.talent).toBe('guard');
+    baby.stage = 1;
+    const plain = { ...baby, talent: undefined };
+    expect(trainGain(baby, 'guard', 1)).toBeGreaterThan(trainGain(plain, 'guard', 1));
+    expect(trainGain(baby, 'wits', 1)).toBe(trainGain(plain, 'wits', 1));
+    expect(importSave(exportSave(s)).pet?.talent).toBe('guard');
+    elderLeaves(s, T0 + 906 * HOUR);
+    baby.status = 'retired';
+    layNewEgg(s, T0 + 1800 * HOUR, 12);
+    expect(s.family.map((a) => a.talent)).toEqual([undefined, 'guard']);
+    expect(s.egg.heritage?.talent).toBeUndefined();
+  });
+
+  it('passes no talent from a week without enough training', () => {
+    const s = elderPet();
+    finishTraining(s.pet, 'guard', 0.7);
+    finishTraining(s.pet, 'guard', 0.7);
+    expect(heritageOf(s.pet).talent).toBeUndefined();
   });
 });

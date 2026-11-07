@@ -161,6 +161,7 @@ export function createPet(egg: EggState, type: ElementType, at: number, alone: b
     battleXp: 0,
     lessons: [],
     generation: egg.heritage?.generation ?? 1,
+    ...(egg.heritage?.talent ? { talent: egg.heritage.talent } : {}),
     vialUsed: !!egg.vialUsed,
     fading: null,
   };

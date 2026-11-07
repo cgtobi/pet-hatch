@@ -4,7 +4,7 @@ import { isSpeciesKey } from './book';
 import { migrateEggCare, migrateEggTime } from './egg';
 import { DEFAULT_SETTINGS, NEGLECT_MODES } from './game';
 import { LIFE_STAGES, migratePet } from './pet';
-import { STATS } from './training';
+import { STATS, TRAIN_STATS } from './training';
 import { EGG_STAMPS, type Dropping, type ElementType, type FormId, type GameState, type Heritage, type PetState, type PetStatus, type Stat } from './types';
 
 const KEY = 'pethatch.save';
@@ -107,6 +107,7 @@ export function isSound(s: GameState): boolean {
     isInt(a.wins, 0, 1e6) &&
     (a.stars === undefined || isInt(a.stars, 0, STATS.length)) &&
     (a.saved === undefined || typeof a.saved === 'boolean') &&
+    (a.talent === undefined || isOneOf(a.talent, TRAIN_STATS)) &&
     isNum(a.hatchedAt) &&
     isNum(a.endedAt),
   );
@@ -118,7 +119,11 @@ export function isSound(s: GameState): boolean {
     isVial(egg) &&
     (egg.stamps === undefined || (Array.isArray(egg.stamps) && egg.stamps.every((s) => isOneOf(s, EGG_STAMPS)))) &&
     (h === null ||
-      (isName(h.parentName) && isOneOf(h.parentType, TYPES) && isStats(h.stats, 100) && isInt(h.generation, 1, 1e6)));
+      (isName(h.parentName) &&
+        isOneOf(h.parentType, TYPES) &&
+        isStats(h.stats, 100) &&
+        (h.talent === undefined || isOneOf(h.talent, TRAIN_STATS)) &&
+        isInt(h.generation, 1, 1e6)));
   const petOk = pet === null || isPetSound(pet);
   const elderOk =
     s.elder === undefined || (typeof s.elder?.told === 'boolean' && isNum(s.elder.laidAt) && isPetSound(s.elder.pet));
@@ -164,6 +169,8 @@ function isPetSound(pet: PetState): boolean {
           Object.entries(pet.bests).every(([k, n]) => isOneOf(k, [...STATS, 'endurance']) && isInt(n, 0, 100)))) &&
       isNum(pet.battleXp, 0, 1000) &&
       isList(pet.lessons, 100, (l: PetState['lessons'][number]) => isOneOf(l.stat, STATS) && isName(l.from)) &&
+      (pet.talent === undefined || isOneOf(pet.talent, TRAIN_STATS)) &&
+      (pet.eggWatch === undefined || isList(pet.eggWatch, 10_000, (w: string) => isOneOf(w, TRAIN_STATS))) &&
       isList(pet.droppings, 100, (d: Dropping) => isNum(d.angle) && isNum(d.dist, 0, 10) && isNum(d.at)) &&
       isList(pet.mistakes, LIFE_STAGES.length, (n: number) => isInt(n, 0, 1e6)))
   );

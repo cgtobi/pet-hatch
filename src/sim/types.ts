@@ -39,6 +39,8 @@ export interface Heritage {
   parentType: ElementType;
   /** Head start per stat: a few points in the parent's best stat, and more for every other stat it had at 100. */
   stats: Partial<Record<Stat, number>>;
+  /** The stat the parent trained most in front of the egg: the baby learns it faster (missing: none). */
+  talent?: Stat | 'endurance';
   generation: number;
 }
 
@@ -55,6 +57,8 @@ export interface Ancestor {
   stars?: number;
   /** Saved once by the vial (as an egg or as a pet; missing: never). */
   saved?: boolean;
+  /** The talent it inherited (missing: none). */
+  talent?: Stat | 'endurance';
   hatchedAt: number;
   endedAt: number;
 }
@@ -215,6 +219,10 @@ export interface PetState {
   lessons: { stat: Stat; from: string }[];
   /** 1 for a first pet; each retired parent's egg adds one. */
   generation: number;
+  /** Inherited from its parent: it learns this stat faster (missing: none). */
+  talent?: Stat | 'endurance';
+  /** What it trained as an elder, in order, with its resting egg watching; decides the egg's talent. */
+  eggWatch?: (Stat | 'endurance')[];
   /** The vial, carried over from the egg (see EggState.vialUsed); missing: still there. */
   vialUsed?: boolean;
   /** Collapsed at 0 health (Classic), see EggState.fading. */

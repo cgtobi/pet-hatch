@@ -23,6 +23,10 @@ const OBEY_DISCIPLINE = 40;
 const MAX_REFUSAL = 0.3;
 /** A pet woken at night is grumpy and refuses this much more often. */
 const UP_LATE_REFUSAL = 0.25;
+/** The resting egg learns from what the elder trains: this many sessions of one stat make it the baby's talent. */
+export const TALENT_SESSIONS = 3;
+/** A pet learns its talent this much faster (on top of its element's favorite stat). */
+const TALENT_BONUS = 1.25;
 /** Gains shrink as a stat climbs: full at 0, about half at 60, a quarter at 100. */
 const SLOWDOWN = 0.75;
 
@@ -85,6 +89,7 @@ export function trainGain(pet: PetState, stat: TrainStat, score: number): number
   let gain = (1 + 5 * clamp(score, 0, 1)) * (1 - (SLOWDOWN * trainValue(pet, stat)) / 100);
   if (FAVORITE[pet.type] === stat) gain *= 1.25;
   if (pet.form === 'child.scruffy') gain *= 0.8;
+  if (pet.talent === stat) gain *= TALENT_BONUS;
   if (pet.stage >= 4) gain *= 0.5;
   return Math.max(1, Math.round(gain));
 }
@@ -105,6 +110,8 @@ export function finishTraining(pet: PetState, stat: TrainStat, score: number): T
   if (stat === 'endurance') pet.endurance += gain;
   else pet.stats[stat] += gain;
   pet.trainings++;
+  // An elder trains with its resting egg watching.
+  if (pet.stage >= 4) pet.eggWatch = [...(pet.eggWatch ?? []), stat];
   const pct = Math.round(clamp(score, 0, 1) * 100);
   const bests = (pet.bests ??= {});
   // The first session sets the bar; a record is beating an earlier best.
@@ -114,6 +121,22 @@ export function finishTraining(pet: PetState, stat: TrainStat, score: number): T
   pet.hunger = clamp(pet.hunger - TRAIN_HUNGER);
   pet.mood = clamp(pet.mood + (score >= 0.5 ? 6 : -3));
   return { gain, capped: trainValue(pet, stat) >= cap, best: bests[stat]!, record };
+}
+
+/**
+ * The talent an elder passes on: the stat it trained most in front of its egg, if at least TALENT_SESSIONS
+ * times; ties go to the one trained most recently.
+ */
+export function talentOf(pet: PetState): TrainStat | null {
+  const watch = pet.eggWatch ?? [];
+  const counts = new Map<TrainStat, number>();
+  for (const s of watch) counts.set(s, (counts.get(s) ?? 0) + 1);
+  let talent: TrainStat | null = null;
+  for (let i = watch.length - 1; i >= 0; i--) {
+    const n = counts.get(watch[i])!;
+    if (n >= TALENT_SESSIONS && (!talent || n > counts.get(talent)!)) talent = watch[i];
+  }
+  return talent;
 }
 
 export type Grade = 'excellent' | 'great' | 'good' | 'poor';
